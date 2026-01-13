@@ -130,9 +130,9 @@ export default function ChartHeader(props: ChartHeaderProps) {
               }`}
             >
               {props.marketData?.priceChangePercent
-                ? `${isPositive ? '+' : ''}${parseFloat(props.marketData.priceChangePercent).toFixed(
-                    2,
-                  )}%`
+                ? `${isPositive ? '+' : ''}${parseFloat(
+                    props.marketData.priceChangePercent,
+                  ).toFixed(2)}%`
                 : '--'}
             </span>
           )}

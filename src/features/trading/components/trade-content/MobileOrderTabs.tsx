@@ -1,15 +1,54 @@
 import React from 'react';
+import { MousePointerClick, TrendingUp } from 'lucide-react';
 
 interface MobileOrderTabsProps {
-  mobileActiveTab: 'long' | 'short' | 'swap';
-  onTabClick: (tab: 'long' | 'short' | 'swap') => void;
+  mobileActiveTab?: 'long' | 'short' | 'swap';
+  onTabClick?: (tab: 'long' | 'short' | 'swap') => void;
+  mode?: 'market' | 'trade';
+  activeTradeMode?: 'open-position' | 'one-tap-profit';
+  onTradeModeClick?: (mode: 'open-position' | 'one-tap-profit') => void;
 }
 
-export default function MobileOrderTabs({ mobileActiveTab, onTabClick }: MobileOrderTabsProps) {
+export default function MobileOrderTabs({
+  mobileActiveTab,
+  onTabClick,
+  mode = 'market',
+  activeTradeMode,
+  onTradeModeClick,
+}: MobileOrderTabsProps) {
+  if (mode === 'trade') {
+    return (
+      <div className="flex items-center bg-trading-panel">
+        <button
+          onClick={() => onTradeModeClick && onTradeModeClick('open-position')}
+          className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+            activeTradeMode === 'open-position'
+              ? 'bg-info/20 text-info border-t-2 border-info'
+              : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
+          }`}
+        >
+          <TrendingUp size={16} />
+          Open Position
+        </button>
+        <button
+          onClick={() => onTradeModeClick && onTradeModeClick('one-tap-profit')}
+          className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+            activeTradeMode === 'one-tap-profit'
+              ? 'bg-success/20 text-success border-t-2 border-success'
+              : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
+          }`}
+        >
+          <MousePointerClick size={16} />
+          One Tap Profit
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center bg-trading-panel">
       <button
-        onClick={() => onTabClick('long')}
+        onClick={() => onTabClick && onTabClick('long')}
         className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
           mobileActiveTab === 'long'
             ? 'bg-long text-text-primary hover:bg-long-active'
@@ -30,7 +69,7 @@ export default function MobileOrderTabs({ mobileActiveTab, onTabClick }: MobileO
         Long
       </button>
       <button
-        onClick={() => onTabClick('short')}
+        onClick={() => onTabClick && onTabClick('short')}
         className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
           mobileActiveTab === 'short'
             ? 'bg-short text-text-primary hover:bg-short-active'
@@ -51,7 +90,7 @@ export default function MobileOrderTabs({ mobileActiveTab, onTabClick }: MobileO
         Short
       </button>
       <button
-        onClick={() => onTabClick('swap')}
+        onClick={() => onTabClick && onTabClick('swap')}
         className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
           mobileActiveTab === 'swap'
             ? 'bg-swap text-text-primary hover:bg-swap-active'

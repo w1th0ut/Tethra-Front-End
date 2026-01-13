@@ -31,7 +31,8 @@ interface SidebarContentProps {
 
 export default function SidebarContent({
   navItems = [
-    { href: '/trade', icon: CandlestickChart, label: 'Trade' },
+    { href: '/trade', icon: CandlestickChart, label: 'Tap to Trade' },
+    { href: '/market', icon: CandlestickChart, label: 'Market' },
     { href: '/vaults', icon: Vault, label: 'Vaults' },
     { href: '/stake', icon: Coins, label: 'Stake' },
     { href: '/positions', icon: List, label: 'Positions' },

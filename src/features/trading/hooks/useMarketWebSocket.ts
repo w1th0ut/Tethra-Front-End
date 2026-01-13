@@ -195,25 +195,25 @@ export function useMarketWebSocket(markets: Market[]): UseMarketWebSocketReturn 
             const message = JSON.parse(event.data);
 
             if (message.type === 'price_update' && message.data) {
-            setOraclePrices((prev) => {
-              const next: Record<string, OraclePrice> = { ...prev };
-              Object.keys(message.data).forEach((symbol) => {
-                const priceData = message.data[symbol];
-                next[symbol.toUpperCase()] = {
-                  symbol: priceData.symbol,
-                  price: priceData.price,
-                  confidence: priceData.confidence,
-                  timestamp: priceData.timestamp,
-                  source: priceData.source,
-                };
+              setOraclePrices((prev) => {
+                const next: Record<string, OraclePrice> = { ...prev };
+                Object.keys(message.data).forEach((symbol) => {
+                  const priceData = message.data[symbol];
+                  next[symbol.toUpperCase()] = {
+                    symbol: priceData.symbol,
+                    price: priceData.price,
+                    confidence: priceData.confidence,
+                    timestamp: priceData.timestamp,
+                    source: priceData.source,
+                  };
+                });
+                return next;
               });
-              return next;
-            });
+            }
+          } catch (error) {
+            console.error('Error parsing Oracle message:', error);
           }
-        } catch (error) {
-          console.error('Error parsing Oracle message:', error);
-        }
-      };
+        };
 
         ws.onerror = () => {
           // Silently handle error - backend might not be running
