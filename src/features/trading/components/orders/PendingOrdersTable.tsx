@@ -1,9 +1,13 @@
 'use client';
 
-import { useUserPendingOrders, useCancelOrder, OrderType } from '@/features/trading/hooks/useLimitOrder';
+import {
+  useUserPendingOrders,
+  useCancelOrder,
+  OrderType,
+} from '@/features/trading/hooks/useLimitOrder';
 import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import { formatUnits } from 'viem';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const PendingOrdersTable = () => {
   const { orders, isLoading, refetch } = useUserPendingOrders();
@@ -57,14 +61,14 @@ const PendingOrdersTable = () => {
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left text-gray-400">
         <thead className="text-xs text-gray-500 uppercase">
-            <tr className="border-b border-gray-800">
-              <th className="px-4 py-3 text-left font-medium">SYMBOL</th>
-              <th className="px-4 py-3 text-left font-medium">DIRECTION</th>
-              <th className="px-4 py-3 text-left font-medium">TRIGGER PRICE</th>
-              <th className="px-4 py-3 text-left font-medium">COLLATERAL</th>
-              <th className="px-4 py-3 text-left font-medium">LEVERAGE</th>
-              <th className="px-4 py-3 text-left font-medium">CREATED</th>
-              <th className="px-4 py-3 text-left font-medium"></th>
+          <tr className="border-b border-gray-800">
+            <th className="px-4 py-3 text-left font-medium">SYMBOL</th>
+            <th className="px-4 py-3 text-left font-medium">DIRECTION</th>
+            <th className="px-4 py-3 text-left font-medium">TRIGGER PRICE</th>
+            <th className="px-4 py-3 text-left font-medium">COLLATERAL</th>
+            <th className="px-4 py-3 text-left font-medium">LEVERAGE</th>
+            <th className="px-4 py-3 text-left font-medium">CREATED</th>
+            <th className="px-4 py-3 text-left font-medium"></th>
           </tr>
         </thead>
         <tbody>
@@ -78,37 +82,42 @@ const PendingOrdersTable = () => {
               collateral: order.collateral.toString(),
               leverage: order.leverage.toString(),
             });
-            
+
             const triggerPrice = parseFloat(formatUnits(order.triggerPrice, 8));
             // Show collateral and leverage for ALL order types for debugging
             const collateral = parseFloat(formatUnits(order.collateral, 6));
             const leverage = Number(order.leverage);
             const createdDate = new Date(Number(order.createdAt) * 1000);
 
-            const orderTypeLabel = 
-              order.orderType === OrderType.LIMIT_OPEN ? 'Limit' :
-              order.orderType === OrderType.LIMIT_CLOSE ? 'Take Profit' :
-              'Stop Loss';
+            const orderTypeLabel =
+              order.orderType === OrderType.LIMIT_OPEN
+                ? 'Limit'
+                : order.orderType === OrderType.LIMIT_CLOSE
+                ? 'Take Profit'
+                : 'Stop Loss';
 
             const orderTypeColor =
-              order.orderType === OrderType.LIMIT_OPEN ? 'text-blue-400' :
-              order.orderType === OrderType.LIMIT_CLOSE ? 'text-green-400' :
-              'text-red-400';
+              order.orderType === OrderType.LIMIT_OPEN
+                ? 'text-blue-400'
+                : order.orderType === OrderType.LIMIT_CLOSE
+                ? 'text-green-400'
+                : 'text-red-400';
 
             return (
-              <tr key={order.id.toString()} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+              <tr
+                key={order.id.toString()}
+                className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors"
+              >
                 {/* Symbol */}
                 <td className="px-4 py-3">
-                  <span className="text-white font-medium">
-                    {formatMarketPair(order.symbol)}
-                  </span>
+                  <span className="text-white font-medium">{formatMarketPair(order.symbol)}</span>
                 </td>
 
                 {/* Direction */}
                 <td className="px-4 py-3">
-                  <span className={`font-medium ${
-                    order.isLong ? 'text-green-400' : 'text-red-400'
-                  }`}>
+                  <span
+                    className={`font-medium ${order.isLong ? 'text-green-400' : 'text-red-400'}`}
+                  >
                     {order.isLong ? 'Long' : 'Short'}
                   </span>
                 </td>
@@ -116,7 +125,8 @@ const PendingOrdersTable = () => {
                 {/* Trigger Price */}
                 <td className="px-4 py-3">
                   <span className="text-white">
-                    ${triggerPrice.toLocaleString(undefined, {
+                    $
+                    {triggerPrice.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BACKEND_API_URL } from '@/config/contracts';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export interface TPSLConfig {
   positionId: number;
@@ -133,10 +133,10 @@ export function useAllTPSL() {
   // This is now just a wrapper for backward compatibility
   // Real implementation is in TPSLContext
   console.warn('useAllTPSL is deprecated. Use useTPSLContext from TPSLContext instead.');
-  
+
   const [configs, setConfigs] = useState<Record<number, TPSLConfig>>({});
   const [isLoading, setIsLoading] = useState(false);
-  
+
   return { configs, isLoading, refresh: async () => {} };
 }
 
@@ -147,9 +147,9 @@ export function useAllTPSL() {
 export function useTPSLConfig(positionId: number | null) {
   // Simple non-context version for components that don't have context yet
   // Returns empty config - components should migrate to use TPSLContext
-  return { 
-    config: null as TPSLConfig | null, 
-    isLoading: false, 
-    refresh: () => {} 
+  return {
+    config: null as TPSLConfig | null,
+    isLoading: false,
+    refresh: () => {},
   };
 }

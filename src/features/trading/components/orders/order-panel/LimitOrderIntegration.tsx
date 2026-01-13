@@ -1,6 +1,6 @@
 /**
  * Limit Order Integration Component
- * 
+ *
  * Component ini bisa di-copy paste ke LimitOrder.tsx yang sudah ada
  * untuk menambahkan fungsi submit limit order ke backend
  */
@@ -15,10 +15,15 @@ import {
   useLimitExecutorConfig,
   calculateLimitOrderCost,
 } from '@/features/trading/hooks/useLimitOrder';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 export function useLimitOrderSubmit() {
-  const { createOrder, isPending: isCreatingOrder, isSuccess, submission } = useCreateLimitOpenOrder();
+  const {
+    createOrder,
+    isPending: isCreatingOrder,
+    isSuccess,
+    submission,
+  } = useCreateLimitOpenOrder();
   const { approve, hasAllowance, isPending: isApproving } = useApproveUSDCForLimitOrders();
   const { executionFee, executionFeeFormatted, error: executionFeeError } = useExecutionFee();
   const { tradingFeeBps } = useLimitExecutorConfig();
@@ -30,8 +35,8 @@ export function useLimitOrderSubmit() {
     collateral: string;
     leverage: number;
     triggerPrice: string;
-    takeProfit?: string;  // Optional TP price (8 decimals)
-    stopLoss?: string;    // Optional SL price (8 decimals)
+    takeProfit?: string; // Optional TP price (8 decimals)
+    stopLoss?: string; // Optional SL price (8 decimals)
   }) => {
     try {
       setIsProcessing(true);
@@ -63,9 +68,13 @@ export function useLimitOrderSubmit() {
       // 3. Check and approve USDC if needed (UNLIMITED APPROVAL - once only!)
       const UNLIMITED_APPROVAL = '1000000000'; // 1B USDC (effectively unlimited)
       if (!hasAllowance(cost.totalCostFormatted)) {
-        toast.loading('Approving USDC for limit orders (one-time only)...', { id: 'limit-order-approve' });
+        toast.loading('Approving USDC for limit orders (one-time only)...', {
+          id: 'limit-order-approve',
+        });
         await approve(UNLIMITED_APPROVAL);
-        toast.success('USDC approved! You can now create limit orders without approval.', { id: 'limit-order-approve' });
+        toast.success('USDC approved! You can now create limit orders without approval.', {
+          id: 'limit-order-approve',
+        });
       }
 
       // 4. Create limit order (sign + submit to keeper) - GASLESS!
@@ -79,7 +88,7 @@ export function useLimitOrderSubmit() {
         takeProfit: params.takeProfit,
         stopLoss: params.stopLoss,
       });
-      
+
       // Show success message with TP/SL info if configured
       let successMsg = 'Limit order created successfully!';
       if (params.takeProfit || params.stopLoss) {
@@ -87,7 +96,6 @@ export function useLimitOrderSubmit() {
       }
       toast.success(successMsg, { id: 'limit-order-create', duration: 5000 });
       return true;
-
     } catch (error) {
       console.error('Error creating limit order:', error);
       toast.error('Failed to create limit order', { id: 'limit-order-create' });
@@ -109,22 +117,22 @@ export function useLimitOrderSubmit() {
 
 /**
  * CARA PAKAI:
- * 
+ *
  * 1. Import hook ini di LimitOrder.tsx:
- * 
+ *
  *    import { useLimitOrderSubmit } from './LimitOrderIntegration';
- * 
+ *
  * 2. Tambahkan di dalam component:
- * 
+ *
  *    const { submitLimitOrder, isProcessing, executionFee } = useLimitOrderSubmit();
  *    const [limitPrice, setLimitPrice] = useState<string>('');
- * 
+ *
  * 3. Tambahkan state untuk limit price (line ~165):
- * 
+ *
  *    const [limitPrice, setLimitPrice] = useState<string>('');
- * 
+ *
  * 4. Update input "Limit Price" (line 458-491) untuk menggunakan state:
- * 
+ *
  *    <input
  *      type="text"
  *      placeholder="0.0"
@@ -137,9 +145,9 @@ export function useLimitOrderSubmit() {
  *      }}
  *      className="bg-transparent text-xl text-white outline-none w-full"
  *    />
- * 
+ *
  * 5. Replace "Enter an amount" section (line 715-718) dengan button:
- * 
+ *
  *    <button
  *      onClick={() => submitLimitOrder({
  *        symbol: activeMarket.symbol,
@@ -161,9 +169,9 @@ export function useLimitOrderSubmit() {
  *    >
  *      {isProcessing ? 'Processing...' : `Create Limit ${activeTab === 'long' ? 'Long' : 'Short'} Order`}
  *    </button>
- * 
+ *
  * 6. Tampilkan execution fee info (di bawah Collateral In, sekitar line 614):
- * 
+ *
  *    <div className="flex justify-between items-center text-sm">
  *      <div className="flex items-center gap-1">
  *        <span className="text-gray-400">Execution Fee</span>
@@ -171,6 +179,6 @@ export function useLimitOrderSubmit() {
  *      </div>
  *      <span className="text-white">${executionFee} USDC</span>
  *    </div>
- * 
+ *
  * DONE! Limit order sudah terintegrasi penuh 🎉
  */
