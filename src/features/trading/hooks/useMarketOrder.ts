@@ -16,7 +16,7 @@ import MockUSDCABI from '@/contracts/abis/MockUSDC.json';
 const MarketExecutorABI = (MarketExecutorJSON as any).abi;
 import { getSignedPrice, SignedPriceData } from '@/lib/priceApi';
 import { relayTransaction } from '@/lib/relayApi';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export interface OpenPositionParams {

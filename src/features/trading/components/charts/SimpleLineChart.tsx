@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { pythDataFeed, Candle } from '@/app/services/pythDataFeed';
 import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface SimpleLineChartProps {
   symbol: string;
@@ -30,7 +30,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   currentPrice,
   tapToTradeEnabled,
   gridSize,
-  onCellTap
+  onCellTap,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -39,7 +39,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   // Dynamic mobile check
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768,
+  );
   const [visibleCandles, setVisibleCandles] = useState(isMobile ? 3 : 20); // Fewer candles on mobile = more zoomed in
 
   // Update mobile state on resize
@@ -139,12 +141,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         console.log(`📊 Fetching candles from Pyth Oracle for ${symbol}`);
         const candles = await pythDataFeed.fetchCandles(symbol, interval, 100);
 
-        const data: ChartData[] = candles.map(candle => ({
+        const data: ChartData[] = candles.map((candle) => ({
           time: candle.time,
           open: candle.open,
           high: candle.high,
           low: candle.low,
-          close: candle.close
+          close: candle.close,
         }));
 
         setChartData(data);
@@ -155,43 +157,39 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           wsRef.current.close();
         }
 
-        const { ws, cleanup } = pythDataFeed.createWebSocket(
-          symbol,
-          interval,
-          (candle: Candle) => {
-            setChartData(prevData => {
-              const newData = [...prevData];
-              const lastIndex = newData.length - 1;
+        const { ws, cleanup } = pythDataFeed.createWebSocket(symbol, interval, (candle: Candle) => {
+          setChartData((prevData) => {
+            const newData = [...prevData];
+            const lastIndex = newData.length - 1;
 
-              // Check if we should update last candle or add new one
-              if (lastIndex >= 0 && newData[lastIndex].time === candle.time) {
-                // Update existing candle with new OHLC data
-                newData[lastIndex] = {
-                  time: candle.time,
-                  open: candle.open,
-                  high: candle.high,
-                  low: candle.low,
-                  close: candle.close
-                };
-              } else {
-                // Add new candle
-                newData.push({
-                  time: candle.time,
-                  open: candle.open,
-                  high: candle.high,
-                  low: candle.low,
-                  close: candle.close
-                });
-                // Keep only last 100 candles
-                if (newData.length > 100) {
-                  newData.shift();
-                }
+            // Check if we should update last candle or add new one
+            if (lastIndex >= 0 && newData[lastIndex].time === candle.time) {
+              // Update existing candle with new OHLC data
+              newData[lastIndex] = {
+                time: candle.time,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+              };
+            } else {
+              // Add new candle
+              newData.push({
+                time: candle.time,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+              });
+              // Keep only last 100 candles
+              if (newData.length > 100) {
+                newData.shift();
               }
+            }
 
-              return newData;
-            });
-          }
-        );
+            return newData;
+          });
+        });
 
         wsRef.current = ws;
         cleanupFn = cleanup; // Store cleanup function
@@ -220,7 +218,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
     const latestPrice = currentPrice;
 
     if (latestPrice > 0 && chartData.length > 0) {
-      setChartData(prevData => {
+      setChartData((prevData) => {
         const newData = [...prevData];
         const lastIndex = newData.length - 1;
 
@@ -248,7 +246,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             open: latestPrice,
             high: latestPrice,
             low: latestPrice,
-            close: latestPrice
+            close: latestPrice,
           });
           // Keep only last 100 candles
           if (newData.length > 100) {
@@ -263,7 +261,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               open: newData[lastIndex].open, // Keep original open
               high: Math.max(newData[lastIndex].high, latestPrice), // Update high
               low: Math.min(newData[lastIndex].low, latestPrice), // Update low
-              close: latestPrice // Update close to real-time price
+              close: latestPrice, // Update close to real-time price
             };
           }
         }
@@ -306,9 +304,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
       // Calculate price range with zoom factor
       // Use high/low for accurate range in candlestick mode, close for line mode
-      const prices = chartType === 'candle'
-        ? chartData.flatMap(d => [d.high, d.low])
-        : chartData.map(d => d.close);
+      const prices =
+        chartType === 'candle'
+          ? chartData.flatMap((d) => [d.high, d.low])
+          : chartData.map((d) => d.close);
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
       const priceRange = maxPrice - minPrice;
@@ -342,11 +341,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         const pixelsPerPrice = chartHeight / chartPriceRange;
         const verticalShift = verticalPanOffset / pixelsPerPrice;
 
-        chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
-        chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
+        chartMinPrice = priceCenter - chartPriceRange / 2 + verticalShift;
+        chartMaxPrice = priceCenter + chartPriceRange / 2 + verticalShift;
       } else {
         // Normal mode - use data range
-        const baseRange = priceRange + (padding * 2);
+        const baseRange = priceRange + padding * 2;
         const pixelsPerPrice = chartHeight / baseRange;
         const verticalShift = verticalPanOffset / pixelsPerPrice;
 
@@ -368,7 +367,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const timeToX = (index: number): number => {
         // panOffset is now in pixels, so subtract it directly
         const candleOffset = index - latestDataIndex;
-        return nowX + (candleOffset * pixelsPerCandle) - panOffset;
+        return nowX + candleOffset * pixelsPerCandle - panOffset;
       };
 
       // Calculate how many future candles can fit on right side
@@ -400,7 +399,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             const percentDiff = ((price - currentPrice) / currentPrice) * 100;
             ctx.fillStyle = '#94a3b8';
             ctx.font = '10px monospace';
-            ctx.fillText(`$${price.toFixed(2)} (${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%)`, chartWidth + 5, y - 2);
+            ctx.fillText(
+              `$${price.toFixed(2)} (${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%)`,
+              chartWidth + 5,
+              y - 2,
+            );
           }
         }
         ctx.setLineDash([]);
@@ -475,14 +478,14 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // Calculate timestamp for this grid cell (use real-time as reference)
             const isFutureCell = i >= chartData.length;
             let gridTime: number;
-            
+
             const getIntervalMs = (int: string) => {
               if (int === 'D') return 86400000;
               const min = parseInt(int);
               return (isNaN(min) ? 60 : min) * 60 * 1000;
             };
             const intervalMs = getIntervalMs(interval);
-            
+
             if (isFutureCell) {
               // Future: estimate time based on current real-time + interval
               const futureOffset = (i - chartData.length + 1) * intervalMs;
@@ -492,7 +495,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               const pastOffset = (chartData.length - 1 - i) * intervalMs;
               gridTime = currentTime - pastOffset;
             }
-            
+
             // Convert to cellX, cellY coordinates (same format as TapToTradeContext)
             // Round to base interval (NOT gridSizeX interval) - each candle stays its base timeframe
             const gridTimeRounded = Math.floor(gridTime / intervalMs) * intervalMs;
@@ -505,7 +508,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             if (gridSession) {
               const timeSeconds = Math.floor(gridTimeRounded / 1000);
               const referenceTime = gridSession.referenceTime;
-              const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
+              const columnDurationSeconds = Math.max(
+                1,
+                gridSession.gridSizeX * gridSession.timeframeSeconds,
+              );
               cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
 
               // Calculate cellY as RELATIVE offset from reference price
@@ -522,10 +528,15 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             const cellId = `${cellX},${cellY}`;
 
             // Check if mouse is hovering over this cell
-            if (mousePosition &&
-                mousePosition.x >= xLeft && mousePosition.x <= xRight &&
-                mousePosition.y >= yTop && mousePosition.y <= yBottom &&
-                mousePosition.x <= chartWidth && mousePosition.y <= chartHeight) {
+            if (
+              mousePosition &&
+              mousePosition.x >= xLeft &&
+              mousePosition.x <= xRight &&
+              mousePosition.y >= yTop &&
+              mousePosition.y <= yBottom &&
+              mousePosition.x <= chartWidth &&
+              mousePosition.y <= chartHeight
+            ) {
               currentHoveredCell = cellId;
             }
 
@@ -538,7 +549,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // LONG (green): price below reference = buy low, sell high
             // SHORT (red): price above reference = sell high, buy low
             const isBuy = hasOrders
-              ? cellOrderInfo.isLong  // Use order direction if exists
+              ? cellOrderInfo.isLong // Use order direction if exists
               : cellY < 0; // Below reference (cellY negative) = LONG = green
 
             const isFuture = i >= chartData.length;
@@ -548,11 +559,11 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               // Adjust line width based on cell size (both width and height)
               const minDimension = Math.min(boxWidth, boxHeight);
               const lineWidth = Math.max(0.5, Math.min(2, minDimension / 5));
-              
+
               if (isBuy) {
                 ctx.fillStyle = 'rgba(16, 185, 129, 0.5)'; // Green with 50% opacity (more visible)
                 ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
-                
+
                 // Only draw border if cell is large enough
                 if (minDimension > 2) {
                   ctx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
@@ -562,7 +573,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               } else {
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.5)'; // Red with 50% opacity (more visible)
                 ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
-                
+
                 // Only draw border if cell is large enough
                 if (minDimension > 2) {
                   ctx.strokeStyle = 'rgba(239, 68, 68, 0.9)';
@@ -648,7 +659,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           // Calculate actual time for this column (use real-time reference for consistency)
           let timestamp: number;
           const intervalMs = intervalMinutes * 60 * 1000;
-          
+
           if (isFuture) {
             // Future: use current real-time + offset
             const futureOffset = (i - chartData.length + 1) * intervalMs;
@@ -694,14 +705,20 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // Show date and hour for daily or hourly grouping
             if (date.getHours() === 0 && date.getMinutes() === 0) {
               // Show date at midnight
-              timeLabel = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+              timeLabel = `${String(date.getDate()).padStart(2, '0')}/${String(
+                date.getMonth() + 1,
+              ).padStart(2, '0')}`;
             } else {
               // Show time
-              timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+              timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(
+                date.getMinutes(),
+              ).padStart(2, '0')}`;
             }
           } else {
             // Show time HH:MM
-            timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+            timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(
+              date.getMinutes(),
+            ).padStart(2, '0')}`;
           }
 
           // Different color for future labels
@@ -782,7 +799,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             // Normal candle
             ctx.fillStyle = color;
             ctx.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
-            
+
             // Border for better visibility
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
@@ -824,7 +841,9 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
         // Current price label with countdown (in the right margin)
         const priceText = `$${currentPrice.toFixed(2)}`;
-        const countdownText = `${String(minutesUntilNext).padStart(2, '0')}:${String(secondsRemainder).padStart(2, '0')}`;
+        const countdownText = `${String(minutesUntilNext).padStart(2, '0')}:${String(
+          secondsRemainder,
+        ).padStart(2, '0')}`;
         ctx.font = 'bold 11px monospace';
         const priceTextWidth = ctx.measureText(priceText).width;
         ctx.font = '9px monospace';
@@ -860,7 +879,12 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       }
 
       // Draw crosshair (follows mouse cursor) - only in chart area
-      if (mousePosition && tapToTradeEnabled && mousePosition.x <= chartWidth && mousePosition.y <= chartHeight) {
+      if (
+        mousePosition &&
+        tapToTradeEnabled &&
+        mousePosition.x <= chartWidth &&
+        mousePosition.y <= chartHeight
+      ) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; // White with transparency
         ctx.lineWidth = 1;
         ctx.setLineDash([3, 3]); // Smaller dashes for crosshair
@@ -883,7 +907,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         const cursorPrice = chartMaxPrice - (mousePosition.y / chartHeight) * chartPriceRange;
 
         // Calculate time at cursor position - snap to grid window start (no seconds)
-        const cursorIndexFloat = (mousePosition.x - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
+        const cursorIndexFloat =
+          (mousePosition.x - nowX) / pixelsPerCandle + latestDataIndex + panOffset;
         let cursorTime: number;
 
         const getIntervalMs = (int: string) => {
@@ -931,17 +956,28 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         let timeText: string;
         if (intervalMinutes >= 1440) {
           // Show date for daily or longer
-          timeText = `${String(cursorDate.getDate()).padStart(2, '0')}/${String(cursorDate.getMonth() + 1).padStart(2, '0')} ${String(cursorDate.getHours()).padStart(2, '0')}:${String(cursorDate.getMinutes()).padStart(2, '0')}`;
+          timeText = `${String(cursorDate.getDate()).padStart(2, '0')}/${String(
+            cursorDate.getMonth() + 1,
+          ).padStart(2, '0')} ${String(cursorDate.getHours()).padStart(2, '0')}:${String(
+            cursorDate.getMinutes(),
+          ).padStart(2, '0')}`;
         } else {
           // Show time HH:MM (no seconds - this is window start time)
-          timeText = `${String(cursorDate.getHours()).padStart(2, '0')}:${String(cursorDate.getMinutes()).padStart(2, '0')}`;
+          timeText = `${String(cursorDate.getHours()).padStart(2, '0')}:${String(
+            cursorDate.getMinutes(),
+          ).padStart(2, '0')}`;
         }
 
         const timeTextWidth = ctx.measureText(timeText).width;
 
         // Time label background
         ctx.fillStyle = 'rgba(50, 50, 50, 0.9)';
-        ctx.fillRect(mousePosition.x - timeTextWidth / 2 - 4, chartHeight + 2, timeTextWidth + 8, 18);
+        ctx.fillRect(
+          mousePosition.x - timeTextWidth / 2 - 4,
+          chartHeight + 2,
+          timeTextWidth + 8,
+          18,
+        );
 
         // Time label text
         ctx.fillStyle = '#ffffff';
@@ -958,61 +994,309 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [chartData, dimensions, currentPrice, tapToTradeEnabled, gridSize, hoveredCell, visibleCandles, tapToTrade.gridSizeX, tapToTrade.gridSession, tapToTrade.cellOrders, interval, panOffset, verticalPanOffset, mousePosition, basePrice, currentTime, chartType, isDragging, hasMoved]);
+  }, [
+    chartData,
+    dimensions,
+    currentPrice,
+    tapToTradeEnabled,
+    gridSize,
+    hoveredCell,
+    visibleCandles,
+    tapToTrade.gridSizeX,
+    tapToTrade.gridSession,
+    tapToTrade.cellOrders,
+    interval,
+    panOffset,
+    verticalPanOffset,
+    mousePosition,
+    basePrice,
+    currentTime,
+    chartType,
+    isDragging,
+    hasMoved,
+  ]);
 
   // Mouse drag handlers (like PerSecondChart)
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    e.preventDefault(); // Prevent text selection
-    setIsDragging(true);
-    setHasMoved(false); // Reset movement flag
-    setDragStartX(e.clientX);
-    setDragStartY(e.clientY);
-    setDragStartPanOffset(panOffset);
-    setDragStartVerticalOffset(verticalPanOffset);
-  }, [panOffset, verticalPanOffset]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      e.preventDefault(); // Prevent text selection
+      setIsDragging(true);
+      setHasMoved(false); // Reset movement flag
+      setDragStartX(e.clientX);
+      setDragStartY(e.clientY);
+      setDragStartPanOffset(panOffset);
+      setDragStartVerticalOffset(verticalPanOffset);
+    },
+    [panOffset, verticalPanOffset],
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
-
-    setMousePosition({ x: mouseX, y: mouseY });
-
-    if (isDragging) {
-      e.preventDefault();
-
-      // Both horizontal and vertical movement
-      const deltaX = dragStartX - e.clientX;
-      const deltaY = dragStartY - e.clientY;
-
-      // Check if moved significantly (more than 5 pixels)
-      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-        setHasMoved(true);
-        setPanOffset(dragStartPanOffset + deltaX);
-        // Invert vertical: drag up = chart goes down (see lower prices)
-        setVerticalPanOffset(dragStartVerticalOffset - deltaY);
-      }
-    }
-  }, [isDragging, dragStartX, dragStartY, dragStartPanOffset, dragStartVerticalOffset]);
-
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    // If didn't move, treat as tap/click
-    if (isDragging && !hasMoved && tapToTradeEnabled) {
-      // This is a tap, handle order placement
-      // We need to calculate the cell here instead of relying on hoveredCell
-      if (!canvasRef.current || chartData.length === 0) return;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current) return;
 
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
       const scaleY = canvas.height / rect.height;
-      const clickX = (e.clientX - rect.left) * scaleX;
-      const clickY = (e.clientY - rect.top) * scaleY;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+
+      setMousePosition({ x: mouseX, y: mouseY });
+
+      if (isDragging) {
+        e.preventDefault();
+
+        // Both horizontal and vertical movement
+        const deltaX = dragStartX - e.clientX;
+        const deltaY = dragStartY - e.clientY;
+
+        // Check if moved significantly (more than 5 pixels)
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+          setHasMoved(true);
+          setPanOffset(dragStartPanOffset + deltaX);
+          // Invert vertical: drag up = chart goes down (see lower prices)
+          setVerticalPanOffset(dragStartVerticalOffset - deltaY);
+        }
+      }
+    },
+    [isDragging, dragStartX, dragStartY, dragStartPanOffset, dragStartVerticalOffset],
+  );
+
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      // If didn't move, treat as tap/click
+      if (isDragging && !hasMoved && tapToTradeEnabled) {
+        // This is a tap, handle order placement
+        // We need to calculate the cell here instead of relying on hoveredCell
+        if (!canvasRef.current || chartData.length === 0) return;
+
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+
+        // Define margins (same as in draw function)
+        const rightMargin = isMobile ? 80 : 120;
+        const bottomMargin = 25;
+        const chartWidth = canvas.width - rightMargin;
+        const chartHeight = canvas.height - bottomMargin;
+
+        // Ignore clicks in margin areas
+        if (clickX <= chartWidth && clickY <= chartHeight) {
+          // Call the actual cell tap handler
+          handleCellTapLogic(clickX, clickY, chartWidth, chartHeight);
+        }
+      }
+
+      setIsDragging(false);
+      setHasMoved(false);
+    },
+    [isDragging, hasMoved, tapToTradeEnabled, chartData.length],
+  );
+
+  // Handle cell tap logic (extracted from original handleCanvasClick)
+  const handleCellTapLogic = useCallback(
+    (clickX: number, clickY: number, chartWidth: number, chartHeight: number) => {
+      console.log('🖱️ Cell tapped at:', { clickX, clickY });
+      if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
+        console.log('⚠️ Tap blocked:', {
+          tapToTradeEnabled,
+          hasCanvas: !!canvasRef.current,
+          dataLength: chartData.length,
+        });
+        return;
+      }
+
+      // Calculate what was clicked (same as drawing logic)
+      const prices =
+        chartType === 'candle'
+          ? chartData.flatMap((d) => [d.high, d.low])
+          : chartData.map((d) => d.close);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const priceRange = maxPrice - minPrice;
+      const padding = priceRange * 0.1;
+
+      const gridSizeX = tapToTrade.gridSizeX || 1;
+      const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
+
+      // User input grid step in dollars (Y axis)
+      const gridStepDollar = (gridSize / 100) * basePrice;
+
+      // Calculate price range based on grid settings to make square cells (same as drawing logic)
+      // Each cell is ALWAYS 1 candle wide for perfect square
+      // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
+      // We want: gridYHeightPixels = pixelsPerCandle (1 candle width)
+      const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
+      const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
+
+      // Center the price range around data (same as drawing logic)
+      const priceCenter = (minPrice + maxPrice) / 2;
+      const pixelsPerPrice = chartHeight / chartPriceRange;
+      const verticalShift = verticalPanOffset / pixelsPerPrice;
+
+      const chartMinPrice = priceCenter - chartPriceRange / 2 + verticalShift;
+      const chartMaxPrice = priceCenter + chartPriceRange / 2 + verticalShift;
+
+      // Convert click position to price and snap to grid
+      const clickedPrice = chartMaxPrice - (clickY / chartHeight) * chartPriceRange;
+
+      // Calculate price level INDEX (stable integer, not absolute price)
+      const priceLevelIndex = Math.floor(clickedPrice / gridStepDollar);
+      const actualPrice = priceLevelIndex * gridStepDollar;
+
+      // Convert click position to time index with better precision
+      const nowX = chartWidth * 0.5; // Center position
+      const latestDataIndex = chartData.length - 1;
+
+      // Reverse engineer which index the click corresponds to
+      // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
+      // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
+      const clickIndexFloat = (clickX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
+
+      // Snap to grid boundaries
+      // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
+      // We want to find which grid cell [i, i+gridSizeX) contains clickIndexFloat
+      const snappedCandleIndex = Math.floor(clickIndexFloat / gridSizeX) * gridSizeX;
+
+      // Calculate actual timestamp for clicked cell using SNAPPED index (real-time reference)
+      let clickedTime: number;
+      const isFutureClick = snappedCandleIndex >= chartData.length;
+
+      const getIntervalMs = (int: string) => {
+        if (int === 'D') return 86400000;
+        const min = parseInt(int);
+        return (isNaN(min) ? 60 : min) * 60 * 1000;
+      };
+      const intervalMs = getIntervalMs(interval);
+
+      if (isFutureClick) {
+        // Future click: use current real-time + offset
+        const futureOffset = (snappedCandleIndex - chartData.length + 1) * intervalMs;
+        clickedTime = currentTime + futureOffset;
+      } else {
+        // Past/present click: use current real-time - offset
+        const pastOffset = (chartData.length - 1 - snappedCandleIndex) * intervalMs;
+        clickedTime = currentTime - pastOffset;
+      }
+
+      // Round time to base interval (NOT gridSizeX interval)
+      // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
+      const gridTimeRounded = Math.floor(clickedTime / intervalMs) * intervalMs;
+
+      // Calculate cellX (time column index) - same logic as drawing
+      const gridSession = tapToTrade.gridSession;
+      let cellX = 0;
+      let cellY = 0;
+
+      if (gridSession) {
+        const timeSeconds = Math.floor(gridTimeRounded / 1000);
+        const referenceTime = gridSession.referenceTime;
+        const columnDurationSeconds = Math.max(
+          1,
+          gridSession.gridSizeX * gridSession.timeframeSeconds,
+        );
+        cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+
+        // Calculate cellY as RELATIVE offset from reference price
+        const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+        const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
+        cellY = priceLevelIndex - referencePriceLevel; // Relative offset
+      } else {
+        // Fallback if no grid session
+        cellY = priceLevelIndex;
+      }
+
+      // Use same format as TapToTradeContext
+      const cellId = `${cellX},${cellY}`;
+
+      // Calculate the actual timestamp that backend expects (aligned with gridSession)
+      let backendTimestamp = clickedTime; // fallback
+      if (gridSession) {
+        // Backend expects: referenceTime + (cellX * columnDuration)
+        const columnDurationSeconds = gridSession.gridSizeX * gridSession.timeframeSeconds;
+        backendTimestamp = (gridSession.referenceTime + cellX * columnDurationSeconds) * 1000; // Convert to ms
+
+        // Debug logging
+        console.log('🔍 Grid Session Debug:');
+        console.log('  referenceTime:', new Date(gridSession.referenceTime * 1000).toISOString());
+        console.log('  gridSizeX:', gridSession.gridSizeX);
+        console.log('  timeframeSeconds:', gridSession.timeframeSeconds);
+        console.log('  columnDurationSeconds:', columnDurationSeconds);
+        console.log('  cellX:', cellX);
+        console.log('  calculated backendTimestamp:', new Date(backendTimestamp).toISOString());
+        console.log('  currentTime:', new Date(currentTime).toISOString());
+        console.log('  clickedTime (from visual):', new Date(clickedTime).toISOString());
+      }
+
+      // Check if click is reasonable (within some bounds)
+      if (snappedCandleIndex > -100) {
+        // Allow some past clicks
+        // Determine LONG/SHORT based on cellY relative to reference
+        // cellY < 0 (below reference) = LONG (buy low)
+        // cellY > 0 (above reference) = SHORT (sell high)
+        const isLong = cellY < 0;
+        const futureLabel = isFutureClick ? ' [FUTURE]' : '';
+
+        console.log(
+          `📍 Tapped: ${isLong ? 'LONG' : 'SHORT'} @ $${actualPrice.toFixed(2)}, time: ${new Date(
+            backendTimestamp,
+          ).toLocaleTimeString()}${futureLabel}`,
+        );
+        console.log(
+          `📍 CellId: "${cellId}", cellX: ${cellX}, cellY: ${cellY} (${
+            cellY < 0 ? 'below ref' : 'above ref'
+          })`,
+        );
+        console.log(`📍 Backend timestamp: ${new Date(backendTimestamp).toISOString()}`);
+        console.log(`📍 Calling onCellTap with cellId: "${cellId}"`);
+
+        onCellTap(cellId, actualPrice, backendTimestamp, isLong);
+      } else {
+        console.log('⚠️ Click rejected: snappedCandleIndex:', snappedCandleIndex);
+      }
+    },
+    [
+      tapToTradeEnabled,
+      chartData,
+      currentPrice,
+      gridSize,
+      onCellTap,
+      tapToTrade.gridSizeX,
+      tapToTrade.gridSession,
+      visibleCandles,
+      interval,
+      panOffset,
+      verticalPanOffset,
+      basePrice,
+      currentTime,
+      chartType,
+    ],
+  );
+
+  // Handle canvas hover
+  const handleCanvasMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current || chartData.length === 0) {
+        setHoveredCell(null);
+        setMousePosition(null);
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+
+      // Account for canvas scaling
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+
+      // Update mouse position for crosshair
+      setMousePosition({ x: mouseX, y: mouseY });
 
       // Define margins (same as in draw function)
       const rightMargin = isMobile ? 80 : 120;
@@ -1020,299 +1304,136 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       const chartWidth = canvas.width - rightMargin;
       const chartHeight = canvas.height - bottomMargin;
 
-      // Ignore clicks in margin areas
-      if (clickX <= chartWidth && clickY <= chartHeight) {
-        // Call the actual cell tap handler
-        handleCellTapLogic(clickX, clickY, chartWidth, chartHeight);
+      // Don't show hover in margin areas
+      if (mouseX > chartWidth || mouseY > chartHeight) {
+        setHoveredCell(null);
+        return;
       }
-    }
 
-    setIsDragging(false);
-    setHasMoved(false);
-  }, [isDragging, hasMoved, tapToTradeEnabled, chartData.length]);
+      if (!tapToTradeEnabled) {
+        return;
+      }
 
-  // Handle cell tap logic (extracted from original handleCanvasClick)
-  const handleCellTapLogic = useCallback((clickX: number, clickY: number, chartWidth: number, chartHeight: number) => {
-    console.log('🖱️ Cell tapped at:', { clickX, clickY });
-    if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
-      console.log('⚠️ Tap blocked:', { tapToTradeEnabled, hasCanvas: !!canvasRef.current, dataLength: chartData.length });
-      return;
-    }
+      // Calculate hovered cell (same as drawing logic)
+      const prices =
+        chartType === 'candle'
+          ? chartData.flatMap((d) => [d.high, d.low])
+          : chartData.map((d) => d.close);
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const priceRange = maxPrice - minPrice;
+      const padding = priceRange * 0.1;
 
-    // Calculate what was clicked (same as drawing logic)
-    const prices = chartType === 'candle'
-      ? chartData.flatMap(d => [d.high, d.low])
-      : chartData.map(d => d.close);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
+      const nowX = chartWidth * 0.5; // Center position
+      const latestDataIndex = chartData.length - 1;
+      const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
+      const gridSizeX = tapToTrade.gridSizeX || 1;
 
-    const gridSizeX = tapToTrade.gridSizeX || 1;
-    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
+      // User input grid step in dollars (Y axis)
+      const gridStepDollar = (gridSize / 100) * basePrice;
 
-    // User input grid step in dollars (Y axis)
-    const gridStepDollar = (gridSize / 100) * basePrice;
+      // Calculate price range based on grid settings to make square cells (same as drawing logic)
+      // Each cell is ALWAYS 1 candle wide for perfect square
+      const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
+      const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
 
-    // Calculate price range based on grid settings to make square cells (same as drawing logic)
-    // Each cell is ALWAYS 1 candle wide for perfect square
-    // gridYHeightPixels = (gridStepDollar / chartPriceRange) * chartHeight
-    // We want: gridYHeightPixels = pixelsPerCandle (1 candle width)
-    const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
-    const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
+      // Center the price range around data
+      const priceCenter = (minPrice + maxPrice) / 2;
+      const pixelsPerPrice = chartHeight / chartPriceRange;
+      const verticalShift = verticalPanOffset / pixelsPerPrice;
 
-    // Center the price range around data (same as drawing logic)
-    const priceCenter = (minPrice + maxPrice) / 2;
-    const pixelsPerPrice = chartHeight / chartPriceRange;
-    const verticalShift = verticalPanOffset / pixelsPerPrice;
+      const chartMinPrice = priceCenter - chartPriceRange / 2 + verticalShift;
+      const chartMaxPrice = priceCenter + chartPriceRange / 2 + verticalShift;
 
-    const chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
-    const chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
+      const hoveredPrice = chartMaxPrice - (mouseY / chartHeight) * chartPriceRange;
 
-    // Convert click position to price and snap to grid
-    const clickedPrice = chartMaxPrice - (clickY / chartHeight) * chartPriceRange;
+      // Calculate price level INDEX (stable integer, not absolute price)
+      const priceLevelIndex = Math.floor(hoveredPrice / gridStepDollar);
 
-    // Calculate price level INDEX (stable integer, not absolute price)
-    const priceLevelIndex = Math.floor(clickedPrice / gridStepDollar);
-    const actualPrice = priceLevelIndex * gridStepDollar;
+      // Reverse engineer which index the mouse corresponds to
+      // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
+      // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
+      const mouseIndexFloat = (mouseX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
 
-    // Convert click position to time index with better precision
-    const nowX = chartWidth * 0.5; // Center position
-    const latestDataIndex = chartData.length - 1;
+      // Snap to grid boundaries
+      // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
+      // We want to find which grid cell [i, i+gridSizeX) contains mouseIndexFloat
+      const snappedCandleIndex = Math.floor(mouseIndexFloat / gridSizeX) * gridSizeX;
 
-    // Reverse engineer which index the click corresponds to
-    // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
-    // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
-    const clickIndexFloat = (clickX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
+      // Calculate actual timestamp for hovered cell using SNAPPED index (real-time reference)
+      let hoveredTime: number;
+      const isFutureHover = snappedCandleIndex >= chartData.length;
 
-    // Snap to grid boundaries
-    // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
-    // We want to find which grid cell [i, i+gridSizeX) contains clickIndexFloat
-    const snappedCandleIndex = Math.floor(clickIndexFloat / gridSizeX) * gridSizeX;
+      const getIntervalMs = (int: string) => {
+        if (int === 'D') return 86400000;
+        const min = parseInt(int);
+        return (isNaN(min) ? 60 : min) * 60 * 1000;
+      };
+      const intervalMs = getIntervalMs(interval);
 
-    // Calculate actual timestamp for clicked cell using SNAPPED index (real-time reference)
-    let clickedTime: number;
-    const isFutureClick = snappedCandleIndex >= chartData.length;
-    
-    const getIntervalMs = (int: string) => {
-      if (int === 'D') return 86400000;
-      const min = parseInt(int);
-      return (isNaN(min) ? 60 : min) * 60 * 1000;
-    };
-    const intervalMs = getIntervalMs(interval);
-    
-    if (isFutureClick) {
-      // Future click: use current real-time + offset
-      const futureOffset = (snappedCandleIndex - chartData.length + 1) * intervalMs;
-      clickedTime = currentTime + futureOffset;
-    } else {
-      // Past/present click: use current real-time - offset
-      const pastOffset = (chartData.length - 1 - snappedCandleIndex) * intervalMs;
-      clickedTime = currentTime - pastOffset;
-    }
+      if (isFutureHover) {
+        // Future hover: use current real-time + offset
+        const futureOffset = (snappedCandleIndex - chartData.length + 1) * intervalMs;
+        hoveredTime = currentTime + futureOffset;
+      } else {
+        // Past/present hover: use current real-time - offset
+        const pastOffset = (chartData.length - 1 - snappedCandleIndex) * intervalMs;
+        hoveredTime = currentTime - pastOffset;
+      }
 
-    // Round time to base interval (NOT gridSizeX interval)
-    // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
-    const gridTimeRounded = Math.floor(clickedTime / intervalMs) * intervalMs;
+      // Round time to base interval (NOT gridSizeX interval)
+      // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
+      const gridTimeRounded = Math.floor(hoveredTime / intervalMs) * intervalMs;
 
-    // Calculate cellX (time column index) - same logic as drawing
-    const gridSession = tapToTrade.gridSession;
-    let cellX = 0;
-    let cellY = 0;
+      // Calculate cellX (time column index) - same logic as drawing
+      const gridSession = tapToTrade.gridSession;
+      let cellX = 0;
+      let cellY = 0;
 
-    if (gridSession) {
-      const timeSeconds = Math.floor(gridTimeRounded / 1000);
-      const referenceTime = gridSession.referenceTime;
-      const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
-      cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
+      if (gridSession) {
+        const timeSeconds = Math.floor(gridTimeRounded / 1000);
+        const referenceTime = gridSession.referenceTime;
+        const columnDurationSeconds = Math.max(
+          1,
+          gridSession.gridSizeX * gridSession.timeframeSeconds,
+        );
+        cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
 
-      // Calculate cellY as RELATIVE offset from reference price
-      const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
-      const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
-      cellY = priceLevelIndex - referencePriceLevel; // Relative offset
-    } else {
-      // Fallback if no grid session
-      cellY = priceLevelIndex;
-    }
+        // Calculate cellY as RELATIVE offset from reference price
+        const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
+        const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
+        cellY = priceLevelIndex - referencePriceLevel; // Relative offset
+      } else {
+        // Fallback if no grid session
+        cellY = priceLevelIndex;
+      }
 
-    // Use same format as TapToTradeContext
-    const cellId = `${cellX},${cellY}`;
+      // Use same format as TapToTradeContext
+      const cellId = `${cellX},${cellY}`;
 
-    // Calculate the actual timestamp that backend expects (aligned with gridSession)
-    let backendTimestamp = clickedTime; // fallback
-    if (gridSession) {
-      // Backend expects: referenceTime + (cellX * columnDuration)
-      const columnDurationSeconds = gridSession.gridSizeX * gridSession.timeframeSeconds;
-      backendTimestamp = (gridSession.referenceTime + (cellX * columnDurationSeconds)) * 1000; // Convert to ms
-      
-      // Debug logging
-      console.log('🔍 Grid Session Debug:');
-      console.log('  referenceTime:', new Date(gridSession.referenceTime * 1000).toISOString());
-      console.log('  gridSizeX:', gridSession.gridSizeX);
-      console.log('  timeframeSeconds:', gridSession.timeframeSeconds);
-      console.log('  columnDurationSeconds:', columnDurationSeconds);
-      console.log('  cellX:', cellX);
-      console.log('  calculated backendTimestamp:', new Date(backendTimestamp).toISOString());
-      console.log('  currentTime:', new Date(currentTime).toISOString());
-      console.log('  clickedTime (from visual):', new Date(clickedTime).toISOString());
-    }
-
-    // Check if click is reasonable (within some bounds)
-    if (snappedCandleIndex > -100) { // Allow some past clicks
-      // Determine LONG/SHORT based on cellY relative to reference
-      // cellY < 0 (below reference) = LONG (buy low)
-      // cellY > 0 (above reference) = SHORT (sell high)
-      const isLong = cellY < 0;
-      const futureLabel = isFutureClick ? ' [FUTURE]' : '';
-
-      console.log(`📍 Tapped: ${isLong ? 'LONG' : 'SHORT'} @ $${actualPrice.toFixed(2)}, time: ${new Date(backendTimestamp).toLocaleTimeString()}${futureLabel}`);
-      console.log(`📍 CellId: "${cellId}", cellX: ${cellX}, cellY: ${cellY} (${cellY < 0 ? 'below ref' : 'above ref'})`);
-      console.log(`📍 Backend timestamp: ${new Date(backendTimestamp).toISOString()}`);
-      console.log(`📍 Calling onCellTap with cellId: "${cellId}"`);
-
-      onCellTap(cellId, actualPrice, backendTimestamp, isLong);
-    } else {
-      console.log('⚠️ Click rejected: snappedCandleIndex:', snappedCandleIndex);
-    }
-  }, [tapToTradeEnabled, chartData, currentPrice, gridSize, onCellTap, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, interval, panOffset, verticalPanOffset, basePrice, currentTime, chartType]);
-
-  // Handle canvas hover
-  const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || chartData.length === 0) {
-      setHoveredCell(null);
-      setMousePosition(null);
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-
-    // Account for canvas scaling
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
-
-    // Update mouse position for crosshair
-    setMousePosition({ x: mouseX, y: mouseY });
-
-    // Define margins (same as in draw function)
-    const rightMargin = isMobile ? 80 : 120;
-    const bottomMargin = 25;
-    const chartWidth = canvas.width - rightMargin;
-    const chartHeight = canvas.height - bottomMargin;
-
-    // Don't show hover in margin areas
-    if (mouseX > chartWidth || mouseY > chartHeight) {
-      setHoveredCell(null);
-      return;
-    }
-
-    if (!tapToTradeEnabled) {
-      return;
-    }
-
-    // Calculate hovered cell (same as drawing logic)
-    const prices = chartType === 'candle'
-      ? chartData.flatMap(d => [d.high, d.low])
-      : chartData.map(d => d.close);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.1;
-
-    const nowX = chartWidth * 0.5; // Center position
-    const latestDataIndex = chartData.length - 1;
-    const pixelsPerCandle = (chartWidth * 0.5) / visibleCandles;
-    const gridSizeX = tapToTrade.gridSizeX || 1;
-
-    // User input grid step in dollars (Y axis)
-    const gridStepDollar = (gridSize / 100) * basePrice;
-
-    // Calculate price range based on grid settings to make square cells (same as drawing logic)
-    // Each cell is ALWAYS 1 candle wide for perfect square
-    const gridXWidthPixels = pixelsPerCandle; // 1 candle = 1 cell
-    const chartPriceRange = (gridStepDollar * chartHeight) / gridXWidthPixels;
-
-    // Center the price range around data
-    const priceCenter = (minPrice + maxPrice) / 2;
-    const pixelsPerPrice = chartHeight / chartPriceRange;
-    const verticalShift = verticalPanOffset / pixelsPerPrice;
-
-    const chartMinPrice = priceCenter - (chartPriceRange / 2) + verticalShift;
-    const chartMaxPrice = priceCenter + (chartPriceRange / 2) + verticalShift;
-
-    const hoveredPrice = chartMaxPrice - (mouseY / chartHeight) * chartPriceRange;
-
-    // Calculate price level INDEX (stable integer, not absolute price)
-    const priceLevelIndex = Math.floor(hoveredPrice / gridStepDollar);
-
-    // Reverse engineer which index the mouse corresponds to
-    // timeToX formula: x = nowX + (index - latestDataIndex) * pixelsPerCandle - panOffset
-    // Solving for index: index = (x - nowX + panOffset) / pixelsPerCandle + latestDataIndex
-    const mouseIndexFloat = (mouseX - nowX + panOffset) / pixelsPerCandle + latestDataIndex;
-
-    // Snap to grid boundaries
-    // Grid cells are drawn starting at i=0, then i=gridSizeX, i=2*gridSizeX, etc.
-    // We want to find which grid cell [i, i+gridSizeX) contains mouseIndexFloat
-    const snappedCandleIndex = Math.floor(mouseIndexFloat / gridSizeX) * gridSizeX;
-
-    // Calculate actual timestamp for hovered cell using SNAPPED index (real-time reference)
-    let hoveredTime: number;
-    const isFutureHover = snappedCandleIndex >= chartData.length;
-    
-    const getIntervalMs = (int: string) => {
-      if (int === 'D') return 86400000;
-      const min = parseInt(int);
-      return (isNaN(min) ? 60 : min) * 60 * 1000;
-    };
-    const intervalMs = getIntervalMs(interval);
-    
-    if (isFutureHover) {
-      // Future hover: use current real-time + offset
-      const futureOffset = (snappedCandleIndex - chartData.length + 1) * intervalMs;
-      hoveredTime = currentTime + futureOffset;
-    } else {
-      // Past/present hover: use current real-time - offset
-      const pastOffset = (chartData.length - 1 - snappedCandleIndex) * intervalMs;
-      hoveredTime = currentTime - pastOffset;
-    }
-
-    // Round time to base interval (NOT gridSizeX interval)
-    // Each candle should remain its base timeframe (1m stays 1m, not 3m when gridSizeX=3)
-    const gridTimeRounded = Math.floor(hoveredTime / intervalMs) * intervalMs;
-
-    // Calculate cellX (time column index) - same logic as drawing
-    const gridSession = tapToTrade.gridSession;
-    let cellX = 0;
-    let cellY = 0;
-
-    if (gridSession) {
-      const timeSeconds = Math.floor(gridTimeRounded / 1000);
-      const referenceTime = gridSession.referenceTime;
-      const columnDurationSeconds = Math.max(1, gridSession.gridSizeX * gridSession.timeframeSeconds);
-      cellX = Math.floor((timeSeconds - referenceTime) / columnDurationSeconds);
-
-      // Calculate cellY as RELATIVE offset from reference price
-      const referencePrice = parseFloat(gridSession.referencePrice) / 100000000;
-      const referencePriceLevel = Math.floor(referencePrice / gridStepDollar);
-      cellY = priceLevelIndex - referencePriceLevel; // Relative offset
-    } else {
-      // Fallback if no grid session
-      cellY = priceLevelIndex;
-    }
-
-    // Use same format as TapToTradeContext
-    const cellId = `${cellX},${cellY}`;
-
-    // Check if hover is reasonable
-    if (snappedCandleIndex > -100) {
-      setHoveredCell(cellId);
-    } else {
-      setHoveredCell(null);
-    }
-  }, [tapToTradeEnabled, chartData, gridSize, tapToTrade.gridSizeX, tapToTrade.gridSession, visibleCandles, currentPrice, interval, panOffset, verticalPanOffset, basePrice, currentTime, chartType]);
+      // Check if hover is reasonable
+      if (snappedCandleIndex > -100) {
+        setHoveredCell(cellId);
+      } else {
+        setHoveredCell(null);
+      }
+    },
+    [
+      tapToTradeEnabled,
+      chartData,
+      gridSize,
+      tapToTrade.gridSizeX,
+      tapToTrade.gridSession,
+      visibleCandles,
+      currentPrice,
+      interval,
+      panOffset,
+      verticalPanOffset,
+      basePrice,
+      currentTime,
+      chartType,
+    ],
+  );
 
   const handleMouseLeave = useCallback(() => {
     setHoveredCell(null);
@@ -1325,30 +1446,27 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   const handleQuickTrade = (isLong: boolean) => {
     const collateral = parseFloat(quickTradeCollateral);
     const leverage = parseFloat(quickTradeLeverage);
-    
+
     if (isNaN(collateral) || collateral <= 0) {
       toast.error('Invalid collateral amount', { duration: 1500 });
       return;
     }
-    
+
     if (isNaN(leverage) || leverage <= 0) {
       toast.error('Invalid leverage', { duration: 1500 });
       return;
     }
-    
+
     const action = isLong ? 'LONG' : 'SHORT';
     const price = currentPrice.toFixed(2);
-    
-    toast.success(
-      `${action} $${collateral} @ $${price} (${leverage}x)`,
-      {
-        duration: 1500,
-        style: {
-          background: isLong ? '#10b981' : '#ef4444',
-          color: '#fff',
-        },
-      }
-    );
+
+    toast.success(`${action} $${collateral} @ $${price} (${leverage}x)`, {
+      duration: 1500,
+      style: {
+        background: isLong ? '#10b981' : '#ef4444',
+        color: '#fff',
+      },
+    });
   };
 
   return (
@@ -1366,40 +1484,46 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
       `}</style>
       {/* Quick Trade Panel - top right */}
       {tapToTradeEnabled && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '135px', // Move away from price scale
-          zIndex: 10,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          borderRadius: '3px',
-          padding: '6px',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          width: '100px', // Fixed compact width
-          boxSizing: 'border-box',
-          backdropFilter: 'blur(4px)'
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '135px', // Move away from price scale
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            borderRadius: '3px',
+            padding: '6px',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            width: '100px', // Fixed compact width
+            boxSizing: 'border-box',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
           {/* Title */}
-          <div style={{
-            fontSize: '8px',
-            fontWeight: '600',
-            color: '#94a3b8',
-            marginBottom: '4px',
-            fontFamily: 'monospace',
-            textAlign: 'center',
-            letterSpacing: '0.3px'
-          }}>
+          <div
+            style={{
+              fontSize: '8px',
+              fontWeight: '600',
+              color: '#94a3b8',
+              marginBottom: '4px',
+              fontFamily: 'monospace',
+              textAlign: 'center',
+              letterSpacing: '0.3px',
+            }}
+          >
             QUICK TRADE
           </div>
-          
+
           {/* Inputs - horizontal layout */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '3px',
-            marginBottom: '4px',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '3px',
+              marginBottom: '4px',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
             {/* Collateral Input */}
             <input
               type="number"
@@ -1419,7 +1543,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
                 color: '#ffffff',
                 outline: 'none',
                 textAlign: 'center',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
@@ -1428,7 +1552,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
                 e.target.style.borderColor = 'rgba(255, 255, 255, 0.15)';
               }}
             />
-            
+
             {/* Leverage Input */}
             <input
               type="number"
@@ -1448,7 +1572,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
                 color: '#ffffff',
                 outline: 'none',
                 textAlign: 'center',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
@@ -1458,12 +1582,14 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
               }}
             />
           </div>
-          
+
           {/* Buy/Sell Buttons */}
-          <div style={{
-            display: 'flex',
-            gap: '3px'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '3px',
+            }}
+          >
             {/* BUY Button */}
             <button
               onClick={() => handleQuickTrade(true)}
@@ -1480,7 +1606,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
                 fontFamily: 'monospace',
                 transition: 'all 0.15s',
                 textTransform: 'uppercase',
-                letterSpacing: '0.3px'
+                letterSpacing: '0.3px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#059669';
@@ -1491,7 +1617,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             >
               BUY
             </button>
-            
+
             {/* SELL Button */}
             <button
               onClick={() => handleQuickTrade(false)}
@@ -1508,7 +1634,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
                 fontFamily: 'monospace',
                 transition: 'all 0.15s',
                 textTransform: 'uppercase',
-                letterSpacing: '0.3px'
+                letterSpacing: '0.3px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#dc2626';
@@ -1522,20 +1648,22 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Chart type toggle button - top left */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        zIndex: 10,
-        display: 'flex',
-        gap: '0px',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        borderRadius: '6px',
-        padding: '2px',
-        border: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          zIndex: 10,
+          display: 'flex',
+          gap: '0px',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          borderRadius: '6px',
+          padding: '2px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
         <button
           onClick={() => setChartType('line')}
           style={{
@@ -1548,7 +1676,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             borderRadius: '4px',
             cursor: 'pointer',
             transition: 'all 0.2s',
-            fontFamily: 'monospace'
+            fontFamily: 'monospace',
           }}
           onMouseEnter={(e) => {
             if (chartType !== 'line') {
@@ -1575,7 +1703,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
             borderRadius: '4px',
             cursor: 'pointer',
             transition: 'all 0.2s',
-            fontFamily: 'monospace'
+            fontFamily: 'monospace',
           }}
           onMouseEnter={(e) => {
             if (chartType !== 'candle') {
@@ -1630,9 +1758,10 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          cursor: isDragging && hasMoved
-            ? 'grabbing'
-            : hoveredCell && tapToTradeEnabled && !isDragging
+          cursor:
+            isDragging && hasMoved
+              ? 'grabbing'
+              : hoveredCell && tapToTradeEnabled && !isDragging
               ? 'pointer'
               : 'grab',
           touchAction: 'none', // Allow both horizontal and vertical panning

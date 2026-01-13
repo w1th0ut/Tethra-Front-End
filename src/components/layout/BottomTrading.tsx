@@ -6,7 +6,7 @@ import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import PendingOrdersTable from '@/features/trading/components/orders/PendingOrdersTable';
 import TapToTradeOrders from '@/features/trading/components/orders/TapToTradeOrders';
 import BinaryOrders from '@/features/trading/components/orders/BinaryOrders';
@@ -138,19 +138,19 @@ const PositionRow = ({
     >
       {/* Position / Market */}
       <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            <img
-              src={getMarketLogo(position.symbol)}
-              alt={position.symbol}
-              className="w-8 h-8 rounded-full bg-slate-700"
+        <div className="flex items-center gap-2">
+          <img
+            src={getMarketLogo(position.symbol)}
+            alt={position.symbol}
+            className="w-8 h-8 rounded-full bg-slate-700"
             onError={(e) => {
               const target = e.currentTarget;
               target.onerror = null;
               target.style.visibility = 'hidden';
             }}
-            />
-            <div className="flex flex-col">
-              <span className="font-semibold text-white">{formatMarketPair(position.symbol)}</span>
+          />
+          <div className="flex flex-col">
+            <span className="font-semibold text-white">{formatMarketPair(position.symbol)}</span>
             <div className="flex items-center gap-1">
               <span
                 className={`text-xs font-medium ${

@@ -15,7 +15,7 @@ import MarketExecutorJSON from '@/contracts/abis/MarketExecutor.json';
 // Extract the actual ABI array from the JSON object
 const MarketExecutorABI = (MarketExecutorJSON as any).abi;
 import { getSignedPrice, SignedPriceData } from '@/lib/priceApi';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export interface DirectCloseParams {

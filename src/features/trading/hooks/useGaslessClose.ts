@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
@@ -30,11 +30,6 @@ export function useGaslessClose() {
         if (!address) {
           throw new Error('Wallet not connected');
         }
-
-        console.log('🔥 GASLESS CLOSE via backend...');
-        console.log('  Position ID:', params.positionId.toString());
-        console.log('  Symbol:', params.symbol);
-        console.log('  User:', address);
 
         // Call backend endpoint
         const response = await fetch(`${BACKEND_URL}/api/relay/close-position`, {

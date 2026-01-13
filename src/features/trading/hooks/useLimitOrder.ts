@@ -24,7 +24,7 @@ import { LIMIT_EXECUTOR_ADDRESS, USDC_ADDRESS, USDC_DECIMALS, RPC_URL } from '@/
 import LimitExecutorJSON from '@/contracts/abis/LimitExecutor.json';
 import MockUSDCABI from '@/contracts/abis/MockUSDC.json';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { getLimitExecutionFee } from '@/lib/relayApi';
 import { submitLimitOpenOrder } from '@/lib/limitOrderApi';
 
