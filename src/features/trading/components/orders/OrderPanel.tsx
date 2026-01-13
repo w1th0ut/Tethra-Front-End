@@ -102,6 +102,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab, mode = 'market
             <Tabs
               value={tradeMode}
               onValueChange={(value) => {
+                if (tapToTradeEnabled) return; // Double check protection
                 setActiveOrderType('Tap to Trade');
                 setTradeMode(value as 'open-position' | 'one-tap-profit');
               }}
@@ -110,14 +111,14 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab, mode = 'market
               <TabsList className="grid w-full grid-cols-2 h-10 bg-gradient-to-r from-info/20 to-success/20 p-1">
                 <TabsTrigger
                   value="open-position"
-                  disabled={activeTab === 'swap'}
+                  disabled={activeTab === 'swap' || tapToTradeEnabled}
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-info data-[state=active]:to-info-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
                 >
                   Open Position
                 </TabsTrigger>
                 <TabsTrigger
                   value="one-tap-profit"
-                  disabled={activeTab === 'swap'}
+                  disabled={activeTab === 'swap' || tapToTradeEnabled}
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-success data-[state=active]:to-success-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
                 >
                   One Tap Profit

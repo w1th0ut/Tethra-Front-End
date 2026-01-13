@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Info } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
+import { Info } from 'lucide-react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
@@ -11,7 +11,6 @@ import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
 import { toast } from 'react-hot-toast';
-import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 
 // Import Shared Components
 import { MarketSelector, Market } from './components/MarketSelector';
@@ -21,20 +20,17 @@ import { LeverageSelector } from './components/LeverageSelector';
 // Import Feature Specific Components
 import { TimeframeSelector } from './tap-to-trade/TimeframeSelector';
 import { GridSettings } from './tap-to-trade/GridSettings';
-import { PreApprovalStatus } from './tap-to-trade/PreApprovalStatus';
 import { TradeActionButtons } from './tap-to-trade/TradeActionButtons';
 import { TradeInfoSection } from './tap-to-trade/TradeInfoSection';
 
 const TapToTrade: React.FC = () => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
-  const { authenticated } = usePrivy();
   const { wallets } = useWallets();
   const [leverage, setLeverage] = useState(10);
   const [marginAmount, setMarginAmount] = useState<string>('');
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const [hasSelectedYGrid, setHasSelectedYGrid] = useState(false); // Track if user explicitly selected Y grid
-  const triggerButtonRef = useRef<HTMLButtonElement>(null); // For market selector
 
   // Approval hook for USDC (TapToTradeExecutor-specific)
   const { approve: approveUSDC, allowance, isPending: isApprovalPending } = useTapToTradeApproval();
@@ -45,10 +41,6 @@ const TapToTrade: React.FC = () => {
     allowance: oneTapProfitAllowance,
     isPending: isOneTapProfitApprovalPending,
   } = useOneTapProfitApproval();
-
-  // Hook for OneTapProfit session key management
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isSessionValid: isBinarySessionValid } = useOneTapProfit();
 
   // Session key hook for binary trading
   const binarySessionKey = useSessionKey();
@@ -78,7 +70,7 @@ const TapToTrade: React.FC = () => {
       // Approve 1 million USDC (enough for many trades)
       const maxAmount = parseUnits('1000000', 6).toString();
       await approveUSDC(maxAmount);
-      toast.success('✅ Pre-approved! You can now trade without approval popups', {
+      toast.success('Pre-approved! You can now trade without approval popups', {
         id: 'pre-approve',
         duration: 5000,
       });
@@ -99,7 +91,7 @@ const TapToTrade: React.FC = () => {
       // Approve 1 million USDC (enough for many bets)
       const maxAmount = parseUnits('1000000', 6).toString();
       await approveOneTapProfit(maxAmount);
-      toast.success('✅ Pre-approved! You can now enable Binary Trading', {
+      toast.success('Pre-approved! You can now enable Binary Trading', {
         id: 'binary-pre-approve',
         duration: 5000,
       });
@@ -206,10 +198,6 @@ const TapToTrade: React.FC = () => {
         />
       )}
 
-      {/* Pre Approval Status */}
-      {/* Pre Approval Status Indicator Only */}
-      <PreApprovalStatus />
-
       {/* Grid Configuration - Only for Open Position mode */}
       <GridSettings
         tradeMode={tradeMode === 'open-position' ? 'open-position' : 'one-tap-profit'}
@@ -251,20 +239,6 @@ const TapToTrade: React.FC = () => {
         isOneTapProfitApprovalPending={isOneTapProfitApprovalPending}
         disabled={!marginAmount || !leverage || !timeframe || !activeMarket || !hasSelectedYGrid}
       />
-
-      {/* DEV ONLY: Revoke Button for Testing */}
-      <div className="flex justify-center mt-2">
-        <button
-          onClick={async () => {
-            if (tradeMode === 'open-position') await approveUSDC('0');
-            else await approveOneTapProfit('0');
-            toast.success('Allowance reset to 0 for testing');
-          }}
-          className="text-[10px] text-muted-foreground hover:text-red-500 underline"
-        >
-          [Dev] Reset Approval to 0
-        </button>
-      </div>
     </div>
   );
 };
