@@ -67,7 +67,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({
   return (
     <div className="h-full flex flex-col text-text-primary relative overflow-hidden md:rounded-lg">
       {/* Wallet Connect Header - Hidden on Mobile */}
-      <div className="md:flex hidden items-center justify-end p-2.5 px-4 bg-trading-dark flex-shrink-0 md:rounded-t-lg">
+      <div className="md:flex hidden items-center justify-end p-2.5 usd bg-trading-dark flex-shrink-0 md:rounded-t-lg">
         <WalletConnectButton />
       </div>
 

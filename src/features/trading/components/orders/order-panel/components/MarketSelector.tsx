@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import Image from 'next/image';
@@ -63,7 +63,7 @@ export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect 
         <Button
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between bg-trading-surface border-border-default hover:bg-trading-elevated text-text-primary px-3 h-[60px]"
+          className="w-full justify-between bg-transparent text-text-primary px-0 hover:bg-transparent hover:text-text-primary border-none shadow-none h-auto"
         >
           <div className="flex gap-3">
             <label className="text-xs text-text-secondary sblock">Market</label>
@@ -104,14 +104,13 @@ export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect 
         className="w-[300px] p-0 bg-trading-surface border-border-default"
         align="start"
       >
-        <Command className="bg-trading-surface">
+        <Command className="bg-trading-surface p-0">
           <CommandInput placeholder="Search market..." className="text-text-primary" />
           <CommandList>
             <CommandEmpty>No market found.</CommandEmpty>
             <CommandGroup>
               {sortedMarkets.map((market) => {
                 const isFavorite = favorites.has(market.symbol);
-                const isSelected = value?.symbol === market.symbol;
 
                 return (
                   <CommandItem
