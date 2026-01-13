@@ -29,7 +29,7 @@ interface ActiveMarket {
 }
 
 export default function TradePageContent() {
-  const { isEnabled, toggleMode } = useTapToTrade();
+  const { isEnabled, toggleMode, tradeMode, setTradeMode } = useTapToTrade();
   const { activeMarket, currentPrice } = useMarket();
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [isMobileOrderPanelOpen, setIsMobileOrderPanelOpen] = useState(false);
@@ -38,15 +38,12 @@ export default function TradePageContent() {
   const [marketDataState, setMarketDataState] = useState<MarketData | null>(null);
   const [activeMarketState, setActiveMarketState] = useState<ActiveMarket | null>(null);
 
-  // Check if we're in Tap to Trade mode (any mode) and enabled
   const isTapToTradeActive = isEnabled;
 
-  // Dynamic title with price and pair
   const priceValue = currentPrice ? parseFloat(currentPrice) : null;
   const pairName = activeMarket?.symbol || 'BTC/USDT';
   useDynamicTitle(priceValue, pairName);
 
-  // Listen for mobile coin info toggle event
   useEffect(() => {
     const handleToggleCoinInfo = (event: CustomEvent) => {
       setIsMobileCoinInfoOpen((prev) => !prev);
@@ -180,9 +177,10 @@ export default function TradePageContent() {
               ) : (
                 /* Normal Mode: Long/Short/Swap Tabs */
                 <MobileOrderTabs
-                  mobileActiveTab={mobileActiveTab}
-                  onTabClick={(tab) => {
-                    setMobileActiveTab(tab);
+                  mode="trade"
+                  activeTradeMode={tradeMode}
+                  onTradeModeClick={(mode) => {
+                    setTradeMode(mode);
                     setIsMobileOrderPanelOpen(true);
                   }}
                 />
@@ -205,7 +203,11 @@ export default function TradePageContent() {
                 style={{ maxHeight: '85vh', overflowY: 'auto' }}
               >
                 {/* Order Panel Content */}
-                <OrderPanel mobileActiveTab={mobileActiveTab} mode="trade" />
+                <OrderPanel
+                  mobileActiveTab={mobileActiveTab}
+                  mode="trade"
+                  onMobileClose={() => setIsMobileOrderPanelOpen(false)}
+                />
               </div>
             </>
           )}

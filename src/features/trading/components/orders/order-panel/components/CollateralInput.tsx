@@ -30,11 +30,12 @@ export const CollateralInput: React.FC<CollateralInputProps> = ({
 
   return (
     <div
-      className={`bg-trading-surface border border-border-default rounded-lg p-3 ${
+      className={`bg-trading-surface border border-border-default rounded-lg p-3 grid ${
         disabled ? 'opacity-50 pointer-events-none' : ''
       }`}
     >
       {label && <label className="text-xs text-text-secondary mb-2 block">{label}</label>}
+
       <div className="flex justify-between items-center mb-2">
         <input
           type="text"
@@ -42,9 +43,9 @@ export const CollateralInput: React.FC<CollateralInputProps> = ({
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className="bg-transparent text-2xl text-text-primary outline-none w-full disabled:cursor-not-allowed placeholder-text-muted"
+          className="bg-transparent text-2xl text-text-primary outline-none disabled:cursor-not-allowed placeholder-text-muted"
         />
-        <div className="flex items-center gap-2 mr-0 sm:mr-6">
+        <div className="flex items-center gap-2 ">
           <Image
             src={tokenIcon}
             alt={tokenSymbol}
@@ -59,6 +60,7 @@ export const CollateralInput: React.FC<CollateralInputProps> = ({
           <span className="font-medium text-text-primary">{tokenSymbol}</span>
         </div>
       </div>
+
       <div className="flex justify-between items-center text-xs">
         <span className="text-text-muted">{formatPrice(usdValue)}</span>
         <div className="flex items-center gap-2">

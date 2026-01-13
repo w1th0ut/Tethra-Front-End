@@ -18,12 +18,12 @@ interface TradeActionButtonsProps {
   hasSelectedYGrid: boolean;
   wallets: ConnectedWallet[];
   binarySessionKey: any;
-  // New props for handling approval directly
   onPreApprove: () => Promise<void>;
   onPreApproveOneTapProfit: () => Promise<void>;
   isApprovalPending: boolean;
   isOneTapProfitApprovalPending: boolean;
   disabled?: boolean;
+  onMobileClose?: () => void;
 }
 
 export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
@@ -44,26 +44,15 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   isApprovalPending,
   isOneTapProfitApprovalPending,
   disabled,
+  onMobileClose,
 }) => {
-  // Helper for checking requirements before starting Open Position Mode
-  const canStartOpenPosition = () => {
-    if (!hasLargeAllowance) return false;
-    if (!hasSelectedYGrid) return false;
-    if (!marginAmount || parseFloat(marginAmount) === 0) return false;
-    return true;
-  };
-
   const handleMainAction = async () => {
-    // 1. Handle Approval if needed
     if (tradeMode === 'open-position' && !hasLargeAllowance) {
       await onPreApprove();
-      // Continue to start trade after approval
     } else if (tradeMode === 'one-tap-profit' && !hasLargeOneTapProfitAllowance) {
       await onPreApproveOneTapProfit();
-      // Continue to start binary mode after approval
     }
 
-    // 2. Handle missing inputs (Validation)
     if (!marginAmount || parseFloat(marginAmount) === 0) {
       toast.error(
         tradeMode === 'one-tap-profit' ? 'Please enter bet amount' : 'Please enter margin amount',
@@ -76,7 +65,6 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       return;
     }
 
-    // 3. Start Mode
     if (tradeMode === 'open-position') {
       await tapToTrade.toggleMode({
         symbol: activeMarket?.symbol || 'BTC',
@@ -85,6 +73,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
         timeframe: timeframe,
         currentPrice: Number(currentPrice) || 0,
       });
+      onMobileClose?.();
     } else {
       // Binary Trading Logic
       try {
@@ -111,7 +100,8 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
         });
 
         tapToTrade.setIsBinaryTradingEnabled(true);
-        toast.success('✅ Binary Trading enabled!', { id: 'binary-session', duration: 5000 });
+        toast.success('Binary Trading enabled!', { id: 'binary-session', duration: 5000 });
+        onMobileClose?.();
       } catch (error) {
         console.error('Failed to enable binary trading:', error);
         toast.error('Failed to enable binary trading', { id: 'binary-session' });
@@ -156,7 +146,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     if (!hasLargeAllowance) {
       buttonText = isApprovalPending ? 'Approving USDC...' : 'Enable One-Click Trading';
       isLoading = isApprovalPending;
-      variant = 'default'; // Or a specific color for 'Approval needed'
+      variant = 'default';
     } else {
       buttonText = tapToTrade.isLoading ? 'Setting up session...' : 'Enable Tap to Trade';
       isLoading = tapToTrade.isLoading;
@@ -176,11 +166,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       size="lg"
       className="w-full mt-2 font-bold shadow-lg shadow-primary/30"
       onClick={handleMainAction}
-      disabled={
-        disabled ||
-        isLoading ||
-        (tradeMode === 'open-position' && hasLargeAllowance && !hasSelectedYGrid)
-      }
+      disabled={disabled || isLoading}
     >
       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {buttonText}

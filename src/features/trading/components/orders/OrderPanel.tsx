@@ -13,9 +13,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 interface OrderPanelProps {
   mobileActiveTab?: 'long' | 'short' | 'swap';
   mode?: 'market' | 'trade'; // 'market' = Market/Limit only, 'trade' = Tap-to-Trade only
+  onMobileClose?: () => void;
 }
 
-const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab, mode = 'market' }) => {
+const OrderPanel: React.FC<OrderPanelProps> = ({
+  mobileActiveTab,
+  mode = 'market',
+  onMobileClose,
+}) => {
   const [activeTab, setActiveTab] = useState<'long' | 'short' | 'swap'>(mobileActiveTab || 'short');
   const [activeOrderType, setActiveOrderType] = useState<
     'market' | 'limit' | 'Tap to Trade' | 'more'
@@ -162,7 +167,7 @@ const OrderPanel: React.FC<OrderPanelProps> = ({ mobileActiveTab, mode = 'market
               {activeOrderType === 'limit' && <LimitOrder activeTab={activeTab} />}
               {activeOrderType === 'Tap to Trade' && (
                 <div className="relative min-h-full">
-                  <TapToTrade />
+                  <TapToTrade onMobileClose={onMobileClose} />
                 </div>
               )}
               {activeOrderType === 'more' && (

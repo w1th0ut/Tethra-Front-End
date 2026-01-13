@@ -23,7 +23,11 @@ import { GridSettings } from './tap-to-trade/GridSettings';
 import { TradeActionButtons } from './tap-to-trade/TradeActionButtons';
 import { TradeInfoSection } from './tap-to-trade/TradeInfoSection';
 
-const TapToTrade: React.FC = () => {
+interface TapToTradeProps {
+  onMobileClose?: () => void;
+}
+
+const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
   const { activeMarket, setActiveMarket, timeframe, setTimeframe, currentPrice } = useMarket();
   const { usdcBalance, isLoadingBalance } = useUSDCBalance();
   const { wallets } = useWallets();
@@ -237,7 +241,12 @@ const TapToTrade: React.FC = () => {
         onPreApproveOneTapProfit={handlePreApproveOneTapProfit}
         isApprovalPending={isApprovalPending}
         isOneTapProfitApprovalPending={isOneTapProfitApprovalPending}
-        disabled={!marginAmount || !leverage || !timeframe || !activeMarket || !hasSelectedYGrid}
+        disabled={
+          tradeMode === 'one-tap-profit'
+            ? !marginAmount || !activeMarket
+            : !marginAmount || !leverage || !timeframe || !activeMarket || !hasSelectedYGrid
+        }
+        onMobileClose={onMobileClose}
       />
     </div>
   );
