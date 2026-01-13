@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
 import { usePythWebSocket } from '../hooks/usePythWebSocket';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { PricePoint, HoveredCellInfo } from '../types';
 import { calculateMultiplier, generateCellId, parseCellId } from '../lib/calculations';
 import {

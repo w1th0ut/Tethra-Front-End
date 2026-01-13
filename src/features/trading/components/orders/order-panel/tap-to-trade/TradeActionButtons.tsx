@@ -1,5 +1,5 @@
 import React from 'react';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { ConnectedWallet } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';

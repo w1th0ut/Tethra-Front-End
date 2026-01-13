@@ -6,7 +6,7 @@ import { parseUnits } from 'viem';
 import { useLimitOrderSubmit } from './LimitOrderIntegration';
 import { useApproveUSDCForLimitOrders } from '@/features/trading/hooks/useLimitOrder';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Market } from './components/MarketSelector';
 
 import { CollateralInput } from './components/CollateralInput';

@@ -6,7 +6,7 @@ import { usePosition } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { formatUnits } from 'viem';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import PageLayout from '@/components/layout/PageLayout';
 import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { useTPSLContext } from '@/contexts/TPSLContext';
@@ -38,10 +38,6 @@ const PositionRow = ({
   // Use shared price hook - all positions with same symbol share same price
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
   const currentPrice = priceData?.price || null;
-
-  // Fetch TP/SL config for this position from global context
-  const { getConfig } = useTPSLContext();
-  const tpslConfig = position ? getConfig(Number(position.id)) : null;
 
   // Report position status when loaded
   useEffect(() => {

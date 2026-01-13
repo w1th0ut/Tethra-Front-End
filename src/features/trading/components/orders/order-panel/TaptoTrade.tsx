@@ -6,11 +6,10 @@ import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
 import { useTapToTradeApproval } from '@/features/wallet/hooks/useTapToTradeApproval';
 import { useOneTapProfitApproval } from '@/features/wallet/hooks/useOneTapProfitApproval';
-import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
 import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth';
 import { parseUnits } from 'viem';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 // Import Shared Components
 import { MarketSelector, Market } from './components/MarketSelector';
