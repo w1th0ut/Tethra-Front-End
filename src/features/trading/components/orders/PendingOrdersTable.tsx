@@ -73,16 +73,6 @@ const PendingOrdersTable = () => {
         </thead>
         <tbody>
           {orders.map((order) => {
-            // Debug: Log order data to console
-            console.log('Order data:', {
-              id: order.id.toString(),
-              orderType: order.orderType,
-              symbol: order.symbol,
-              isLong: order.isLong,
-              collateral: order.collateral.toString(),
-              leverage: order.leverage.toString(),
-            });
-
             const triggerPrice = parseFloat(formatUnits(order.triggerPrice, 8));
             // Show collateral and leverage for ALL order types for debugging
             const collateral = parseFloat(formatUnits(order.collateral, 6));

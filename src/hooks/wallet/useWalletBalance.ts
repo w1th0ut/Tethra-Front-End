@@ -47,7 +47,6 @@ export const useWalletBalance = () => {
         const formattedBalance = formatUnits(balance, USDC_DECIMALS);
         setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
       } catch (error) {
-        console.error('Error fetching USDC balance:', error);
         setUsdcBalance('0.00');
       } finally {
         setIsLoadingBalance(false);

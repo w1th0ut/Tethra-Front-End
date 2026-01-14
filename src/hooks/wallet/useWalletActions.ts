@@ -48,7 +48,6 @@ export const useWalletActions = () => {
       await exportWallet({ address: embeddedWalletAddress });
       toast.success('Private key exported successfully!');
     } catch (error: any) {
-      console.error('Error exporting wallet:', error);
       toast.error(error?.message || 'Failed to export private key');
     }
   };

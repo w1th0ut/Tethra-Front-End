@@ -119,8 +119,6 @@ export function useApproveUSDCForLimitOrders() {
         throw new Error('Embedded wallet not found');
       }
 
-      console.log('🔑 Approving USDC for limit orders:', embeddedWallet.address);
-
       await embeddedWallet.switchChain(baseSepolia.id);
       const walletClient = await embeddedWallet.getEthereumProvider();
 
@@ -161,7 +159,6 @@ export function useApproveUSDCForLimitOrders() {
         ],
       });
 
-      console.log('✅ Approve transaction sent:', txHash);
       setHash(txHash as `0x${string}`);
     } catch (err) {
       console.error('❌ Approve error:', err);
@@ -304,8 +301,6 @@ export function useCreateLimitOpenOrder() {
           throw new Error('Embedded wallet not found');
         }
 
-        console.log('📝 Preparing limit open order signature:', params);
-
         await embeddedWallet.switchChain(baseSepolia.id);
         const walletClient = await embeddedWallet.getEthereumProvider();
 
@@ -359,14 +354,10 @@ export function useCreateLimitOpenOrder() {
           ),
         );
 
-        console.log('✍️  Signing limit open order hash:', messageHash);
-
         const signature = (await walletClient.request({
           method: 'personal_sign',
           params: [messageHash, address],
         })) as `0x${string}`;
-
-        console.log('🔏 Signature obtained, submitting to keeper backend...');
 
         const result = await submitLimitOpenOrder({
           trader: address,
@@ -386,7 +377,6 @@ export function useCreateLimitOpenOrder() {
           },
         });
 
-        console.log('✅ Limit open order relayed!', result);
         toast.success(`Limit order submitted! Order #${result.orderId}`);
         const submissionPayload = {
           orderId: result.orderId,
@@ -449,8 +439,6 @@ export function useCreateLimitCloseOrder() {
           throw new Error('Embedded wallet not found');
         }
 
-        console.log('📝 Creating limit close order:', params);
-
         await embeddedWallet.switchChain(baseSepolia.id);
         const walletClient = await embeddedWallet.getEthereumProvider();
 
@@ -491,7 +479,6 @@ export function useCreateLimitCloseOrder() {
           ],
         });
 
-        console.log('✅ Limit close order created! Transaction:', txHash);
         setHash(txHash as `0x${string}`);
         toast.success('Take profit order created!');
       } catch (err) {
@@ -547,8 +534,6 @@ export function useCreateStopLossOrder() {
           throw new Error('Embedded wallet not found');
         }
 
-        console.log('📝 Creating stop loss order:', params);
-
         await embeddedWallet.switchChain(baseSepolia.id);
         const walletClient = await embeddedWallet.getEthereumProvider();
 
@@ -589,7 +574,6 @@ export function useCreateStopLossOrder() {
           ],
         });
 
-        console.log('✅ Stop loss order created! Transaction:', txHash);
         setHash(txHash as `0x${string}`);
         toast.success('Stop loss order created!');
       } catch (err) {
@@ -654,8 +638,6 @@ export function useCancelOrder() {
           throw new Error('Embedded wallet not found');
         }
 
-        console.log('❌ Cancelling order GASLESSLY:', orderId.toString());
-
         // Get user's current nonce from contract
         const userNonce = (await publicClient.readContract({
           address: LIMIT_EXECUTOR_ADDRESS,
@@ -663,8 +645,6 @@ export function useCancelOrder() {
           functionName: 'getUserCurrentNonce',
           args: [address],
         })) as bigint;
-
-        console.log('   User nonce:', userNonce.toString());
 
         await embeddedWallet.switchChain(baseSepolia.id);
         const walletClient = await embeddedWallet.getEthereumProvider();
@@ -687,8 +667,6 @@ export function useCancelOrder() {
           params: [messageHash, address],
         })) as string;
 
-        console.log('   ✅ Signature created');
-
         // Send to backend for gasless execution
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
         const response = await fetch(`${backendUrl}/api/relay/cancel-order`, {
@@ -709,7 +687,6 @@ export function useCancelOrder() {
         const result = await response.json();
         const txHash = result.data.txHash;
 
-        console.log('✅ Order cancelled gaslessly! Transaction:', txHash);
         setHash(txHash as `0x${string}`);
         toast.success('Order cancelled successfully! (No gas fee)');
       } catch (err) {

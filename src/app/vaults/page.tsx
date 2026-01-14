@@ -284,7 +284,6 @@ export default function VaultsPage() {
       setApyBps(Number(apy));
       setUserUnlockTime(Number(unlockTs));
     } catch (err) {
-      console.error('Failed to fetch user vault data:', err);
       setUserVaultBalance('0');
       setUserVaultBalanceUSD('$0');
       setPercentOwned('0%');
@@ -321,9 +320,7 @@ export default function VaultsPage() {
         setLockPeriodSec(Number(lockP));
         setEarlyExitFee(Number(feeBps) / 100);
         setApyBps(Number(apy));
-      } catch (err) {
-        console.error('Failed to fetch vault config:', err);
-      }
+      } catch (err) {}
     };
     fetchConfig();
   }, [publicClient, txHash]);

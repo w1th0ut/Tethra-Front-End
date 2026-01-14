@@ -52,7 +52,9 @@ export function useTapToTradeApproval() {
       const userAddress = embeddedWallet.address;
 
       // Encode allowance call
-      const allowanceData = `0xdd62ed3e${userAddress.slice(2).padStart(64, '0')}${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(64, '0')}`;
+      const allowanceData = `0xdd62ed3e${userAddress
+        .slice(2)
+        .padStart(64, '0')}${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(64, '0')}`;
 
       const result = await walletClient.request({
         method: 'eth_call',
@@ -68,7 +70,6 @@ export function useTapToTradeApproval() {
       const allowanceValue = result === '0x' || !result ? BigInt(0) : BigInt(result as string);
       setAllowance(allowanceValue);
     } catch (error) {
-      console.error('Error fetching TapToTrade allowance:', error);
       setAllowance(BigInt(0));
     }
   }, [authenticated, walletsReady, wallets]);
@@ -96,7 +97,10 @@ export function useTapToTradeApproval() {
         }
 
         // Encode approve function call
-        const approveData = `0x095ea7b3${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(64, '0')}${BigInt(amount).toString(16).padStart(64, '0')}`;
+        const approveData = `0x095ea7b3${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(
+          64,
+          '0',
+        )}${BigInt(amount).toString(16).padStart(64, '0')}`;
 
         const txHash = await walletClient.request({
           method: 'eth_sendTransaction',
@@ -108,8 +112,6 @@ export function useTapToTradeApproval() {
             },
           ],
         });
-
-        console.log('✅ Approval tx sent for TapToTrade:', txHash);
 
         // Wait for confirmation
         let confirmed = false;
@@ -136,13 +138,12 @@ export function useTapToTradeApproval() {
 
         return txHash;
       } catch (error: any) {
-        console.error('Approval error for TapToTrade:', error);
         throw error;
       } finally {
         setIsPending(false);
       }
     },
-    [authenticated, walletsReady, wallets, fetchAllowance]
+    [authenticated, walletsReady, wallets, fetchAllowance],
   );
 
   /**
@@ -152,7 +153,7 @@ export function useTapToTradeApproval() {
     (threshold: bigint = parseUnits('10000', USDC_DECIMALS)) => {
       return allowance !== null && allowance > threshold;
     },
-    [allowance]
+    [allowance],
   );
 
   // Fetch allowance on mount and when dependencies change

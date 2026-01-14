@@ -31,37 +31,30 @@ function connectWebSocket() {
   try {
     // Convert http/https to ws/wss
     const wsUrl = BACKEND_API_URL.replace(/^http/, 'ws') + '/ws/price';
-    
+
     ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
-      console.log('✅ Price WebSocket connected');
-    };
+    ws.onopen = () => {};
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         if (data.type === 'price_update' && data.data) {
           // Update all prices at once (backend uses 'data' field)
           sharedPrices = data.data;
-          
+
           // Notify all listeners
-          priceListeners.forEach(listener => listener());
+          priceListeners.forEach((listener) => listener());
         }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
+      } catch (error) {}
     };
 
-    ws.onerror = (error) => {
-      console.error('❌ Price WebSocket error:', error);
-    };
+    ws.onerror = (error) => {};
 
     ws.onclose = () => {
-      console.warn('🔌 Price WebSocket disconnected, reconnecting...');
       ws = null;
-      
+
       // Reconnect after 2 seconds
       reconnectTimeout = setTimeout(() => {
         if (priceListeners.size > 0) {
@@ -69,25 +62,23 @@ function connectWebSocket() {
         }
       }, 2000);
     };
-  } catch (error) {
-    console.error('Failed to connect to price WebSocket:', error);
-  }
+  } catch (error) {}
 }
 
 // Start WebSocket if not already started
 function startPriceStream() {
   connectWebSocket();
-  
+
   // Also fetch initial prices via REST as fallback
   fetch(`${BACKEND_API_URL}/api/price/all`)
-    .then(res => res.json())
-    .then(result => {
+    .then((res) => res.json())
+    .then((result) => {
       if (result.success && result.data) {
         sharedPrices = result.data;
-        priceListeners.forEach(listener => listener());
+        priceListeners.forEach((listener) => listener());
       }
     })
-    .catch(err => console.error('Error fetching initial prices:', err));
+    .catch((err) => {});
 }
 
 // Stop WebSocket if no more listeners
@@ -109,7 +100,7 @@ function stopPriceStream() {
  */
 export function usePrice(symbol: string | undefined) {
   const [price, setPrice] = useState<PriceData | null>(
-    symbol && sharedPrices[symbol] ? sharedPrices[symbol] : null
+    symbol && sharedPrices[symbol] ? sharedPrices[symbol] : null,
   );
   const [isLoading, setIsLoading] = useState(true);
 
@@ -130,7 +121,7 @@ export function usePrice(symbol: string | undefined) {
 
     // Add listener
     priceListeners.add(updatePrice);
-    
+
     // Start WebSocket stream
     startPriceStream();
 

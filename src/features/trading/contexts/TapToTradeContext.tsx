@@ -162,7 +162,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         nonceResult === '0x' || !nonceResult ? BigInt(0) : BigInt(nonceResult as string);
 
       setLocalNonce(currentNonce);
-      console.log('✅ Initialized local nonce:', currentNonce.toString());
     } catch (err) {
       console.error('Failed to initialize nonce:', err);
     }
@@ -199,21 +198,16 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         return;
       }
 
-      console.log(`\ud83d\udd04 Found ${result.data.length} orders that need re-signing`);
-
       // Re-sign each order (only once per order)
       for (const order of result.data) {
         // Skip if we've already attempted to re-sign this order
         if (attemptedResignOrders.current.has(order.id)) {
-          console.log(`⏭️ Already attempted re-sign for order ${order.id}, skipping...`);
           continue;
         }
 
         // Mark as attempted
         attemptedResignOrders.current.add(order.id);
         try {
-          console.log(`\u270d\ufe0f Re-signing order ${order.id}...`);
-
           const walletClient = await embeddedWallet.getEthereumProvider();
           if (!walletClient) {
             continue;
@@ -250,8 +244,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
           // Handle empty result (0x means 0)
           const freshNonce =
             nonceResult === '0x' || !nonceResult ? BigInt(0) : BigInt(nonceResult as string);
-
-          console.log(`\u2705 Fresh nonce: ${freshNonce.toString()}`);
 
           // Create new signature with fresh nonce
           const messageHash = keccak256(
@@ -292,7 +284,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
 
           const updateResult = await updateResponse.json();
           if (updateResult.success) {
-            console.log(`\u2705 Successfully re-signed order ${order.id}`);
             // Remove from attempted list on success so it can be re-attempted if needed again
             attemptedResignOrders.current.delete(order.id);
           } else {
@@ -351,7 +342,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
 
     const checkSessionExpiry = () => {
       if (!isSessionValid()) {
-        console.log('⏰ Session expired, disabling tap-to-trade...');
         // Auto-disable tap-to-trade mode
         toggleMode();
       }
@@ -407,10 +397,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       // Clear session key
       if (sessionKey) {
         clearSession();
-        console.log('Session key cleared');
       }
-
-      console.log(`\ud83c\udfaf Tap to Trade mode: DISABLED`);
     } else {
       // ENABLE mode - Create grid session
       if (!params) {
@@ -431,7 +418,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       }
 
       const traderAddress = embeddedWallet.address;
-      console.log('💼 Using Privy wallet for tap-to-trade:', traderAddress);
 
       setIsLoading(true);
       setError(null);
@@ -465,13 +451,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         const referenceTimeSnapped =
           Math.floor(nowSeconds / columnDurationSeconds) * columnDurationSeconds;
 
-        console.log('📅 Reference time calculation:');
-        console.log('  nowSeconds:', new Date(nowSeconds * 1000).toISOString());
-        console.log('  timeframeSeconds:', timeframeSeconds);
-        console.log('  gridSizeX:', gridSizeX);
-        console.log('  columnDurationSeconds:', columnDurationSeconds);
-        console.log('  referenceTimeSnapped:', new Date(referenceTimeSnapped * 1000).toISOString());
-
         const response = await fetch(`${BACKEND_API_URL}/api/grid/create-session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -502,8 +481,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         // Initialize nonce from contract when enabling
         await initializeNonce();
 
-        console.log('✅ Grid session created:', session.id);
-
         // Create session key ONLY for open-position mode (tap-to-trade)
         // One Tap Profit mode doesn't need session key (signs each trade)
         if (tradeMode === 'open-position') {
@@ -513,7 +490,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
               throw new Error('Could not get wallet client');
             }
 
-            console.log('🔑 Step 1: Creating ephemeral session key for Tap-to-Trade...');
             const newSession = await createSession(
               traderAddress,
               walletClient,
@@ -524,11 +500,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
               throw new Error('Failed to create session key');
             }
 
-            console.log('✅ Session key created:', newSession.address);
-
             // Step 2: Register session key with backend (NO ON-CHAIN TX!)
-            console.log('🔑 Step 2: Registering session key with backend (100% GASLESS!)...');
-            console.log('⚡ No transaction needed - backend validates session off-chain!');
 
             try {
               // We skip on-chain authorization for 100% gasless experience
@@ -543,13 +515,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
               // IMPORTANT: Convert address to checksum format
               const sessionAddressChecksum = newSession.address as `0x${string}`;
 
-              console.log('🔍 DEBUG: Authorization encoding:');
-              console.log('   Session address (raw):', newSession.address);
-              console.log('   Session address (checksum):', sessionAddressChecksum);
-              console.log('   Expires at (ms):', newSession.expiresAt);
-              console.log('   Expires at (seconds):', expiresAtSeconds);
-              console.log('   Duration (seconds):', sessionDurationSeconds);
-
               const authMessageHash = keccak256(
                 encodePacked(
                   ['string', 'address', 'string', 'uint256'],
@@ -562,17 +527,9 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
                 ),
               );
 
-              console.log('📝 Authorization message hash:', authMessageHash);
-              console.log(
-                '📝 Session authSignature (from useSessionKey):',
-                newSession.authSignature,
-              );
-
               // IMPORTANT: Use the authSignature that was already created in createSession()
               // Don't sign again here - it will create different signature!
               const authSignature = newSession.authSignature;
-
-              console.log('✅ Using authorization signature from session:', authSignature);
 
               // DEBUG: Verify signature locally before sending to contract
               try {
@@ -581,10 +538,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
                   message: { raw: authMessageHash },
                   signature: authSignature as `0x${string}`,
                 });
-                console.log('🔍 Local signature verification:');
-                console.log('   Recovered signer:', recovered);
-                console.log('   Expected signer (trader):', traderAddress);
-                console.log('   Match?', recovered.toLowerCase() === traderAddress.toLowerCase());
 
                 if (recovered.toLowerCase() !== traderAddress.toLowerCase()) {
                   throw new Error(
@@ -625,40 +578,22 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
               // Backend will call authorizeSessionKey() on contract and pay gas!
               // Skip backend authorization - we only need local session storage!
               // Backend will validate session signature when orders are executed
-              console.log('✅ Session key registered locally!');
-              console.log(
-                '🔐 Backend will validate session off-chain (no on-chain registration needed)',
-              );
-              console.log('⚡ This is 100% GASLESS - no transactions, no gas fees!');
 
               // No need to call backend for authorization
               // Session is stored in localStorage and validated by backend on each order
-
-              console.log(
-                '🎉 SUCCESS! Session ready - you can trade without popups for 30 minutes!',
-              );
-              console.log('⚡ Just tap grid cells to place orders - NO MORE POPUPS!');
             } catch (authErr: any) {
-              console.error('❌ Failed to setup session key:', authErr);
               clearSession();
               throw new Error(`Session setup failed: ${authErr.message}. Please try again.`);
             }
           } catch (sessionErr: any) {
-            console.error('❌ Failed to setup session key:', sessionErr);
             // Don't fail the entire enable if session creation fails
             // User can still use with regular signatures
             setError(`Session setup failed: ${sessionErr.message}`);
           }
         } else {
-          // One Tap Profit mode - skip session key setup
-          console.log('⚡ One Tap Profit mode: No session key needed');
-          console.log('✅ Each trade will be signed individually (more secure)');
         }
-
-        console.log(`🎯 Tap to Trade mode: ENABLED`);
       } catch (err: any) {
         setError(err.message || 'Failed to enable tap-to-trade');
-        console.error('Failed to create grid session:', err);
       } finally {
         setIsLoading(false);
       }
@@ -710,19 +645,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       // If user taps same cell 2x, it creates 2 separate orders with full margin each
       const collateralPerOrder = gridSession.marginTotal;
 
-      // Find embedded wallet - try multiple approaches
-      console.log('🔍 Looking for embedded wallet...');
-      console.log(
-        'Available wallets:',
-        wallets.map((w) => ({
-          type: w.walletClientType,
-          address: w.address,
-          connectorType: w.connectorType,
-        })),
-      );
-      console.log('User wallet address:', user.wallet.address);
-      console.log('User wallet type:', user.wallet.walletClientType);
-
       // ALWAYS use Privy embedded wallet for tap-to-trade (gasless with AA)
       const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
 
@@ -730,8 +652,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         console.error('❌ No Privy embedded wallet found in wallets array');
         throw new Error('Privy embedded wallet not found. Tap-to-trade requires Privy AA wallet.');
       }
-
-      console.log('✅ Using Privy embedded wallet for tap-to-trade:', embeddedWallet.address);
 
       // Use embedded wallet address as trader (not the currently active wallet)
       const traderAddress = embeddedWallet.address;
@@ -775,8 +695,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       const currentNonce =
         nonceResult === '0x' || !nonceResult ? BigInt(0) : BigInt(nonceResult as string);
 
-      console.log('✅ Fetched fresh nonce from contract:', currentNonce.toString());
-
       // Sign order message
       const messageHash = keccak256(
         encodePacked(
@@ -796,19 +714,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       let signature: string;
       let usedSessionKey = false; // Track if we actually used session key
 
-      // Check if we have a valid session key
-      console.log('🔍 Session key status:', {
-        hasSessionKey: !!sessionKey,
-        isValid: isSessionValid(),
-        sessionAddress: sessionKey?.address,
-        expiresAt: sessionKey?.expiresAt,
-        now: Date.now(),
-      });
-
       // Use session key if available and valid (NO POPUP!)
       if (isSessionValid()) {
-        console.log('✍️ Signing with session key (NO USER PROMPT!)...');
-        console.log('📝 Message hash to sign:', messageHash);
         const sessionSignature = await signWithSession(messageHash);
 
         if (!sessionSignature) {
@@ -823,15 +730,9 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         } else {
           signature = sessionSignature;
           usedSessionKey = true; // Mark that we used session key
-          console.log('✅ Signature obtained (automatically with session key!)');
-          console.log('🔑 Session signature:', sessionSignature);
-          console.log('⚡ No popup, no waiting - instant signing!');
         }
       } else {
         // Fallback: request signature from user (with popup)
-        console.log('⚠️ No valid session key, requesting signature from user...');
-        console.log('💡 TIP: Enable Tap-to-Trade mode to avoid signature popups!');
-        console.log('📝 Message hash to sign:', messageHash);
         const userSignature = await walletClient.request({
           method: 'personal_sign',
           params: [messageHash, traderAddress],
@@ -842,8 +743,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         }
 
         signature = userSignature as string;
-        console.log('✅ Signature obtained from user (with popup)');
-        console.log('🔑 User signature:', userSignature);
       }
 
       // Create order in backend
@@ -874,8 +773,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
           authSignature: sessionKey.authSignature,
         };
       }
-
-      console.log('📤 Sending order to backend:', JSON.stringify(orderData, null, 2));
 
       const response = await fetch(`${BACKEND_API_URL}/api/tap-to-trade/batch-create`, {
         method: 'POST',
@@ -914,8 +811,6 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         }
         return newMap;
       });
-
-      console.log(`✅ Order created for cell (${cellX}, ${cellY})`);
     } catch (err: any) {
       setError(err.message || 'Failed to create order');
       console.error('Failed to create order:', err);

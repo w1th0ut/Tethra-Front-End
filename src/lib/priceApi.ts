@@ -49,7 +49,6 @@ export async function getSignedPrice(symbol: string): Promise<SignedPriceData> {
 
     return result.data;
   } catch (error) {
-    console.error('Error fetching signed price:', error);
     throw error;
   }
 }

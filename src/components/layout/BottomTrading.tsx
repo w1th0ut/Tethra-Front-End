@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUserPositions, usePosition } from '@/hooks/data/usePositions';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { usePrice } from '@/hooks/data/usePrices';
@@ -316,9 +316,7 @@ const BottomTrading = () => {
     try {
       await closePosition({ positionId, symbol });
       setTimeout(() => refetchPositions?.(), 1000);
-    } catch (error) {
-      console.error('Failed to close position:', error);
-    }
+    } catch (error) {}
   };
 
   const handlePositionClick = (
@@ -399,26 +397,30 @@ const BottomTrading = () => {
       // Yes, let's create a map of id -> symbol
 
       // See 'positionSymbols' state below
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) {}
   };
 
   // Map to store symbols for positions (populated by PositionRow)
   const [positionSymbols, setPositionSymbols] = useState<Map<bigint, string>>(new Map());
 
-  const handlePositionDataLoaded = (positionId: bigint, isOpen: boolean, symbol: string) => {
-    setPositionStatuses((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(positionId, isOpen);
-      return newMap;
-    });
-    setPositionSymbols((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(positionId, symbol);
-      return newMap;
-    });
-  };
+  const handlePositionDataLoaded = useCallback(
+    (positionId: bigint, isOpen: boolean, symbol: string) => {
+      setPositionStatuses((prev) => {
+        // Only update if changed to avoid unnecessary re-renders
+        if (prev.get(positionId) === isOpen) return prev;
+        const newMap = new Map(prev);
+        newMap.set(positionId, isOpen);
+        return newMap;
+      });
+      setPositionSymbols((prev) => {
+        if (prev.get(positionId) === symbol) return prev;
+        const newMap = new Map(prev);
+        newMap.set(positionId, symbol);
+        return newMap;
+      });
+    },
+    [],
+  );
 
   const executeCloseAll = async () => {
     const openPositionIds = Array.from(positionStatuses.entries())
@@ -440,9 +442,7 @@ const BottomTrading = () => {
         try {
           await closePosition({ positionId: id, symbol });
           successCount++;
-        } catch (e) {
-          console.error(`Failed to close position ${id}`, e);
-        }
+        } catch (e) {}
       }
     }
 

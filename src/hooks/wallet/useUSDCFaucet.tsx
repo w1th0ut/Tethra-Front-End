@@ -138,7 +138,6 @@ export const useUSDCFaucet = () => {
 
       return txHash;
     } catch (error: any) {
-      console.error('Error claiming USDC:', error);
       let errorMessage = 'Failed to claim USDC from faucet';
       if (error?.message?.includes('user rejected')) {
         errorMessage = 'Transaction was rejected';

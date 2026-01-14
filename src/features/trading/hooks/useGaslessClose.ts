@@ -53,7 +53,6 @@ export function useGaslessClose() {
         const hash = result.data.txHash;
         setTxHash(hash);
 
-        console.log('✅ Position closed gaslessly! TX:', hash);
         toast.success(`Position closed! TX: ${hash.slice(0, 10)}...`, {
           duration: 5000,
         });

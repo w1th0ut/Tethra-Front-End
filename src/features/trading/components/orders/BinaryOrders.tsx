@@ -38,34 +38,27 @@ const BinaryOrders = () => {
         setIsLoading(true);
         const url = `${BACKEND_URL}/api/one-tap/bets?trader=${address}`;
         const response = await fetch(url);
-        
-        console.log('🔍 Binary Orders - Fetch URL:', url);
-        console.log('🔍 Binary Orders - Response status:', response.status);
-        
+
         if (response.ok) {
           const data = await response.json();
-          console.log('🔍 Binary Orders - Response data:', data);
-          
+
           if (data.success && data.data) {
             // Transform backend data to component format
             const transformedOrders = data.data.map((bet: any) => {
               const entryPrice = parseFloat(bet.entryPrice) / 100000000; // 8 decimals
               const targetPrice = parseFloat(bet.targetPrice) / 100000000; // 8 decimals
               const direction = targetPrice > entryPrice ? 'UP' : 'DOWN';
-              
+
               return {
                 ...bet,
                 direction,
               };
             });
-            console.log('🔍 Binary Orders - Transformed orders:', transformedOrders);
             setOrders(transformedOrders);
           } else {
-            console.log('🔍 Binary Orders - No data found or success=false');
             setOrders([]);
           }
         } else {
-          console.log('🔍 Binary Orders - Response not OK');
           setOrders([]);
         }
       } catch (error) {
@@ -77,7 +70,7 @@ const BinaryOrders = () => {
     };
 
     fetchOrders();
-    
+
     // Poll every 3 seconds to get updates
     const interval = setInterval(fetchOrders, 3000);
     return () => clearInterval(interval);
@@ -86,13 +79,13 @@ const BinaryOrders = () => {
   // Get crypto icon based on symbol
   const getCryptoIcon = (symbol: string) => {
     const icons: { [key: string]: string } = {
-      'BTC': '₿',
-      'ETH': 'Ξ',
-      'SOL': '◎',
-      'AVAX': '🔺',
-      'MATIC': '🟣',
-      'ARB': '🔵',
-      'OP': '🔴',
+      BTC: '₿',
+      ETH: 'Ξ',
+      SOL: '◎',
+      AVAX: '🔺',
+      MATIC: '🟣',
+      ARB: '🔵',
+      OP: '🔴',
     };
     return icons[symbol] || '💎';
   };
@@ -167,64 +160,64 @@ const BinaryOrders = () => {
             } else if (typeof order.betAmount === 'number') {
               betAmount = order.betAmount;
             }
-            
-            console.log('🔍 Order betAmount:', order.betAmount, '-> parsed:', betAmount);
-            
+
             return (
-            <tr
-              key={order.betId}
-              className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors"
-            >
-              {/* Market */}
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-lg">
-                    {getCryptoIcon(order.symbol)}
-                  </div>
-                  <span className="font-semibold text-white">{formatMarketPair(order.symbol)}</span>
-                </div>
-              </td>
-
-              {/* Bet Amount */}
-              <td className="px-4 py-3">
-                <span className="text-white font-medium">
-                  ${betAmount > 0 ? betAmount.toFixed(2) : '0.00'}
-                </span>
-              </td>
-
-              {/* Multiplier */}
-              <td className="px-4 py-3">
-                <span className="text-blue-300 font-bold">
-                  {(order.multiplier / 100).toFixed(2)}x
-                </span>
-              </td>
-
-              {/* Status */}
-              <td className="px-4 py-3">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-bold ${getStatusColor(
-                    order.status
-                  )}`}
-                >
-                  {order.status}
-                </span>
-              </td>
-
-              {/* Time */}
-              <td className="px-4 py-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-gray-400 text-xs">
-                    {new Date(order.createdAt * 1000).toLocaleTimeString()}
-                  </span>
-                  {order.status === 'ACTIVE' && (
-                    <span className="text-yellow-400 text-xs">
-                      Expires: {new Date(order.targetTime * 1000).toLocaleTimeString()}
+              <tr
+                key={order.betId}
+                className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors"
+              >
+                {/* Market */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-lg">
+                      {getCryptoIcon(order.symbol)}
+                    </div>
+                    <span className="font-semibold text-white">
+                      {formatMarketPair(order.symbol)}
                     </span>
-                  )}
-                </div>
-              </td>
-            </tr>
-          );
+                  </div>
+                </td>
+
+                {/* Bet Amount */}
+                <td className="px-4 py-3">
+                  <span className="text-white font-medium">
+                    ${betAmount > 0 ? betAmount.toFixed(2) : '0.00'}
+                  </span>
+                </td>
+
+                {/* Multiplier */}
+                <td className="px-4 py-3">
+                  <span className="text-blue-300 font-bold">
+                    {(order.multiplier / 100).toFixed(2)}x
+                  </span>
+                </td>
+
+                {/* Status */}
+                <td className="px-4 py-3">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-bold ${getStatusColor(
+                      order.status,
+                    )}`}
+                  >
+                    {order.status}
+                  </span>
+                </td>
+
+                {/* Time */}
+                <td className="px-4 py-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-gray-400 text-xs">
+                      {new Date(order.createdAt * 1000).toLocaleTimeString()}
+                    </span>
+                    {order.status === 'ACTIVE' && (
+                      <span className="text-yellow-400 text-xs">
+                        Expires: {new Date(order.targetTime * 1000).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
           })}
         </tbody>
       </table>

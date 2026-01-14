@@ -289,7 +289,6 @@ function PositionsPageContent() {
 
       toast.dismiss('close-position');
     } catch (error) {
-      console.error('Error closing position:', error);
       toast.dismiss('close-position');
     }
   };

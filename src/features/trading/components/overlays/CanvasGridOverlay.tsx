@@ -48,21 +48,24 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
   }, []);
 
   // Helper function to convert chart coordinates to pixel coordinates
-  const convertToPixel = useCallback((dataIndex: number, price: number): { x: number; y: number } | null => {
-    if (!chartRef.current) return null;
+  const convertToPixel = useCallback(
+    (dataIndex: number, price: number): { x: number; y: number } | null => {
+      if (!chartRef.current) return null;
 
-    try {
-      const chart = chartRef.current;
-      const point = chart.convertToPixel(
-        { timestamp: 0, dataIndex, value: price },
-        { paneId: 'candle_pane' }
-      );
+      try {
+        const chart = chartRef.current;
+        const point = chart.convertToPixel(
+          { timestamp: 0, dataIndex, value: price },
+          { paneId: 'candle_pane' },
+        );
 
-      return point ? { x: point.x, y: point.y } : null;
-    } catch (error) {
-      return null;
-    }
-  }, [chartRef]);
+        return point ? { x: point.x, y: point.y } : null;
+      } catch (error) {
+        return null;
+      }
+    },
+    [chartRef],
+  );
 
   // Helper function to get visible range from chart
   const getVisibleRange = useCallback(() => {
@@ -72,7 +75,11 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
       const chart = chartRef.current;
       const visibleDataRange = chart.getVisibleDataRange();
 
-      if (visibleDataRange && visibleDataRange.from !== undefined && visibleDataRange.to !== undefined) {
+      if (
+        visibleDataRange &&
+        visibleDataRange.from !== undefined &&
+        visibleDataRange.to !== undefined
+      ) {
         const dataList = chart.getDataList();
         const visibleData = dataList.slice(visibleDataRange.from, visibleDataRange.to + 1);
 
@@ -83,7 +90,7 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
             to: visibleDataRange.to,
             minPrice: Math.min(...prices),
             maxPrice: Math.max(...prices),
-            dataList: visibleData
+            dataList: visibleData,
           };
         }
       }
@@ -122,14 +129,11 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
           return;
         }
 
-        console.log('📊 Visible Range:', visibleRange);
-
         // Calculate price step based on grid config
-        const priceStep = gridConfig.priceGridType === 'percentage'
-          ? currentPrice * (gridConfig.priceGridSize / 100)
-          : gridConfig.priceGridSize;
-
-        console.log('💰 Price Step:', priceStep, 'Current Price:', currentPrice);
+        const priceStep =
+          gridConfig.priceGridType === 'percentage'
+            ? currentPrice * (gridConfig.priceGridSize / 100)
+            : gridConfig.priceGridSize;
 
         // Calculate visible price range with padding
         const priceRange = visibleRange.maxPrice - visibleRange.minPrice;
@@ -141,8 +145,6 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
         const lowestLevel = Math.floor(minPrice / priceStep) * priceStep;
         const highestLevel = Math.ceil(maxPrice / priceStep) * priceStep;
 
-        console.log('📏 Price Levels:', { lowestLevel, highestLevel, count: (highestLevel - lowestLevel) / priceStep });
-
         // Parse timeframe to determine time interval in minutes
         const getTimeframeMinutes = (tf: string): number => {
           if (tf === 'D') return 1440; // 1 day
@@ -150,13 +152,8 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
           return isNaN(num) ? 60 : num; // Default to 60 minutes if invalid
         };
 
-        const timeframeMinutes = getTimeframeMinutes(interval);
-        console.log(`⏱️ Timeframe: ${interval} = ${timeframeMinutes} minutes per grid column`);
-
         // Calculate how many candles per grid column based on timeMultiplier
         const candlesPerColumn = gridConfig.timeMultiplier;
-
-        console.log('📍 Drawing grid cells...');
 
         // Draw grid using chart coordinates
         for (let priceLevel = lowestLevel; priceLevel <= highestLevel; priceLevel += priceStep) {
@@ -168,7 +165,6 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
           const pointBottom = convertToPixel(visibleRange.from, priceBottom);
 
           if (!pointTop || !pointBottom) {
-            console.log('⚠️ Could not convert price to pixel:', priceLevel);
             continue;
           }
 
@@ -181,11 +177,17 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
 
           // Draw boxes based on timeMultiplier (e.g., every N candles = 1 grid column)
           let col = 0;
-          for (let dataIndex = visibleRange.from; dataIndex <= visibleRange.to; dataIndex += candlesPerColumn) {
-
+          for (
+            let dataIndex = visibleRange.from;
+            dataIndex <= visibleRange.to;
+            dataIndex += candlesPerColumn
+          ) {
             // Get X coordinate from chart (left and right edges)
             const pointLeft = convertToPixel(dataIndex, priceLevel);
-            const pointRight = convertToPixel(Math.min(dataIndex + candlesPerColumn, visibleRange.to + 1), priceLevel);
+            const pointRight = convertToPixel(
+              Math.min(dataIndex + candlesPerColumn, visibleRange.to + 1),
+              priceLevel,
+            );
 
             if (!pointLeft || !pointRight) {
               col++;
@@ -285,7 +287,6 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
           }
           ctx.shadowBlur = 0;
         }
-
       } catch (error) {
         console.error('Error drawing grid overlay:', error);
       }
@@ -300,101 +301,120 @@ const CanvasGridOverlay: React.FC<CanvasGridOverlayProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [gridConfig, selectedCells, hoveredCell, currentPrice, dimensions, chartRef, convertToPixel, getVisibleRange, interval]);
+  }, [
+    gridConfig,
+    selectedCells,
+    hoveredCell,
+    currentPrice,
+    dimensions,
+    chartRef,
+    convertToPixel,
+    getVisibleRange,
+    interval,
+  ]);
 
   // Helper function to convert pixel coordinates back to chart coordinates
-  const convertFromPixel = useCallback((x: number, y: number): { dataIndex: number; price: number } | null => {
-    if (!chartRef.current) return null;
+  const convertFromPixel = useCallback(
+    (x: number, y: number): { dataIndex: number; price: number } | null => {
+      if (!chartRef.current) return null;
 
-    try {
-      const chart = chartRef.current;
-      const coordinate = chart.convertFromPixel({ x, y }, { paneId: 'candle_pane' });
+      try {
+        const chart = chartRef.current;
+        const coordinate = chart.convertFromPixel({ x, y }, { paneId: 'candle_pane' });
 
-      return coordinate ? { dataIndex: coordinate.dataIndex, price: coordinate.value } : null;
-    } catch (error) {
-      return null;
-    }
-  }, [chartRef]);
+        return coordinate ? { dataIndex: coordinate.dataIndex, price: coordinate.value } : null;
+      } catch (error) {
+        return null;
+      }
+    },
+    [chartRef],
+  );
 
   // Handle canvas click
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!gridConfig.enabled || !canvasRef.current || !chartRef.current) return;
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!gridConfig.enabled || !canvasRef.current || !chartRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    // Convert pixel coordinates to chart coordinates
-    const chartCoords = convertFromPixel(x, y);
-    if (!chartCoords) return;
+      // Convert pixel coordinates to chart coordinates
+      const chartCoords = convertFromPixel(x, y);
+      if (!chartCoords) return;
 
-    const visibleRange = getVisibleRange();
-    if (!visibleRange) return;
+      const visibleRange = getVisibleRange();
+      if (!visibleRange) return;
 
-    // Calculate price step
-    const priceStep = gridConfig.priceGridType === 'percentage'
-      ? currentPrice * (gridConfig.priceGridSize / 100)
-      : gridConfig.priceGridSize;
+      // Calculate price step
+      const priceStep =
+        gridConfig.priceGridType === 'percentage'
+          ? currentPrice * (gridConfig.priceGridSize / 100)
+          : gridConfig.priceGridSize;
 
-    // Find the price level (snap to grid)
-    const priceLevel = Math.floor(chartCoords.price / priceStep) * priceStep;
-    const priceTop = priceLevel + priceStep;
+      // Find the price level (snap to grid)
+      const priceLevel = Math.floor(chartCoords.price / priceStep) * priceStep;
+      const priceTop = priceLevel + priceStep;
 
-    // Find the column based on timeMultiplier
-    const candlesPerColumn = gridConfig.timeMultiplier;
-    const relativeDataIndex = Math.floor(chartCoords.dataIndex) - visibleRange.from;
-    const col = Math.floor(relativeDataIndex / candlesPerColumn);
+      // Find the column based on timeMultiplier
+      const candlesPerColumn = gridConfig.timeMultiplier;
+      const relativeDataIndex = Math.floor(chartCoords.dataIndex) - visibleRange.from;
+      const col = Math.floor(relativeDataIndex / candlesPerColumn);
 
-    const cellId = `cell-${Math.round(priceLevel)}-${col}`;
-    const isAbovePrice = priceTop > currentPrice;
+      const cellId = `cell-${Math.round(priceLevel)}-${col}`;
+      const isAbovePrice = priceTop > currentPrice;
 
-    console.log(`📍 Clicked: ${isAbovePrice ? 'SELL' : 'BUY'} @ $${priceLevel.toFixed(2)} (col ${col}, dataIndex ${Math.floor(chartCoords.dataIndex)}, candlesPerCol ${candlesPerColumn})`);
-
-    onCellClick(cellId, priceLevel, isAbovePrice);
-  }, [gridConfig, currentPrice, onCellClick, chartRef, convertFromPixel, getVisibleRange]);
+      onCellClick(cellId, priceLevel, isAbovePrice);
+    },
+    [gridConfig, currentPrice, onCellClick, chartRef, convertFromPixel, getVisibleRange],
+  );
 
   // Handle canvas hover
-  const handleCanvasMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!gridConfig.enabled || !canvasRef.current || !chartRef.current) {
-      setHoveredCell(null);
-      return;
-    }
+  const handleCanvasMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!gridConfig.enabled || !canvasRef.current || !chartRef.current) {
+        setHoveredCell(null);
+        return;
+      }
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    // Convert pixel coordinates to chart coordinates
-    const chartCoords = convertFromPixel(x, y);
-    if (!chartCoords) {
-      setHoveredCell(null);
-      return;
-    }
+      // Convert pixel coordinates to chart coordinates
+      const chartCoords = convertFromPixel(x, y);
+      if (!chartCoords) {
+        setHoveredCell(null);
+        return;
+      }
 
-    const visibleRange = getVisibleRange();
-    if (!visibleRange) {
-      setHoveredCell(null);
-      return;
-    }
+      const visibleRange = getVisibleRange();
+      if (!visibleRange) {
+        setHoveredCell(null);
+        return;
+      }
 
-    // Calculate price step
-    const priceStep = gridConfig.priceGridType === 'percentage'
-      ? currentPrice * (gridConfig.priceGridSize / 100)
-      : gridConfig.priceGridSize;
+      // Calculate price step
+      const priceStep =
+        gridConfig.priceGridType === 'percentage'
+          ? currentPrice * (gridConfig.priceGridSize / 100)
+          : gridConfig.priceGridSize;
 
-    // Find the price level (snap to grid)
-    const priceLevel = Math.floor(chartCoords.price / priceStep) * priceStep;
+      // Find the price level (snap to grid)
+      const priceLevel = Math.floor(chartCoords.price / priceStep) * priceStep;
 
-    // Find the column based on timeMultiplier
-    const candlesPerColumn = gridConfig.timeMultiplier;
-    const relativeDataIndex = Math.floor(chartCoords.dataIndex) - visibleRange.from;
-    const col = Math.floor(relativeDataIndex / candlesPerColumn);
+      // Find the column based on timeMultiplier
+      const candlesPerColumn = gridConfig.timeMultiplier;
+      const relativeDataIndex = Math.floor(chartCoords.dataIndex) - visibleRange.from;
+      const col = Math.floor(relativeDataIndex / candlesPerColumn);
 
-    const cellId = `cell-${Math.round(priceLevel)}-${col}`;
-    setHoveredCell(cellId);
-  }, [gridConfig, currentPrice, chartRef, convertFromPixel, getVisibleRange]);
+      const cellId = `cell-${Math.round(priceLevel)}-${col}`;
+      setHoveredCell(cellId);
+    },
+    [gridConfig, currentPrice, chartRef, convertFromPixel, getVisibleRange],
+  );
 
   const handleCanvasLeave = useCallback(() => {
     setHoveredCell(null);
