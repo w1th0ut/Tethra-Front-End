@@ -45,9 +45,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
     isPending: isOneTapProfitApprovalPending,
   } = useOneTapProfitApproval();
 
-  // Session key hook for binary trading
-  const binarySessionKey = useSessionKey();
-
   // Tap to Trade dari Context
   const tapToTrade = useTapToTrade();
 
@@ -65,6 +62,19 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
   const hasLargeOneTapProfitAllowance = useMemo(() => {
     return Boolean(oneTapProfitAllowance && oneTapProfitAllowance > parseUnits('10000', 6));
   }, [oneTapProfitAllowance]);
+
+  // DEBUG: Log allowance and balance
+  React.useEffect(() => {
+    if (wallets.length > 0) {
+      console.log('🔍 [TapToTrade] Debug Info:', {
+        address: wallets[0].address,
+        usdcBalance: usdcBalance,
+        oneTapProfitAllowance: oneTapProfitAllowance?.toString(),
+        contractAddress: process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS,
+        hasLargeOneTapProfitAllowance,
+      });
+    }
+  }, [wallets, usdcBalance, oneTapProfitAllowance, hasLargeOneTapProfitAllowance]);
 
   // Handler for pre-approve USDC in large amount
   const handlePreApprove = async () => {
@@ -239,7 +249,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         hasLargeOneTapProfitAllowance={hasLargeOneTapProfitAllowance}
         hasSelectedYGrid={hasSelectedYGrid}
         wallets={wallets}
-        binarySessionKey={binarySessionKey}
         onPreApprove={handlePreApprove}
         onPreApproveOneTapProfit={handlePreApproveOneTapProfit}
         isApprovalPending={isApprovalPending}

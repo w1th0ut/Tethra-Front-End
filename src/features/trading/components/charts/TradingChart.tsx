@@ -7,7 +7,7 @@ import { Market } from '@/features/trading/types';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { useMarketWebSocket } from '@/features/trading/hooks/useMarketWebSocket';
 import TradingViewWidget from './TradingViewWidget';
-import PerSecondChart from '@/features/second-chart/components/PerSecondChart';
+import PerSecondChart from '@/components/charts/PerSecondChart';
 import ChartHeader from './ChartHeader';
 import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
 import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
@@ -179,14 +179,25 @@ const TradingChart: React.FC = () => {
                   : {})}
                 onCellClick={(targetPrice, targetTime, entryPrice, entryTime) => {
                   if (tapToTrade.tradeMode === 'one-tap-profit') {
-                    placeBetWithSession({
-                      symbol: activeMarket.symbol,
-                      betAmount: tapToTrade.betAmount || '10',
-                      targetPrice: targetPrice.toString(),
-                      targetTime: targetTime,
-                      entryPrice: entryPrice.toString(),
-                      entryTime: entryTime,
-                    });
+                    console.log(
+                      '🔍 [TradingChart] Placing bet with sessionKey:',
+                      tapToTrade.sessionKey,
+                    );
+
+                    placeBetWithSession(
+                      {
+                        symbol: activeMarket.symbol,
+                        betAmount: tapToTrade.betAmount || '10',
+                        targetPrice: targetPrice.toString(),
+                        targetTime: targetTime,
+                        entryPrice: entryPrice.toString(),
+                        entryTime: entryTime,
+                      },
+                      {
+                        sessionKey: tapToTrade.sessionKey,
+                        sessionSigner: tapToTrade.signWithSession,
+                      },
+                    );
                   } else if (tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession) {
                     // Open Position mode - map click to grid cell
                     const session = tapToTrade.gridSession;

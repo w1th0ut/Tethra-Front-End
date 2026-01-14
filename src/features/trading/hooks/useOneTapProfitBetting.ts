@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import {
   encodeFunctionData,
   parseUnits,
@@ -11,7 +12,6 @@ import {
   encodePacked,
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -120,15 +120,36 @@ export const useOneTapProfit = () => {
   /**
    * Place bet with session key (fully gasless)
    */
+  /**
+   * Place bet with session key (fully gasless)
+   * Can accept sessionKey/signer from arguments (preferred) or use internal state (fallback)
+   */
   const placeBetWithSession = useCallback(
-    async (params: PlaceBetParams) => {
+    async (
+      params: PlaceBetParams,
+      sessionOptions?: {
+        sessionKey: any;
+        sessionSigner: (hash: `0x${string}`) => Promise<string | null>;
+      },
+    ) => {
       if (!authenticated || !user || !embeddedWallet) {
         throw new Error('Wallet not connected');
       }
 
-      // Check if session is valid
-      if (!isSessionValid()) {
-        throw new Error('Session key expired or not created. Please enable Binary Trading again.');
+      // Use provided session options OR internal hook state
+      const activeSessionKey = sessionOptions?.sessionKey || sessionKey;
+      const signer = sessionOptions?.sessionSigner || signWithSession;
+
+      // Basic validation check (internal isSessionValid might be stale, so check object existence)
+      if (!activeSessionKey || activeSessionKey.expiresAt <= Date.now()) {
+        // Fallback to internal check if no options provided
+        if (!sessionOptions && !isSessionValid()) {
+          throw new Error(
+            'Session key expired or not created. Please enable Binary Trading again.',
+          );
+        } else if (sessionOptions) {
+          throw new Error('Session key provided is invalid or expired.');
+        }
       }
 
       setIsPlacingBet(true);
@@ -150,7 +171,9 @@ export const useOneTapProfit = () => {
           ),
         );
 
-        const sessionSignature = await signWithSession(messageHash);
+        const sessionSignature = await signer(messageHash);
+
+        console.log('🚀 [useOneTapProfit] Sending bet to backend for:', userAddress);
 
         // Call backend endpoint (session validation happens off-chain)
         const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {
@@ -175,7 +198,15 @@ export const useOneTapProfit = () => {
         setIsPlacingBet(false);
       }
     },
-    [authenticated, user, embeddedWallet, isSessionValid, createSession, signWithSession],
+    [
+      authenticated,
+      user,
+      embeddedWallet,
+      isSessionValid,
+      createSession,
+      signWithSession,
+      sessionKey,
+    ],
   );
 
   /**

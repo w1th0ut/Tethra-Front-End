@@ -109,10 +109,10 @@ export const ALL_MARKETS: Market[] = [
   },
   {
     symbol: 'PEPE',
-    tradingViewSymbol: 'BINANCE:PEPEUSDT',
+    tradingViewSymbol: 'BINANCE:1000PEPEUSDT',
     logoUrl:
       'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png',
-    binanceSymbol: 'PEPEUSDT',
+    binanceSymbol: '1000PEPEUSDT',
     category: 'crypto',
     maxLeverage: 100,
   },

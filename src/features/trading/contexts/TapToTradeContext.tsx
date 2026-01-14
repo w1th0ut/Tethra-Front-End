@@ -67,6 +67,12 @@ interface TapToTradeContextType {
   // Session key state
   sessionKey: any | null; // Session key for signature-less trading
   sessionTimeRemaining: number; // Time remaining in milliseconds
+  signWithSession: (messageHash: `0x${string}`) => Promise<string | null>;
+  createSession: (
+    userAddress: string,
+    walletClient: any,
+    durationMs?: number,
+  ) => Promise<any | null>;
 
   // Backend integration
   gridSession: GridSession | null;
@@ -842,6 +848,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         error,
         isBinaryTradingEnabled,
         setIsBinaryTradingEnabled,
+        signWithSession,
+        createSession, // Export createSession
       }}
     >
       {children}

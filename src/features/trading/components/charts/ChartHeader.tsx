@@ -73,11 +73,7 @@ export default function ChartHeader(props: ChartHeaderProps) {
             ref={props.triggerRef}
             onClick={() => !props.disabled && props.onSymbolChangeClick()}
             disabled={props.disabled}
-            className={`flex items-center gap-2 bg-gradient-to-r from-trading-surface to-trading-elevated border border-border-default rounded-lg px-4 py-2.5 text-sm font-bold text-text-primary transition-all duration-200 shadow-lg ${
-              props.disabled
-                ? 'opacity-50 cursor-not-allowed grayscale pointer-events-none'
-                : 'hover:from-trading-elevated hover:to-trading-surface hover:border-border-light hover:shadow-xl cursor-pointer'
-            }`}
+            className={`flex items-center gap-2 bg-gradient-to-r from-trading-surface to-trading-elevated border border-border-default rounded-lg px-4 py-2.5 text-sm font-bold text-text-primary transition-all duration-200 shadow-lg ${'hover:from-trading-elevated hover:to-trading-surface hover:border-border-light hover:shadow-xl cursor-pointer'}`}
           >
             {props.activeMarket && (
               <Image
