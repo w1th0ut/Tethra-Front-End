@@ -77,7 +77,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     } else {
       // Binary Trading Logic
       try {
-        toast.loading('Creating session key for gasless binary trading...', {
+        toast.loading('Creating session key...', {
           id: 'binary-session',
         });
 

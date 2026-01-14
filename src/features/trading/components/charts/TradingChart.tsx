@@ -136,6 +136,7 @@ const TradingChart: React.FC = () => {
           markets={markets}
           onSelect={handleMarketSelect}
           triggerRef={triggerButtonRef}
+          disabled={tapToTrade.isEnabled}
         />
       </div>
 
@@ -162,6 +163,7 @@ const TradingChart: React.FC = () => {
                 isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
                 isPlacingBet={isPlacingBet}
                 logoUrl={activeMarket.logoUrl}
+                tradeMode={tapToTrade.tradeMode} // Pass tradeMode explicitly
                 // Pass grid props for Open Position mode
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
                   ? {

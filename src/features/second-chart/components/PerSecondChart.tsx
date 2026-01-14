@@ -8,6 +8,7 @@ interface PerSecondChartProps {
   currentPrice: number;
   betAmount?: string; // Bet amount from sidebar (optional, default 10)
   isBinaryTradingEnabled?: boolean; // Whether binary trading is enabled with session key
+  tradeMode?: 'one-tap-profit' | 'open-position'; // Trade mode
   onCellClick?: (
     targetPrice: number,
     targetTime: number,
@@ -32,6 +33,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   symbol,
   currentPrice,
   isBinaryTradingEnabled = false,
+  tradeMode = 'one-tap-profit',
   onCellClick,
   isPlacingBet = false,
 
@@ -61,6 +63,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [hoveredCellInfo, setHoveredCellInfo] = useState<{
     targetPrice: number;
+    targetCenterPrice?: number; // Added for Open Position logic
     targetTime: number;
     multiplier: number;
   } | null>(null);
@@ -756,13 +759,25 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           const isSelected = selectedCells.has(cellId);
           const isHovered = hoveredCell === cellId;
 
+          // Define color based on trade mode and position relative to price
+          let cellColor = '59, 130, 246'; // Default Blue
+          let isLong = false;
+
+          if (tradeMode === 'open-position') {
+            const cellCenterPrice = priceLevel + GRID_Y_DOLLARS / 2;
+            const currentPriceVal =
+              priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].price : currentPrice;
+            isLong = cellCenterPrice < currentPriceVal; // Grid below price = LONG
+            cellColor = isLong ? '34, 197, 94' : '239, 68, 68'; // Green : Red
+          }
+
           if (isSelected) {
-            // Selected cell - blue fill
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; // Blue with transparency
+            // Selected cell - filled
+            ctx.fillStyle = `rgba(${cellColor}, 0.3)`;
             ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
 
-            // Blue border
-            ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+            // Border
+            ctx.strokeStyle = `rgba(${cellColor}, 0.8)`;
             ctx.lineWidth = 2;
             ctx.strokeRect(xLeft, yTop, boxWidth, boxHeight);
 
@@ -793,13 +808,24 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
 
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText(`${(mult / 100).toFixed(2)}x`, centerX, centerY - 8);
+            if (tradeMode === 'open-position') {
+              // Just color of grid, no text inside (User Request)
+              // ctx.fillStyle = isLong ? '#22c55e' : '#ef4444';
+              // ctx.fillText(isLong ? 'LONG' : 'SHORT', centerX, centerY - 8);
+            } else {
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(`${(mult / 100).toFixed(2)}x`, centerX, centerY - 8);
+            }
 
             // Draw price text
             ctx.font = '600 12px monospace';
             ctx.fillStyle = '#ffffff';
             const decimals = symbol === 'SOL' ? 1 : 0;
+            // Only show price if not open position or just show it small?
+            // "just color of grid" -> maybe hide price too?
+            // User complained about "text is long" (the LONG/SHORT text).
+            // Usually price is helpful. I'll keep price for now unless they meant "completely empty box".
+            // "just color of grid" usually implies the status.
             ctx.fillText(`$${displayPrice.toFixed(decimals)}`, centerX, centerY + 8);
 
             // Reset shadow
@@ -807,12 +833,12 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
           } else if (isHovered && !isDragging) {
-            // Hovered cell - light blue highlight
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+            // Hovered cell - highlight
+            ctx.fillStyle = `rgba(${cellColor}, 0.15)`;
             ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
 
-            // Light blue border
-            ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+            // Border
+            ctx.strokeStyle = `rgba(${cellColor}, 0.5)`;
             ctx.lineWidth = 1;
             ctx.strokeRect(xLeft, yTop, boxWidth, boxHeight);
           }
@@ -832,10 +858,13 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           const entryTime = Math.floor(Date.now() / 1000);
 
           // Calculate multiplier
+          // Use center price for accurate calculation in open position mode logic
+          const targetCenterPrice = targetPrice + GRID_Y_DOLLARS / 2;
           const multiplier = calculateMultiplier(entryPrice, targetPrice, entryTime, targetTime);
 
           setHoveredCellInfo({
             targetPrice,
+            targetCenterPrice, // pass center price for tooltip logic
             targetTime,
             multiplier,
           });
@@ -1250,13 +1279,28 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             style={{
               fontSize: '16px',
               fontWeight: '700',
-              color: '#3b82f6',
+              color:
+                tradeMode === 'open-position'
+                  ? (hoveredCellInfo.targetCenterPrice || hoveredCellInfo.targetPrice) < // Use Center Price logic
+                    (priceHistory.length > 0
+                      ? priceHistory[priceHistory.length - 1].price
+                      : currentPrice)
+                    ? '#22c55e'
+                    : '#ef4444'
+                  : '#3b82f6',
               fontFamily: 'monospace',
               textAlign: 'center',
               marginBottom: '4px',
             }}
           >
-            {(hoveredCellInfo.multiplier / 100).toFixed(2)}x
+            {tradeMode === 'open-position'
+              ? (hoveredCellInfo.targetCenterPrice || hoveredCellInfo.targetPrice) < // Use Center Price logic
+                (priceHistory.length > 0
+                  ? priceHistory[priceHistory.length - 1].price
+                  : currentPrice)
+                ? 'LONG'
+                : 'SHORT'
+              : `${(hoveredCellInfo.multiplier / 100).toFixed(2)}x`}
           </div>
           <div
             style={{
