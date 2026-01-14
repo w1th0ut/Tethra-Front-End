@@ -711,6 +711,28 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       // Reset line dash to solid for other drawings
       ctx.setLineDash([]);
 
+      const nowTs = Date.now() / 1000;
+      const currentGridStartTs = Math.floor(nowTs / GRID_X_SECONDS) * GRID_X_SECONDS;
+      const minSelectableGridStartTs = currentGridStartTs + GRID_X_SECONDS * 1.5;
+
+      let headX = nowX;
+      if (interpolatedHistory.length > 0) {
+        const latestPoint = interpolatedHistory[interpolatedHistory.length - 1];
+        headX = timeToX(latestPoint.time);
+      }
+
+      if (headX > 0) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, 0, headX, chartHeight);
+
+        ctx.strokeStyle = '#374151';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(headX, 0);
+        ctx.lineTo(headX, chartHeight);
+        ctx.stroke();
+      }
+
       // Draw grid cells (clickable areas) with hover and selection states
       let currentHoveredCell: string | null = null;
 
@@ -752,7 +774,14 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             mousePos.x <= chartWidth &&
             mousePos.y <= chartHeight
           ) {
-            currentHoveredCell = cellId;
+            const now = Date.now() / 1000;
+            const currentGridStart = Math.floor(now / GRID_X_SECONDS) * GRID_X_SECONDS;
+            const minSelectableGridStart = currentGridStart + GRID_X_SECONDS * 1.5;
+            const gridStartTime = Math.floor(timestamp / 1000);
+
+            if (gridStartTime >= minSelectableGridStart) {
+              currentHoveredCell = cellId;
+            }
           }
 
           // Draw cell background based on state
@@ -1105,13 +1134,6 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         // Use grid START time as entry time (not current time)
         // This ensures bet time range matches the grid cell time range
         const entryTime = gridStartTime;
-
-        // Check if target is at least 10 seconds in the future
-        const now = Math.floor(Date.now() / 1000);
-        if (targetTime < now + 10) {
-          toast.error('Target must be at least 10 seconds in the future');
-          return;
-        }
 
         // Toggle cell selection for visual feedback
         setSelectedCells((prev) => {
