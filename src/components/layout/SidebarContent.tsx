@@ -53,7 +53,7 @@ export default function SidebarContent({
 
   return (
     <aside
-      className={`flex flex-col items-start bg-[#0D1017] text-gray-300 h-full py-6 relative w-full rounded-lg ${
+      className={`flex flex-col items-start bg-[#0D1017] text-gray-300 h-full pt-6 pb-3 relative w-full rounded-lg ${
         isExpanded ? 'px-3' : 'px-2'
       }`}
     >
@@ -131,7 +131,7 @@ export default function SidebarContent({
 
       {/* Built on Base Badge */}
       {showBaseBadge && (
-        <div className="mt-auto w-full mb-12">
+        <div className="mt-auto w-full">
           <div
             className={`flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg shadow-lg hover:shadow-blue-300/20 transition-all duration-300 cursor-pointer ${
               isExpanded ? 'justify-center px-3 py-2.5' : 'justify-center p-2.5'

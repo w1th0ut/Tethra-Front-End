@@ -9,6 +9,7 @@ interface UseChartFocusProps {
   gridIntervalSeconds: number;
   initialPrice: number;
   currentPrice: number;
+  gridYDollars: number; // Added
   setScrollOffset: (offset: number) => void;
   setVerticalOffset: (offset: number) => void;
 }
@@ -20,6 +21,7 @@ export const useChartFocus = ({
   gridIntervalSeconds,
   initialPrice,
   currentPrice,
+  gridYDollars,
   setScrollOffset,
   setVerticalOffset,
 }: UseChartFocusProps) => {
@@ -34,63 +36,76 @@ export const useChartFocus = ({
     return () => clearInterval(blinkInterval);
   }, []);
 
-  // Auto-follow focus
+  // Auto-follow focus (Center Lock)
   useEffect(() => {
     if (
       !isFocusMode ||
-      interpolatedHistory.length === 0 ||
+      (interpolatedHistory.length === 0 && currentPrice === 0) ||
       dimensions.width === 0 ||
-      dimensions.height === 0
+      dimensions.height === 0 ||
+      gridYDollars === 0
     ) {
       return;
     }
 
     const updateFocus = () => {
+      // 1. Horizontal Centering (Time)
+      // Lock the "Head" at 20% of the chart width (Left side) to see more future
       const chartWidth = dimensions.width - 80;
-      const chartHeight = dimensions.height - 30;
-      const targetX = chartWidth * 0.25;
-      const nowX = chartWidth * 0.2;
+      const targetX = chartWidth * 0.2;
+      const nowX = chartWidth * 0.2; // The "base" X position of 'now' in the drawing logic logic
 
-      const latestPoint = interpolatedHistory[interpolatedHistory.length - 1];
-      if (!latestPoint) return;
+      // Get latest point (Head)
+      const latestPoint =
+        interpolatedHistory.length > 0
+          ? interpolatedHistory[interpolatedHistory.length - 1]
+          : { time: Date.now(), price: currentPrice };
 
-      const now = Date.now();
-      const gridSizePixels = chartHeight / 10;
+      // Calculate where the head *would* be without scrolling
+      const gridSizePixels = (dimensions.height - 30) / 10; // Assuming 10 vertical grids
       const pixelsPerSecond = gridSizePixels / gridIntervalSeconds;
 
+      const now = Date.now();
       const secondsFromNow = (latestPoint.time - now) / 1000;
       const circleCurrentX = nowX + secondsFromNow * pixelsPerSecond;
 
+      // Scroll to bring circleCurrentX to targetX
       const newScrollOffset = circleCurrentX - targetX;
       setScrollOffset(newScrollOffset);
 
-      const latestPrice = latestPoint.price;
+      // 2. Vertical Centering (Price)
+      // We want the latest price to be exactly in the vertical center
+      const pixelsPerDollar = gridSizePixels / gridYDollars;
+
+      // Calculate how much the price differs from the "base" anchor
+      // In index.tsx, the base center is the `priceAnchor` (initialPrice)
+      // We want `latestPoint.price` to be at the visual center.
+      // Offset = (TargetPrice - AnchorPrice) * PixelsPerDollar
       const priceAnchor = initialPrice > 0 ? initialPrice : currentPrice;
-      const GRID_Y_DOLLARS = priceAnchor * DEFAULT_GRID_Y_PERCENT; // Using constant directly or should be prop?
-      // Wait, gridPriceStep overrides this in main component.
-      // We should pass GRID_Y_DOLLARS or calculate it same way.
-      // Ideally pass it as prop.
-      // I'll calculate it here for now assuming default logic stays same or passes in props.
+      const priceDiff = latestPoint.price - priceAnchor;
 
-      const effectiveGridY =
-        initialPrice > 0
-          ? initialPrice * DEFAULT_GRID_Y_PERCENT
-          : currentPrice * DEFAULT_GRID_Y_PERCENT;
-      // Note: If gridPriceStep is supported, this logic needs to match index.tsx.
-      // I'll leave it as approximate for now and fix if needed, or better, pass `gridYDollars` from parent.
+      // We set verticalOffset. In index.tsx:
+      // displayCenter = priceAnchor + (verticalOffset / pixelsPerDollar)
+      // We want displayCenter = latestPoint.price
+      // So: latestPoint.price = priceAnchor + (verticalOffset / pixelsPerDollar)
+      // verticalOffset = (latestPoint.price - priceAnchor) * pixelsPerDollar
+
+      // Note: We invert the sign if the Y-axis direction in generic math,
+      // but usually 'offset' shifts the view 'window'.
+      // If we increase verticalOffset (positive), displayMin/Max increase (window moves UP).
+      // So if Price is HIGHER than anchor, window needs to move UP to keep it centered.
+      // So Positive Offset is correct.
+
+      const newVerticalOffset = priceDiff * pixelsPerDollar;
+      setVerticalOffset(newVerticalOffset);
     };
 
-    // Actually, let's fix the GRID_Y calculation issue by expecting it from parent?
-    // In index.tsx it was: gridPriceStep || (initialPrice > 0 ? initialPrice : currentPrice) * 0.00006;
-    // I should probably add `gridPriceStep` or `gridYDollars` to props.
-    // For now I'll create the hook without it and update it later or replicate logic.
-    // Replicating logic locally:
-    const updateFocusWithGrid = () => {
-      // ... (same logic)
-      // I need `gridYDollars`. I'll calculate it from props passed.
-    };
-
+    // Run immediately and on updates
     updateFocus();
+
+    // Use animation frame for smoother following if history updates frequently?
+    // Actually the hook dependency `interpolatedHistory` changes every frame (60fps)
+    // so this useEffect runs every frame. This gives perfectly smooth locking.
   }, [
     interpolatedHistory,
     isFocusMode,
@@ -98,6 +113,9 @@ export const useChartFocus = ({
     gridIntervalSeconds,
     initialPrice,
     currentPrice,
+    gridYDollars,
+    setScrollOffset,
+    setVerticalOffset,
   ]);
 
   return { blinkState };

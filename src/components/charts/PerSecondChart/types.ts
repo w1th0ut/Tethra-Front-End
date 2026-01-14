@@ -1,3 +1,4 @@
+import { Bet } from '@/features/trading/hooks/useOneTapProfitBetting';
 export interface PricePoint {
   time: number;
   price: number;
@@ -9,6 +10,7 @@ export interface PerSecondChartProps {
   betAmount?: string; // Bet amount from sidebar (optional, default 10)
   isBinaryTradingEnabled?: boolean; // Whether binary trading is enabled with session key
   tradeMode?: 'one-tap-profit' | 'open-position'; // Trade mode
+  activeBets?: Bet[]; // Active bets to display
   onCellClick?: (
     targetPrice: number,
     targetTime: number,

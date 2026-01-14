@@ -50,7 +50,7 @@ interface PlaceBetParams {
   entryTime: number;
 }
 
-interface Bet {
+export interface Bet {
   betId: string;
   trader: string;
   symbol: string;

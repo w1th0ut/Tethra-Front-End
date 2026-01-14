@@ -28,7 +28,7 @@ const TradingChart: React.FC = () => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
-  const { placeBetWithSession, isPlacingBet } = useOneTapProfit();
+  const { placeBetWithSession, isPlacingBet, activeBets } = useOneTapProfit();
 
   const { allPrices, marketDataMap, futuresDataMap, oraclePrices } =
     useMarketWebSocket(baseMarkets);
@@ -163,6 +163,7 @@ const TradingChart: React.FC = () => {
                 isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
                 isPlacingBet={isPlacingBet}
                 logoUrl={activeMarket.logoUrl}
+                activeBets={activeBets} // Pass active bets
                 tradeMode={tapToTrade.tradeMode} // Pass tradeMode explicitly
                 // Pass grid props for Open Position mode
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession

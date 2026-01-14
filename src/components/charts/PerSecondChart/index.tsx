@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { PerSecondChartProps } from './types';
 import { DEFAULT_GRID_X_SECONDS, DEFAULT_GRID_Y_PERCENT } from './constants';
 import { calculateMultiplier } from './utils';
+import { Bet } from '@/features/trading/hooks/useOneTapProfitBetting';
 
 // Hooks
 import { useChartDimensions } from './hooks/useChartDimensions';
@@ -19,6 +20,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   tradeMode = 'one-tap-profit',
   onCellClick,
   isPlacingBet = false,
+  activeBets = [],
   logoUrl,
   gridIntervalSeconds = DEFAULT_GRID_X_SECONDS,
   gridPriceStep,
@@ -70,6 +72,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     gridIntervalSeconds,
     initialPrice,
     currentPrice,
+    gridYDollars: GRID_Y_DOLLARS,
     setScrollOffset,
     setVerticalOffset,
   });
@@ -290,6 +293,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
     // --- Draw Cells (Interaction) ---
     let currentHoveredCellId: string | null = null;
+    const nowSeconds = Date.now() / 1000;
 
     for (
       let priceLevelRaw = lowestPriceLevel;
@@ -310,9 +314,31 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
         if (xRight < -10 || xLeft > chartWidth + 10) continue;
 
+        // Check for active bet in this cell
+        const gridEntryTime = Math.floor(timestamp / 1000);
+        const gridTargetPrice = priceLevel + GRID_Y_DOLLARS / 2;
+
+        // Find matching active bet
+        // Allow small tolerance for floating point price comparison
+        const activeBet = activeBets?.find((b: Bet) => {
+          return (
+            b.entryTime === gridEntryTime &&
+            Math.abs(parseFloat(b.targetPrice) - gridTargetPrice) < 0.000001
+          );
+        });
+
+        // Skip past grids IF:
+        // 1. No active bet on it
+        // 2. The *entire* grid is in the past (endTime < now)
+        // 3. Not hovering/dragging (optional, but keep it clean)
+        const gridEndTime = gridEntryTime + gridIntervalSeconds;
+        if (!activeBet && gridEndTime < nowSeconds) {
+          continue;
+        }
+
         const boxWidth = xRight - xLeft;
         const boxHeight = Math.abs(yBottom - yTop);
-        const cellId = `${Math.floor(timestamp / 1000)}_${priceLevel.toFixed(priceDecimals)}`;
+        const cellId = `${gridEntryTime}_${priceLevel.toFixed(priceDecimals)}`;
 
         // Check hover
         if (
@@ -324,12 +350,11 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           mousePos.x <= chartWidth &&
           mousePos.y <= chartHeight
         ) {
-          const nowLocal = Date.now() / 1000;
-          const currentGridStart = Math.floor(nowLocal / gridIntervalSeconds) * gridIntervalSeconds;
-          const minSelectableGridStart = currentGridStart + gridIntervalSeconds * 1;
-          const gridStartTime = Math.floor(timestamp / 1000);
+          const currentGridStart =
+            Math.floor(nowSeconds / gridIntervalSeconds) * gridIntervalSeconds;
+          const minSelectableGridStart = currentGridStart + gridIntervalSeconds * 2;
 
-          if (gridStartTime >= minSelectableGridStart) {
+          if (gridEntryTime >= minSelectableGridStart) {
             currentHoveredCellId = cellId;
           }
         }
@@ -345,9 +370,19 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].price : currentPrice;
           const isLong = cellCenterPrice < currentPriceVal;
           cellColor = isLong ? '34, 197, 94' : '239, 68, 68'; // Green : Red
+        } else if (activeBet) {
+          // Purple/Gold for active bets? Or just brighter?
+          cellColor = '168, 85, 247'; // Purple
         }
 
-        if (isSelected) {
+        if (activeBet) {
+          // Always show active bet fully
+          ctx.fillStyle = `rgba(${cellColor}, 0.5)`; // Stronger fill
+          ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
+          ctx.strokeStyle = `rgba(${cellColor}, 1)`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(xLeft, yTop, boxWidth, boxHeight);
+        } else if (isSelected) {
           ctx.fillStyle = `rgba(${cellColor}, 0.3)`;
           ctx.fillRect(xLeft, yTop, boxWidth, boxHeight);
           ctx.strokeStyle = `rgba(${cellColor}, 0.8)`;
@@ -361,17 +396,32 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
           ctx.strokeRect(xLeft, yTop, boxWidth, boxHeight);
         }
 
-        // Shared text drawing logic for both Selected and Hovered states
-        if (isSelected || (isHovered && !isDragging)) {
+        // Shared text drawing logic
+        if (isSelected || (isHovered && !isDragging) || activeBet) {
           // Calculate values
           const targetPrice = priceLevel + GRID_Y_DOLLARS / 2;
-          const targetTime = Math.floor(timestamp / 1000) + gridIntervalSeconds; // End of grid
+          const targetTime = gridEndTime;
           const entryPrice =
             priceHistory.length > 0 ? priceHistory[priceHistory.length - 1].price : currentPrice;
-          const entryTime = Math.floor(timestamp / 1000); // Start of grid
+          const entryTime = gridEntryTime;
 
-          const mult = calculateMultiplier(entryPrice, targetPrice, entryTime, targetTime);
-          const displayMult = !isNaN(mult) && mult > 0 ? mult : 100;
+          let displayMult: number;
+
+          if (activeBet) {
+            // Use frontend calculation as requested by user
+            // This ensures it matches utils.ts logic 100%
+            const mult = calculateMultiplier(
+              parseFloat(activeBet.entryPrice),
+              parseFloat(activeBet.targetPrice),
+              activeBet.entryTime,
+              activeBet.targetTime,
+            );
+            displayMult = mult;
+          } else {
+            // Calculate dynamic
+            const mult = calculateMultiplier(entryPrice, targetPrice, entryTime, targetTime);
+            displayMult = !isNaN(mult) && mult > 0 ? mult : 100;
+          }
 
           const centerX = xLeft + boxWidth / 2;
           const centerY = yTop + boxHeight / 2;
@@ -386,6 +436,10 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
             ctx.fillStyle = '#ffffff';
             ctx.shadowBlur = 4;
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            // Note: backend sends multiplier as integer (e.g. 195 for 1.95x)?
+            // Check Bet interface: multiplier: number.
+            // In calculateMultiplier, it returns e.g. 195.
+            // So divide by 100 for display.
             ctx.fillText(`${(displayMult / 100).toFixed(2)}x`, centerX, centerY - 8);
           }
 
@@ -545,6 +599,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     gridAnchorPrice,
     gridAnchorTime,
     symbol,
+    activeBets,
   ]);
 
   return (

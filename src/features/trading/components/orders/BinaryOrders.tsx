@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { formatMarketPair } from '@/features/trading/lib/marketUtils';
+import { calculateMultiplier } from '@/components/charts/PerSecondChart/utils';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
@@ -161,6 +162,18 @@ const BinaryOrders = () => {
               betAmount = order.betAmount;
             }
 
+            // Parse prices for calculation
+            const entryPriceNum = parseFloat(order.entryPrice) / 100000000;
+            const targetPriceNum = parseFloat(order.targetPrice) / 100000000;
+
+            // Recalculate multiplier using frontend utility
+            const displayMultiplier = calculateMultiplier(
+              entryPriceNum,
+              targetPriceNum,
+              order.entryTime,
+              order.targetTime,
+            );
+
             return (
               <tr
                 key={order.betId}
@@ -188,7 +201,7 @@ const BinaryOrders = () => {
                 {/* Multiplier */}
                 <td className="px-4 py-3">
                   <span className="text-blue-300 font-bold">
-                    {(order.multiplier / 100).toFixed(2)}x
+                    {(displayMultiplier / 100).toFixed(2)}x
                   </span>
                 </td>
 
