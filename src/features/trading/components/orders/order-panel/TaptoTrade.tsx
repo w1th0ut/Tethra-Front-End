@@ -169,7 +169,11 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
       )}
 
       {/* Market Selector */}
-      <MarketSelector value={activeMarket} onSelect={handleMarketSelect} />
+      <MarketSelector
+        value={activeMarket}
+        onSelect={handleMarketSelect}
+        disabled={tapToTrade.isEnabled && tradeMode === 'open-position'}
+      />
 
       {/* Margin Input (USDC) */}
       <CollateralInput
