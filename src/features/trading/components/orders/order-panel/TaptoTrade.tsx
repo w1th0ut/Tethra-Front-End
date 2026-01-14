@@ -45,9 +45,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
     isPending: isOneTapProfitApprovalPending,
   } = useOneTapProfitApproval();
 
-  // Session key hook for binary trading
-  const binarySessionKey = useSessionKey();
-
   // Tap to Trade dari Context
   const tapToTrade = useTapToTrade();
 
@@ -169,7 +166,11 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
       )}
 
       {/* Market Selector */}
-      <MarketSelector value={activeMarket} onSelect={handleMarketSelect} />
+      <MarketSelector
+        value={activeMarket}
+        onSelect={handleMarketSelect}
+        disabled={tapToTrade.isEnabled && tradeMode === 'open-position'}
+      />
 
       {/* Margin Input (USDC) */}
       <CollateralInput
@@ -235,7 +236,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         hasLargeOneTapProfitAllowance={hasLargeOneTapProfitAllowance}
         hasSelectedYGrid={hasSelectedYGrid}
         wallets={wallets}
-        binarySessionKey={binarySessionKey}
         onPreApprove={handlePreApprove}
         onPreApproveOneTapProfit={handlePreApproveOneTapProfit}
         isApprovalPending={isApprovalPending}

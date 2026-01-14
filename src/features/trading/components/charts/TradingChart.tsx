@@ -7,7 +7,7 @@ import { Market } from '@/features/trading/types';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { useMarketWebSocket } from '@/features/trading/hooks/useMarketWebSocket';
 import TradingViewWidget from './TradingViewWidget';
-import PerSecondChart from '@/features/second-chart/components/PerSecondChart';
+import PerSecondChart from '@/components/charts/PerSecondChart';
 import ChartHeader from './ChartHeader';
 import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
 import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
@@ -28,7 +28,7 @@ const TradingChart: React.FC = () => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
-  const { placeBetWithSession, isPlacingBet } = useOneTapProfit();
+  const { placeBetWithSession, isPlacingBet, activeBets } = useOneTapProfit();
 
   const { allPrices, marketDataMap, futuresDataMap, oraclePrices } =
     useMarketWebSocket(baseMarkets);
@@ -136,6 +136,7 @@ const TradingChart: React.FC = () => {
           markets={markets}
           onSelect={handleMarketSelect}
           triggerRef={triggerButtonRef}
+          disabled={tapToTrade.isEnabled}
         />
       </div>
 
@@ -162,6 +163,8 @@ const TradingChart: React.FC = () => {
                 isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
                 isPlacingBet={isPlacingBet}
                 logoUrl={activeMarket.logoUrl}
+                activeBets={activeBets} // Pass active bets
+                tradeMode={tapToTrade.tradeMode} // Pass tradeMode explicitly
                 // Pass grid props for Open Position mode
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
                   ? {
@@ -177,14 +180,20 @@ const TradingChart: React.FC = () => {
                   : {})}
                 onCellClick={(targetPrice, targetTime, entryPrice, entryTime) => {
                   if (tapToTrade.tradeMode === 'one-tap-profit') {
-                    placeBetWithSession({
-                      symbol: activeMarket.symbol,
-                      betAmount: tapToTrade.betAmount || '10',
-                      targetPrice: targetPrice.toString(),
-                      targetTime: targetTime,
-                      entryPrice: entryPrice.toString(),
-                      entryTime: entryTime,
-                    });
+                    placeBetWithSession(
+                      {
+                        symbol: activeMarket.symbol,
+                        betAmount: tapToTrade.betAmount || '10',
+                        targetPrice: targetPrice.toString(),
+                        targetTime: targetTime,
+                        entryPrice: entryPrice.toString(),
+                        entryTime: entryTime,
+                      },
+                      {
+                        sessionKey: tapToTrade.sessionKey,
+                        sessionSigner: tapToTrade.signWithSession,
+                      },
+                    );
                   } else if (tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession) {
                     // Open Position mode - map click to grid cell
                     const session = tapToTrade.gridSession;

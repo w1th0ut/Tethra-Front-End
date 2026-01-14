@@ -36,6 +36,7 @@ interface ChartHeaderProps {
   markets: Market[];
   onSelect: (symbol: string) => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
+  disabled?: boolean;
 }
 
 export default function ChartHeader(props: ChartHeaderProps) {
@@ -70,8 +71,9 @@ export default function ChartHeader(props: ChartHeaderProps) {
         <div className="relative" style={{ zIndex: 11 }}>
           <button
             ref={props.triggerRef}
-            onClick={props.onSymbolChangeClick}
-            className="flex items-center gap-2 bg-gradient-to-r from-trading-surface to-trading-elevated border border-border-default rounded-lg px-4 py-2.5 text-sm font-bold text-text-primary hover:from-trading-elevated hover:to-trading-surface hover:border-border-light transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer"
+            onClick={() => !props.disabled && props.onSymbolChangeClick()}
+            disabled={props.disabled}
+            className={`flex items-center gap-2 bg-gradient-to-r from-trading-surface to-trading-elevated border border-border-default rounded-lg px-4 py-2.5 text-sm font-bold text-text-primary transition-all duration-200 shadow-lg ${'hover:from-trading-elevated hover:to-trading-surface hover:border-border-light hover:shadow-xl cursor-pointer'}`}
           >
             {props.activeMarket && (
               <Image

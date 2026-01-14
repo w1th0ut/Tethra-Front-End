@@ -107,6 +107,7 @@ export function useSessionKey() {
 
       return newSession;
     } catch (err: any) {
+      console.error('Session creation failed:', err);
       return null;
     } finally {
       setIsLoading(false);

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import {
   encodeFunctionData,
   parseUnits,
@@ -11,7 +12,6 @@ import {
   encodePacked,
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -50,7 +50,7 @@ interface PlaceBetParams {
   entryTime: number;
 }
 
-interface Bet {
+export interface Bet {
   betId: string;
   trader: string;
   symbol: string;
@@ -77,8 +77,63 @@ export const useOneTapProfit = () => {
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [activeBets, setActiveBets] = useState<Bet[]>([]);
   const [isLoadingBets, setIsLoadingBets] = useState(false);
+  const prevActiveBetsRef = useRef<Bet[]>([]);
+  const hasInitializedRef = useRef(false);
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+
+  // Poll for active bets to update status and detect wins
+  useEffect(() => {
+    if (!authenticated || !user || !embeddedWallet) return;
+
+    const intervalId = setInterval(() => {
+      fetchActiveBets();
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(intervalId);
+  }, [authenticated, user, embeddedWallet]);
+
+  // Win detection logic
+  useEffect(() => {
+    // Skip first run to avoid false positives on page load
+    if (!hasInitializedRef.current) {
+      if (activeBets.length > 0) hasInitializedRef.current = true;
+      prevActiveBetsRef.current = activeBets;
+      return;
+    }
+
+    // Find bets that were active but are now gone
+    const missingBets = prevActiveBetsRef.current.filter(
+      (prevBet: Bet) => !activeBets.find((currBet: Bet) => currBet.betId === prevBet.betId),
+    );
+
+    if (missingBets.length > 0) {
+      // Check status of missing bets to see if they won
+      missingBets.forEach(async (bet: Bet) => {
+        try {
+          const response = await axios.get(`${BACKEND_URL}/api/one-tap/bet/${bet.betId}`);
+          if (response.data.data.status === 'WON') {
+            // Play win sound
+            try {
+              const audio = new Audio('/sounds/win.mp3');
+              audio.volume = 0.6;
+              await audio.play();
+            } catch (e) {
+              console.warn(
+                'Win sound failed to play (might be missing file or browser policy):',
+                e,
+              );
+            }
+            // toast.success(`You won! ${bet.multiplier/100}x on ${bet.symbol}`);
+          }
+        } catch (err) {
+          console.error('Failed to check status of finished bet:', err);
+        }
+      });
+    }
+
+    prevActiveBetsRef.current = activeBets;
+  }, [activeBets]);
 
   // Session key hook for gasless trading
   const {
@@ -120,15 +175,36 @@ export const useOneTapProfit = () => {
   /**
    * Place bet with session key (fully gasless)
    */
+  /**
+   * Place bet with session key (fully gasless)
+   * Can accept sessionKey/signer from arguments (preferred) or use internal state (fallback)
+   */
   const placeBetWithSession = useCallback(
-    async (params: PlaceBetParams) => {
+    async (
+      params: PlaceBetParams,
+      sessionOptions?: {
+        sessionKey: any;
+        sessionSigner: (hash: `0x${string}`) => Promise<string | null>;
+      },
+    ) => {
       if (!authenticated || !user || !embeddedWallet) {
         throw new Error('Wallet not connected');
       }
 
-      // Check if session is valid
-      if (!isSessionValid()) {
-        throw new Error('Session key expired or not created. Please enable Binary Trading again.');
+      // Use provided session options OR internal hook state
+      const activeSessionKey = sessionOptions?.sessionKey || sessionKey;
+      const signer = sessionOptions?.sessionSigner || signWithSession;
+
+      // Basic validation check (internal isSessionValid might be stale, so check object existence)
+      if (!activeSessionKey || activeSessionKey.expiresAt <= Date.now()) {
+        // Fallback to internal check if no options provided
+        if (!sessionOptions && !isSessionValid()) {
+          throw new Error(
+            'Session key expired or not created. Please enable Binary Trading again.',
+          );
+        } else if (sessionOptions) {
+          throw new Error('Session key provided is invalid or expired.');
+        }
       }
 
       setIsPlacingBet(true);
@@ -150,7 +226,7 @@ export const useOneTapProfit = () => {
           ),
         );
 
-        const sessionSignature = await signWithSession(messageHash);
+        const sessionSignature = await signer(messageHash);
 
         // Call backend endpoint (session validation happens off-chain)
         const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {
@@ -175,7 +251,15 @@ export const useOneTapProfit = () => {
         setIsPlacingBet(false);
       }
     },
-    [authenticated, user, embeddedWallet, isSessionValid, createSession, signWithSession],
+    [
+      authenticated,
+      user,
+      embeddedWallet,
+      isSessionValid,
+      createSession,
+      signWithSession,
+      sessionKey,
+    ],
   );
 
   /**

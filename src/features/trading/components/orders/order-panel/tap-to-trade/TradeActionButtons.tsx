@@ -17,7 +17,7 @@ interface TradeActionButtonsProps {
   hasLargeOneTapProfitAllowance: boolean;
   hasSelectedYGrid: boolean;
   wallets: ConnectedWallet[];
-  binarySessionKey: any;
+
   onPreApprove: () => Promise<void>;
   onPreApproveOneTapProfit: () => Promise<void>;
   isApprovalPending: boolean;
@@ -38,7 +38,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   hasLargeOneTapProfitAllowance,
   hasSelectedYGrid,
   wallets,
-  binarySessionKey,
+
   onPreApprove,
   onPreApproveOneTapProfit,
   isApprovalPending,
@@ -77,7 +77,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     } else {
       // Binary Trading Logic
       try {
-        toast.loading('Creating session key for gasless binary trading...', {
+        toast.loading('Creating session key...', {
           id: 'binary-session',
         });
 
@@ -87,9 +87,13 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
         const walletClient = await embeddedWallet.getEthereumProvider();
         if (!walletClient) throw new Error('Could not get wallet client');
 
-        await binarySessionKey.createSession(embeddedWallet.address, walletClient, 30 * 60 * 1000);
+        const newSession = await tapToTrade.createSession(
+          embeddedWallet.address,
+          walletClient,
+          30 * 60 * 1000,
+        );
 
-        if (!binarySessionKey.isSessionValid()) throw new Error('Session creation failed');
+        if (!newSession) throw new Error('Session creation failed');
 
         await tapToTrade.toggleMode({
           symbol: activeMarket?.symbol || 'BTC',

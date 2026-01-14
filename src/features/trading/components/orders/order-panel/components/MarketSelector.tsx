@@ -21,6 +21,7 @@ interface Market {
   symbol: string;
   tradingViewSymbol: string;
   logoUrl?: string;
+  disabled?: boolean;
   binanceSymbol?: string;
   category?: 'crypto' | 'forex' | 'indices' | 'commodities' | 'stocks';
 }
@@ -28,9 +29,10 @@ interface Market {
 interface MarketSelectorProps {
   value?: Market;
   onSelect: (market: Market) => void;
+  disabled?: boolean;
 }
 
-export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect }) => {
+export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect, disabled }) => {
   const [open, setOpen] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
@@ -62,8 +64,11 @@ export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect 
       <PopoverTrigger asChild>
         <Button
           role="combobox"
+          disabled={disabled}
           aria-expanded={open}
-          className="w-full justify-between bg-transparent text-text-primary px-0 hover:bg-transparent hover:text-text-primary border-none shadow-none h-auto"
+          className={`w-full justify-between bg-trading-surface text-text-primary px-3 py-3 hover:bg-trading-surface hover:text-text-primary border border-border-default rounded-lg shadow-none h-auto ${
+            disabled ? 'opacity-50 pointer-events-none' : ''
+          }`}
         >
           <div className="flex gap-3">
             <label className="text-xs text-text-secondary sblock">Market</label>
