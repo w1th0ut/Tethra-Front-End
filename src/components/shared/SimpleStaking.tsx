@@ -7,7 +7,6 @@ import { formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { Coins, TrendingUp, Clock } from 'lucide-react';
 import usePoolData from '@/hooks/data/usePoolData';
 
-
 const TETHRA_TOKEN = process.env.NEXT_PUBLIC_TETHRA_TOKEN_ADDRESS as `0x${string}`;
 const TETHRA_STAKING = process.env.NEXT_PUBLIC_TETHRA_STAKING_ADDRESS as `0x${string}`;
 
@@ -79,7 +78,7 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
   const { wallets } = useWallets();
   const publicClient = usePublicClient();
   const poolData = usePoolData();
-  
+
   // State for contract data
   const [userBalance, setUserBalance] = useState<bigint>(BigInt(0));
   const [totalStaked, setTotalStaked] = useState<bigint>(BigInt(0));
@@ -90,12 +89,13 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
   const [stakeAmount, setStakeAmount] = useState('');
   const [isTransacting, setIsTransacting] = useState(false);
 
-  // Get external wallet (MetaMask, etc.) for staking - not embedded wallet  
-  const externalWallet = wallets.find(wallet => 
-    wallet.walletClientType === 'metamask' || 
-    wallet.walletClientType === 'coinbase_wallet' ||
-    wallet.walletClientType === 'wallet_connect' ||
-    (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded')
+  // Get external wallet (MetaMask, etc.) for staking - not embedded wallet
+  const externalWallet = wallets.find(
+    (wallet) =>
+      wallet.walletClientType === 'metamask' ||
+      wallet.walletClientType === 'coinbase_wallet' ||
+      wallet.walletClientType === 'wallet_connect' ||
+      (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded'),
   );
   const userAddress = externalWallet?.address;
 
@@ -107,7 +107,6 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
     }
 
     try {
-      console.log('Fetching contract data for:', userAddress);
       const [balance, staked, currentAllowance, userStakeInfo] = await Promise.all([
         publicClient.readContract({
           address: TETHRA_TOKEN,
@@ -134,24 +133,16 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
         }),
       ]);
 
-      console.log('Contract data fetched:', {
-        balance: balance.toString(),
-        staked: staked.toString(), 
-        allowance: currentAllowance.toString(),
-        userStakeInfo: userStakeInfo
-      });
-
       setUserBalance(balance as bigint);
       setTotalStaked(staked as bigint);
       setAllowance(currentAllowance as bigint);
-      
+
       // Parse user stake info
       if (userStakeInfo && Array.isArray(userStakeInfo)) {
-        console.log('Setting user staked amount:', userStakeInfo[0].toString());
         setUserStakedAmount(userStakeInfo[0] as bigint);
         setPendingRewards(userStakeInfo[1] as bigint);
       }
-      
+
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching contract data:', error);
@@ -166,7 +157,7 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
 
   const switchToBaseSepolia = async () => {
     if (!window.ethereum) return;
-    
+
     try {
       // Try to switch to Base Sepolia
       await window.ethereum.request({
@@ -179,17 +170,19 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x14a34',
-              chainName: 'Base Sepolia',
-              nativeCurrency: {
-                name: 'ETH',
-                symbol: 'ETH',
-                decimals: 18,
+            params: [
+              {
+                chainId: '0x14a34',
+                chainName: 'Base Sepolia',
+                nativeCurrency: {
+                  name: 'ETH',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://sepolia.base.org'],
+                blockExplorerUrls: ['https://sepolia.basescan.org'],
               },
-              rpcUrls: ['https://sepolia.base.org'],
-              blockExplorerUrls: ['https://sepolia.basescan.org'],
-            }],
+            ],
           });
         } catch (addError) {
           console.error('Failed to add Base Sepolia network:', addError);
@@ -212,44 +205,39 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
       alert('Please install MetaMask or connect an external wallet');
       return;
     }
-    
+
     setIsTransacting(true);
-    
+
     try {
       // Switch to Base Sepolia first
-      console.log('Switching to Base Sepolia...');
       await switchToBaseSepolia();
-      console.log('Network switched successfully!');
-      
+
       const amount = parseUnits(stakeAmount, 18);
-      
+
       // Check if approval is needed
       if (allowance < amount) {
-        console.log('Approving TETH...');
-        
         // Prepare approve transaction data
         const approveData = encodeFunctionData({
           abi: tokenABI,
           functionName: 'approve',
           args: [TETHRA_STAKING, amount],
         });
-        
+
         // Send approve transaction
         const approveTxHash = await window.ethereum.request({
           method: 'eth_sendTransaction',
-          params: [{
-            from: userAddress,
-            to: TETHRA_TOKEN,
-            data: approveData,
-          }],
+          params: [
+            {
+              from: userAddress,
+              to: TETHRA_TOKEN,
+              data: approveData,
+            },
+          ],
         });
-        
-        console.log('Approve tx hash:', approveTxHash);
-        
+
         // Wait for approval to be confirmed
         await publicClient!.waitForTransactionReceipt({ hash: approveTxHash });
-        console.log('Approval confirmed!');
-        
+
         // Refresh allowance
         const newAllowance = await publicClient!.readContract({
           address: TETHRA_TOKEN,
@@ -259,39 +247,34 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
         });
         setAllowance(newAllowance);
       }
-      
-      console.log('Staking TETH...');
-      
+
       // Prepare stake transaction data
       const stakeData = encodeFunctionData({
         abi: stakingABI,
         functionName: 'stake',
         args: [amount],
       });
-      
+
       // Send stake transaction
       const stakeTxHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: userAddress,
-          to: TETHRA_STAKING,
-          data: stakeData,
-        }],
+        params: [
+          {
+            from: userAddress,
+            to: TETHRA_STAKING,
+            data: stakeData,
+          },
+        ],
       });
-      
-      console.log('Stake tx hash:', stakeTxHash);
-      
+
       // Wait for staking to be confirmed
       await publicClient!.waitForTransactionReceipt({ hash: stakeTxHash });
-      console.log('Staking confirmed!');
-      
+
       // Refresh all contract data immediately after successful staking
-      console.log('Refreshing contract data...');
       await fetchContractData();
-      
+
       setStakeAmount('');
       alert('Staking successful! Data refreshed.');
-      
     } catch (error) {
       console.error('Transaction failed:', error);
       alert('Transaction failed: ' + (error as any).message);
@@ -353,7 +336,7 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
       <div className="bg-slate-800/30 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-white">Your Staking</h3>
-          <button 
+          <button
             onClick={() => fetchContractData()}
             className="text-blue-400 hover:text-blue-300 text-sm"
             disabled={isLoading}
@@ -362,24 +345,24 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-gray-400">Staked Amount</p>
-              <p className="font-semibold text-white">
-                {isLoading ? '...' : `${Number(formatUnits(userStakedAmount, 18)).toFixed(2)} TETH`}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Pending Rewards</p>
-              <p className="font-semibold text-green-400">
-                {isLoading ? '...' : `${Number(formatUnits(pendingRewards, 6)).toFixed(2)} USDC`}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Available Balance</p>
-              <p className="font-semibold text-white">
-                {isLoading ? '...' : `${Number(formatUnits(userBalance, 18)).toFixed(2)} TETH`}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm text-gray-400">Staked Amount</p>
+            <p className="font-semibold text-white">
+              {isLoading ? '...' : `${Number(formatUnits(userStakedAmount, 18)).toFixed(2)} TETH`}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Pending Rewards</p>
+            <p className="font-semibold text-green-400">
+              {isLoading ? '...' : `${Number(formatUnits(pendingRewards, 6)).toFixed(2)} USDC`}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-400">Available Balance</p>
+            <p className="font-semibold text-white">
+              {isLoading ? '...' : `${Number(formatUnits(userBalance, 18)).toFixed(2)} TETH`}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -388,7 +371,9 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
           <div className="bg-slate-800/30 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-white mb-3">Your Wallet</h3>
             <div className="text-sm text-gray-400">
-              <p>Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</p>
+              <p>
+                Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+              </p>
               <p className="mt-1">Ready for staking transactions</p>
             </div>
           </div>
@@ -406,7 +391,7 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
                   placeholder="0.0"
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 />
-                <button 
+                <button
                   onClick={() => setStakeAmount(Number(formatUnits(userBalance, 18)).toFixed(2))}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 text-sm hover:text-blue-300"
                 >
@@ -414,26 +399,28 @@ export default function SimpleStaking({ className = '' }: SimpleStakingProps) {
                 </button>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleApproveAndStake}
               disabled={!stakeAmount || Number(stakeAmount) <= 0 || isTransacting}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
             >
-              {isTransacting ? 'Processing...' : 
-               (allowance >= parseUnits(stakeAmount || '0', 18) ? 'Stake TETH' : 'Approve & Stake TETH')}
+              {isTransacting
+                ? 'Processing...'
+                : allowance >= parseUnits(stakeAmount || '0', 18)
+                ? 'Stake TETH'
+                : 'Approve & Stake TETH'}
             </button>
           </div>
         </>
       ) : (
         <div className="text-center py-8">
           <p className="text-gray-400 mb-4">
-            {authenticated 
+            {authenticated
               ? 'Connect an external wallet (MetaMask, etc.) to stake TETH'
-              : 'Connect your wallet to start staking TETH'
-            }
+              : 'Connect your wallet to start staking TETH'}
           </p>
-          <button 
+          <button
             onClick={handleConnect}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
           >

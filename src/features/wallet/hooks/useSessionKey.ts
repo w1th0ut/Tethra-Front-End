@@ -27,9 +27,7 @@ export function useSessionKey() {
         // Check if expired
         if (parsed.expiresAt > Date.now()) {
           setSessionKey(parsed);
-          console.log('✅ Loaded existing session key, expires in:', Math.round((parsed.expiresAt - Date.now()) / 1000 / 60), 'minutes');
         } else {
-          console.log('⏰ Session key expired, clearing...');
           localStorage.removeItem(SESSION_STORAGE_KEY);
         }
       } catch (err) {
@@ -45,7 +43,6 @@ export function useSessionKey() {
   const isSessionValid = (): boolean => {
     if (!sessionKey) return false;
     if (sessionKey.expiresAt <= Date.now()) {
-      console.log('⏰ Session expired');
       clearSession();
       return false;
     }
@@ -59,14 +56,16 @@ export function useSessionKey() {
   const createSession = async (
     userAddress: string,
     walletClient: any,
-    durationMs: number = DEFAULT_SESSION_DURATION
+    durationMs: number = DEFAULT_SESSION_DURATION,
   ): Promise<SessionKey | null> => {
     try {
       setIsLoading(true);
 
       // Generate random private key for session
       const randomBytes = crypto.getRandomValues(new Uint8Array(32));
-      const privateKey = `0x${Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('')}` as `0x${string}`;
+      const privateKey = `0x${Array.from(randomBytes)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')}` as `0x${string}`;
 
       // Derive address from private key
       const sessionAccount = privateKeyToAccount(privateKey);
@@ -75,11 +74,6 @@ export function useSessionKey() {
       const expiresAt = Date.now() + durationMs;
       const expiresAtSeconds = Math.floor(expiresAt / 1000);
 
-      console.log('🔑 Generated session key:', sessionAddress);
-      console.log('⏰ Expires at:', new Date(expiresAt).toLocaleString());
-
-      // Create authorization message EXACTLY matching smart contract format
-      // Smart contract: keccak256(abi.encodePacked("Authorize session key ", address, " for Tethra Tap-to-Trade until ", uint256))
       const authMessageHash = keccak256(
         encodePacked(
           ['string', 'address', 'string', 'uint256'],
@@ -87,21 +81,16 @@ export function useSessionKey() {
             'Authorize session key ',
             sessionAddress as `0x${string}`,
             ' for Tethra Tap-to-Trade until ',
-            BigInt(expiresAtSeconds)
-          ]
-        )
+            BigInt(expiresAtSeconds),
+          ],
+        ),
       );
-
-      console.log('✍️ Requesting user signature to authorize session...');
-      console.log('📝 Auth message hash:', authMessageHash);
 
       // User signs authorization (this is the ONLY signature needed!)
       const authSignature = await walletClient.request({
         method: 'personal_sign',
         params: [authMessageHash, userAddress],
       });
-
-      console.log('✅ Session authorized!');
 
       const newSession: SessionKey = {
         privateKey,
@@ -118,7 +107,6 @@ export function useSessionKey() {
 
       return newSession;
     } catch (err: any) {
-      console.error('Failed to create session:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -131,7 +119,6 @@ export function useSessionKey() {
    */
   const signWithSession = async (messageHash: `0x${string}`): Promise<string | null> => {
     if (!isSessionValid()) {
-      console.error('❌ No valid session key');
       return null;
     }
 
@@ -144,20 +131,6 @@ export function useSessionKey() {
 
       // Sign the digest using raw ECDSA (no additional hashing)
       const signature = await sessionAccount.sign({ hash: digest });
-
-      console.log('✅ Signed with session key (no user prompt!)');
-      console.log('🔑 Session account address:', sessionAccount.address);
-      console.log('📝 Original message hash:', messageHash);
-      console.log('📝 Digest (with prefix):', digest);
-      console.log('✍️ Signature produced:', signature);
-
-      // Verify locally that signature is correct
-      const recovered = await recoverMessageAddress({
-        message: { raw: messageHash },
-        signature,
-      });
-      console.log('🔍 Recovered address (verification):', recovered);
-      console.log('✅ Match?', recovered.toLowerCase() === sessionAccount.address.toLowerCase());
 
       return signature;
     } catch (err) {
@@ -172,7 +145,6 @@ export function useSessionKey() {
   const clearSession = () => {
     setSessionKey(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
-    console.log('🗑️ Session cleared');
   };
 
   /**

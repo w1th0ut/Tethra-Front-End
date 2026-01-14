@@ -106,7 +106,6 @@ export const useGridTrading = ({ currentPrice, interval }: UseGridTradingProps) 
           // Remove cell and cancel order if exists
           newSet.delete(cellId);
           setPendingOrders((orders) => orders.filter((o) => o.cellId !== cellId));
-          console.log(`🗑️ Removed grid cell: ${cellId}`);
         } else {
           // Add cell and create order
           newSet.add(cellId);
@@ -122,10 +121,6 @@ export const useGridTrading = ({ currentPrice, interval }: UseGridTradingProps) 
           };
 
           setPendingOrders((orders) => [...orders, newOrder]);
-
-          console.log(`✅ Added grid cell: ${cellId}`);
-          console.log(`   Order Type: ${orderType.toUpperCase()}`);
-          console.log(`   Price Level: $${price.toFixed(2)}`);
         }
 
         return newSet;
@@ -154,17 +149,13 @@ export const useGridTrading = ({ currentPrice, interval }: UseGridTradingProps) 
   const clearAllCells = useCallback(() => {
     setSelectedCells(new Set());
     setPendingOrders([]);
-    console.log('🧹 Cleared all grid selections');
   }, []);
 
   // Place orders (to be integrated with smart contract)
   const placeGridOrders = useCallback(async () => {
-    console.log('📤 Placing grid orders:', pendingOrders);
     // TODO: Integrate with smart contract to place orders
     // For now, just log
-    pendingOrders.forEach((order) => {
-      console.log(`   ${order.orderType.toUpperCase()} @ $${order.price.toFixed(2)}`);
-    });
+    pendingOrders.forEach((order) => {});
   }, [pendingOrders]);
 
   // Get statistics

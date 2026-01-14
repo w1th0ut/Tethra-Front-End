@@ -138,7 +138,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
 
     const initializeData = async () => {
       try {
-        console.log(`📊 Fetching candles from Pyth Oracle for ${symbol}`);
         const candles = await pythDataFeed.fetchCandles(symbol, interval, 100);
 
         const data: ChartData[] = candles.map((candle) => ({
@@ -150,7 +149,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         }));
 
         setChartData(data);
-        console.log(`✅ Loaded ${data.length} data points from Pyth Oracle`);
 
         // Setup WebSocket for real-time updates from Pyth Oracle
         if (wsRef.current) {
@@ -240,7 +238,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         // Check if we've moved to a new timeframe window
         if (currentWindow > lastCandleWindow) {
           // New window started - add new candle
-          console.log(`📊 New ${interval} candle: ${new Date(currentWindow).toLocaleTimeString()}`);
           newData.push({
             time: currentWindow,
             open: latestPrice,
@@ -1099,13 +1096,7 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
   // Handle cell tap logic (extracted from original handleCanvasClick)
   const handleCellTapLogic = useCallback(
     (clickX: number, clickY: number, chartWidth: number, chartHeight: number) => {
-      console.log('🖱️ Cell tapped at:', { clickX, clickY });
       if (!tapToTradeEnabled || !canvasRef.current || chartData.length === 0) {
-        console.log('⚠️ Tap blocked:', {
-          tapToTradeEnabled,
-          hasCanvas: !!canvasRef.current,
-          dataLength: chartData.length,
-        });
         return;
       }
 
@@ -1218,17 +1209,6 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         // Backend expects: referenceTime + (cellX * columnDuration)
         const columnDurationSeconds = gridSession.gridSizeX * gridSession.timeframeSeconds;
         backendTimestamp = (gridSession.referenceTime + cellX * columnDurationSeconds) * 1000; // Convert to ms
-
-        // Debug logging
-        console.log('🔍 Grid Session Debug:');
-        console.log('  referenceTime:', new Date(gridSession.referenceTime * 1000).toISOString());
-        console.log('  gridSizeX:', gridSession.gridSizeX);
-        console.log('  timeframeSeconds:', gridSession.timeframeSeconds);
-        console.log('  columnDurationSeconds:', columnDurationSeconds);
-        console.log('  cellX:', cellX);
-        console.log('  calculated backendTimestamp:', new Date(backendTimestamp).toISOString());
-        console.log('  currentTime:', new Date(currentTime).toISOString());
-        console.log('  clickedTime (from visual):', new Date(clickedTime).toISOString());
       }
 
       // Check if click is reasonable (within some bounds)
@@ -1238,24 +1218,8 @@ const SimpleLineChart: React.FC<SimpleLineChartProps> = ({
         // cellY < 0 (below reference) = LONG (buy low)
         // cellY > 0 (above reference) = SHORT (sell high)
         const isLong = cellY < 0;
-        const futureLabel = isFutureClick ? ' [FUTURE]' : '';
-
-        console.log(
-          `📍 Tapped: ${isLong ? 'LONG' : 'SHORT'} @ $${actualPrice.toFixed(2)}, time: ${new Date(
-            backendTimestamp,
-          ).toLocaleTimeString()}${futureLabel}`,
-        );
-        console.log(
-          `📍 CellId: "${cellId}", cellX: ${cellX}, cellY: ${cellY} (${
-            cellY < 0 ? 'below ref' : 'above ref'
-          })`,
-        );
-        console.log(`📍 Backend timestamp: ${new Date(backendTimestamp).toISOString()}`);
-        console.log(`📍 Calling onCellTap with cellId: "${cellId}"`);
 
         onCellTap(cellId, actualPrice, backendTimestamp, isLong);
-      } else {
-        console.log('⚠️ Click rejected: snappedCandleIndex:', snappedCandleIndex);
       }
     },
     [

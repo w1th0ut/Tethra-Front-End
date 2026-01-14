@@ -23,9 +23,7 @@ export const useUSDCBalance = () => {
       // Get embedded wallet address (same logic as WalletConnectButton)
       const embeddedWallets = user.linkedAccounts?.filter(
         (account: any) =>
-          account.type === 'wallet' &&
-          account.imported === false &&
-          account.id !== undefined
+          account.type === 'wallet' && account.imported === false && account.id !== undefined,
       ) as any[];
 
       const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
@@ -42,7 +40,7 @@ export const useUSDCBalance = () => {
           transport: http(),
         });
 
-        const balance = await publicClient.readContract({
+        const balance = (await publicClient.readContract({
           address: USDC_ADDRESS,
           abi: [
             {
@@ -55,13 +53,12 @@ export const useUSDCBalance = () => {
           ],
           functionName: 'balanceOf',
           args: [embeddedWalletAddress as `0x${string}`],
-        }) as bigint;
+        })) as bigint;
 
         // Format USDC balance using configured decimals
         const formattedBalance = formatUnits(balance, USDC_DECIMALS);
         setUsdcBalance(parseFloat(formattedBalance).toFixed(2));
       } catch (error) {
-        console.error('Error fetching USDC balance:', error);
         setUsdcBalance('0.00');
       } finally {
         setIsLoadingBalance(false);

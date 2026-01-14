@@ -29,7 +29,6 @@ const WalletConnectButton: React.FC = () => {
       );
 
       if (!embeddedWallets || embeddedWallets.length === 0) {
-        console.log('No embedded wallet found, auto-creating...');
         const toastId = toast.loading('Setting up your embedded wallet...');
 
         try {
@@ -39,7 +38,6 @@ const WalletConnectButton: React.FC = () => {
             duration: 3000,
           });
         } catch (error: any) {
-          console.error('Auto-create wallet error:', error);
           if (error?.message?.includes('already has')) {
             toast.dismiss(toastId);
           } else {

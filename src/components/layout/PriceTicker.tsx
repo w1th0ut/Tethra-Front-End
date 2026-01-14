@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 
@@ -15,6 +15,7 @@ interface TickerData {
 const PriceTicker: React.FC = () => {
   const { setActiveMarket } = useMarket();
   const [tickerData, setTickerData] = useState<TickerData[]>([]);
+  const tickerMap = useRef<Map<string, TickerData>>(new Map());
 
   useEffect(() => {
     const binanceMarkets = ALL_MARKETS.filter((m) => m.binanceSymbol);
@@ -32,50 +33,49 @@ const PriceTicker: React.FC = () => {
         ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
 
         ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            if (message.data) {
-              const data = message.data;
-              const symbol = data.s;
-              const market = binanceMarkets.find((m) => m.binanceSymbol === symbol);
+          const message = JSON.parse(event.data);
+          if (message.data) {
+            const data = message.data;
+            const symbol = data.s;
+            const market = binanceMarkets.find((m) => m.binanceSymbol === symbol);
 
-              if (market) {
-                setTickerData((prev) => {
-                  const existing = prev.find((t) => t.binanceSymbol === symbol);
-                  const newData = {
-                    symbol: market.symbol,
-                    binanceSymbol: symbol,
-                    price: parseFloat(data.c),
-                    change: parseFloat(data.P),
-                    logoUrl: market.logoUrl,
-                  };
+            if (market) {
+              const newData = {
+                symbol: market.symbol,
+                binanceSymbol: symbol,
+                price: parseFloat(data.c),
+                change: parseFloat(data.P),
+                logoUrl: market.logoUrl,
+              };
 
-                  if (existing) {
-                    return prev.map((t) => (t.binanceSymbol === symbol ? newData : t));
-                  } else {
-                    return [...prev, newData];
-                  }
-                });
-              }
+              // Update ref immediately
+              const currentMap = tickerMap.current;
+              currentMap.set(symbol, newData);
             }
-          };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          }
         };
 
+        ws.onerror = (error) => {};
+
         ws.onclose = () => {
-          console.log('WebSocket closed, reconnecting...');
           setTimeout(connectWebSocket, 3000);
         };
       } catch (error) {
-        console.error('Failed to connect WebSocket:', error);
         setTimeout(connectWebSocket, 3000);
       }
     };
 
     connectWebSocket();
 
+    // Update state from ref every 1 second to avoid excessive re-renders
+    const intervalId = setInterval(() => {
+      if (tickerMap.current.size > 0) {
+        setTickerData(Array.from(tickerMap.current.values()));
+      }
+    }, 1000);
+
     return () => {
+      clearInterval(intervalId);
       if (ws) {
         ws.close();
       }

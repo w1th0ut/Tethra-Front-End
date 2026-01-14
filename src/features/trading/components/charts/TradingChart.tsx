@@ -7,10 +7,10 @@ import { Market } from '@/features/trading/types';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
 import { useMarketWebSocket } from '@/features/trading/hooks/useMarketWebSocket';
 import TradingViewWidget from './TradingViewWidget';
-import SimpleLineChart from './SimpleLineChart';
 import PerSecondChart from '@/features/second-chart/components/PerSecondChart';
 import ChartHeader from './ChartHeader';
 import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
+import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
 
 const TradingChart: React.FC = () => {
   const {
@@ -28,12 +28,16 @@ const TradingChart: React.FC = () => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
+  const { placeBetWithSession, isPlacingBet } = useOneTapProfit();
 
   const { allPrices, marketDataMap, futuresDataMap, oraclePrices } =
     useMarketWebSocket(baseMarkets);
 
   const oracleSymbolsKey = useMemo(
-    () => Object.keys(oraclePrices || {}).sort().join('|'),
+    () =>
+      Object.keys(oraclePrices || {})
+        .sort()
+        .join('|'),
     [oraclePrices],
   );
 
@@ -148,31 +152,87 @@ const TradingChart: React.FC = () => {
         {activeMarket && (
           <>
             {tapToTrade.isEnabled && activeMarket?.binanceSymbol ? (
-              tapToTrade.tradeMode === 'one-tap-profit' ? (
-                <PerSecondChart
-                  key={`${activeMarket.symbol}-per-s`}
-                  symbol={activeMarket.symbol}
-                  currentPrice={parseFloat(
-                    currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
-                  )}
-                  betAmount={tapToTrade.betAmount}
-                  isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
-                />
-              ) : (
-                <SimpleLineChart
-                  key={`${activeMarket.symbol}-tap`}
-                  symbol={activeMarket.binanceSymbol || ''}
-                  interval={timeframe}
-                  currentPrice={parseFloat(
-                    currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
-                  )}
-                  tapToTradeEnabled={true}
-                  gridSize={tapToTrade.gridSizeY}
-                  onCellTap={handleTapCellClick}
-                />
-              )
+              <PerSecondChart
+                key={`${activeMarket.symbol}-smooth-chart`}
+                symbol={activeMarket.symbol}
+                currentPrice={parseFloat(
+                  currentOraclePrice?.price?.toString() || currentMarketData?.price || '0',
+                )}
+                betAmount={tapToTrade.betAmount}
+                isBinaryTradingEnabled={tapToTrade.isBinaryTradingEnabled}
+                isPlacingBet={isPlacingBet}
+                logoUrl={activeMarket.logoUrl}
+                // Pass grid props for Open Position mode
+                {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
+                  ? {
+                      gridIntervalSeconds:
+                        tapToTrade.gridSession.gridSizeX * tapToTrade.gridSession.timeframeSeconds,
+                      gridPriceStep:
+                        (parseFloat(tapToTrade.gridSession.referencePrice) / 100000000) *
+                        (tapToTrade.gridSession.gridSizeYPercent / 10000),
+                      gridAnchorPrice:
+                        parseFloat(tapToTrade.gridSession.referencePrice) / 100000000,
+                      gridAnchorTime: tapToTrade.gridSession.referenceTime,
+                    }
+                  : {})}
+                onCellClick={(targetPrice, targetTime, entryPrice, entryTime) => {
+                  if (tapToTrade.tradeMode === 'one-tap-profit') {
+                    placeBetWithSession({
+                      symbol: activeMarket.symbol,
+                      betAmount: tapToTrade.betAmount || '10',
+                      targetPrice: targetPrice.toString(),
+                      targetTime: targetTime,
+                      entryPrice: entryPrice.toString(),
+                      entryTime: entryTime,
+                    });
+                  } else if (tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession) {
+                    // Open Position mode - map click to grid cell
+                    const session = tapToTrade.gridSession;
+                    const refPrice = parseFloat(session.referencePrice) / 100000000;
+                    const gridPriceStep = refPrice * (session.gridSizeYPercent / 10000);
+                    const gridInterval = session.gridSizeX * session.timeframeSeconds;
+
+                    // Calculate cell indices
+                    // Cell Y: How many steps from reference price?
+                    // Note: targetPrice corresponds to the BOTTOM of the cell in PerSecondChart logic?
+                    // No, PerSecondChart logic returns CENTER of cell now?
+                    // Wait, I check PerSecondChart handleMouseUp:
+                    // const targetPrice = gridBottomPrice + GRID_Y_DOLLARS / 2;
+                    // So targetPrice is CENTER.
+
+                    // We need to find the integer index.
+                    // cellY = (center - ref) / step
+                    // This will result in X.5.
+                    // So math.floor(val) should give the index if positive?
+                    // Let's use the bottom price explicitly if we can, but we receive targetPrice (center).
+                    // Center = ref + cellY * step + step/2
+                    // Center - ref = step * (cellY + 0.5)
+                    // (Center - ref) / step = cellY + 0.5
+                    // cellY = round((Center - ref) / step - 0.5)
+
+                    const priceDiff = targetPrice - refPrice;
+                    const cellY = Math.round(priceDiff / gridPriceStep - 0.5);
+
+                    // Cell X: Time steps from reference time
+                    // targetTime in PerSecondChart is END of cell.
+                    // targetTime = start + duration
+                    // start = ref + cellX * duration
+                    // targetTime = ref + (cellX + 1) * duration
+                    // (targetTime - ref) / duration = cellX + 1
+                    // cellX = round((targetTime - ref) / duration - 1)
+
+                    const timeDiff = targetTime - session.referenceTime;
+                    const cellX = Math.round(timeDiff / gridInterval - 1);
+
+                    tapToTrade.handleCellClick(cellX, cellY);
+                  }
+                }}
+              />
             ) : (
-              <TradingViewWidget key={`${activeMarket.symbol}`} symbol={activeMarket.tradingViewSymbol} />
+              <TradingViewWidget
+                key={`${activeMarket.symbol}`}
+                symbol={activeMarket.tradingViewSymbol}
+              />
             )}
           </>
         )}

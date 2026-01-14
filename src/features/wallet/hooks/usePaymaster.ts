@@ -2,7 +2,12 @@
  * Hooks for USDC Paymaster interactions
  */
 
-import { useReadContract, useWaitForTransactionReceipt, usePublicClient, useWriteContract } from 'wagmi';
+import {
+  useReadContract,
+  useWaitForTransactionReceipt,
+  usePublicClient,
+  useWriteContract,
+} from 'wagmi';
 import { parseUnits, formatUnits, encodeFunctionData } from 'viem';
 import { useState, useEffect } from 'react';
 import { baseSepolia } from 'wagmi/chains';
@@ -18,7 +23,11 @@ import { useEmbeddedWallet } from './useEmbeddedWallet';
 export function usePaymasterBalance() {
   const { address } = useEmbeddedWallet();
 
-  const { data: balance, isLoading, refetch } = useReadContract({
+  const {
+    data: balance,
+    isLoading,
+    refetch,
+  } = useReadContract({
     address: USDC_PAYMASTER_ADDRESS,
     abi: USDCPaymasterABI,
     functionName: 'getUserDeposit',
@@ -53,9 +62,9 @@ export function useDepositToPaymaster() {
     try {
       setIsPending(true);
       setError(null);
-      
+
       const embeddedWallet = wallets.find(
-        (w) => w.walletClientType === 'privy' && w.address === address
+        (w) => w.walletClientType === 'privy' && w.address === address,
       );
 
       if (!embeddedWallet) {
@@ -64,13 +73,13 @@ export function useDepositToPaymaster() {
 
       await embeddedWallet.switchChain(baseSepolia.id);
       const walletClient = await embeddedWallet.getEthereumProvider();
-      
+
       if (!walletClient) {
         throw new Error('Could not get wallet client');
       }
 
       const amountBigInt = parseUnits(amount, USDC_DECIMALS);
-      
+
       const data = encodeFunctionData({
         abi: USDCPaymasterABI,
         functionName: 'deposit',
@@ -79,14 +88,15 @@ export function useDepositToPaymaster() {
 
       const txHash = await walletClient.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: address,
-          to: USDC_PAYMASTER_ADDRESS,
-          data,
-        }],
+        params: [
+          {
+            from: address,
+            to: USDC_PAYMASTER_ADDRESS,
+            data,
+          },
+        ],
       });
 
-      console.log('✅ Deposit transaction sent:', txHash);
       setHash(txHash as `0x${string}`);
     } catch (err) {
       console.error('❌ Deposit error:', err);
@@ -117,7 +127,7 @@ export function useWithdrawFromPaymaster() {
 
   const withdraw = async (amount: string) => {
     const amountBigInt = parseUnits(amount, USDC_DECIMALS);
-    
+
     await writeContractAsync({
       address: USDC_PAYMASTER_ADDRESS,
       abi: USDCPaymasterABI,
@@ -165,33 +175,28 @@ export function useApproveUSDCForPaymaster() {
     try {
       setIsPending(true);
       setError(null);
-      
+
       // Find embedded wallet
       const embeddedWallet = wallets.find(
-        (w) => w.walletClientType === 'privy' && w.address === address
+        (w) => w.walletClientType === 'privy' && w.address === address,
       );
 
       if (!embeddedWallet) {
         throw new Error('Embedded wallet not found');
       }
 
-      console.log('🔑 Approving with embedded wallet:', embeddedWallet.address);
-      console.log('Wallet methods:', Object.keys(embeddedWallet));
-
       const amountBigInt = parseUnits(amount, USDC_DECIMALS);
-      
+
       // Switch to correct chain first
       await embeddedWallet.switchChain(baseSepolia.id);
-      
+
       // Get wallet client
       const walletClient = await embeddedWallet.getEthereumProvider();
-      
+
       if (!walletClient) {
         throw new Error('Could not get wallet client');
       }
 
-      console.log('Got wallet client, sending transaction...');
-      
       // Encode approve function call
       const data = encodeFunctionData({
         abi: MockUSDCABI,
@@ -202,14 +207,15 @@ export function useApproveUSDCForPaymaster() {
       // Send transaction using provider
       const txHash = await walletClient.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: address,
-          to: USDC_ADDRESS,
-          data,
-        }],
+        params: [
+          {
+            from: address,
+            to: USDC_ADDRESS,
+            data,
+          },
+        ],
       });
 
-      console.log('✅ Approve transaction sent:', txHash);
       setHash(txHash as `0x${string}`);
     } catch (err) {
       console.error('❌ Approve error:', err);
@@ -285,9 +291,14 @@ export function useCalculateGasCost(gasAmount: bigint | undefined) {
 export function usePaymasterFlow() {
   const [isApproving, setIsApproving] = useState(false);
   const [isDepositing, setIsDepositing] = useState(false);
-  
+
   const { balance, balanceRaw, refetch: refetchBalance } = usePaymasterBalance();
-  const { approve, isSuccess: isApproveSuccess, hasAllowance, refetchAllowance } = useApproveUSDCForPaymaster();
+  const {
+    approve,
+    isSuccess: isApproveSuccess,
+    hasAllowance,
+    refetchAllowance,
+  } = useApproveUSDCForPaymaster();
   const { deposit, isSuccess: isDepositSuccess } = useDepositToPaymaster();
 
   // Refetch balance when deposit is successful

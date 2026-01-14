@@ -54,7 +54,7 @@ export function useTapToTrade() {
       referenceTime: number,
       timeframeSeconds: number,
       gridSizeX: number,
-      gridSizeYPercent: number
+      gridSizeYPercent: number,
     ) => {
       // Calculate trigger price from cellY
       const percentPerCell = gridSizeYPercent / 10000; // 50 → 0.005 (0.5%)
@@ -70,18 +70,14 @@ export function useTapToTrade() {
       const isLong = cellY > 0;
 
       // Check if cell already clicked
-      const existingCell = clickedCells.find(
-        (c) => c.cellX === cellX && c.cellY === cellY
-      );
+      const existingCell = clickedCells.find((c) => c.cellX === cellX && c.cellY === cellY);
 
       if (existingCell) {
         // Increment click count
         setClickedCells((prev) =>
           prev.map((c) =>
-            c.cellX === cellX && c.cellY === cellY
-              ? { ...c, clickCount: c.clickCount + 1 }
-              : c
-          )
+            c.cellX === cellX && c.cellY === cellY ? { ...c, clickCount: c.clickCount + 1 } : c,
+          ),
         );
       } else {
         // Add new cell
@@ -99,7 +95,7 @@ export function useTapToTrade() {
         ]);
       }
     },
-    [clickedCells]
+    [clickedCells],
   );
 
   /**
@@ -118,18 +114,15 @@ export function useTapToTrade() {
     isLong: boolean,
     collateral: string,
     leverage: number,
-    marketExecutorAddress: string
+    marketExecutorAddress: string,
   ): Promise<{ signature: string; nonce: string } | null> => {
     try {
       // Find embedded wallet - try multiple approaches
-      console.log('🔍 Looking for embedded wallet...');
-      console.log('Available wallets:', wallets.map(w => ({ type: w.walletClientType, address: w.address })));
-      console.log('Trader address:', trader);
-      
+
       let embeddedWallet = wallets.find(
-        (w) => w.walletClientType === 'privy' && w.address?.toLowerCase() === trader?.toLowerCase()
+        (w) => w.walletClientType === 'privy' && w.address?.toLowerCase() === trader?.toLowerCase(),
       );
-      
+
       // Fallback: just get the first privy wallet
       if (!embeddedWallet) {
         embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
@@ -139,8 +132,6 @@ export function useTapToTrade() {
         console.error('❌ No embedded wallet found in wallets array');
         throw new Error('Embedded wallet not found. Please ensure Privy wallet is connected.');
       }
-      
-      console.log('✅ Using embedded wallet:', embeddedWallet.address);
 
       // Get wallet provider (EIP-1193)
       const walletClient = await embeddedWallet.getEthereumProvider();
@@ -167,32 +158,38 @@ export function useTapToTrade() {
 
       const nonceResult = await walletClient.request({
         method: 'eth_call',
-        params: [{
-          to: marketExecutorAddress,
-          data: nonceData,
-        }, 'latest'],
+        params: [
+          {
+            to: marketExecutorAddress,
+            data: nonceData,
+          },
+          'latest',
+        ],
       });
 
       const metaNonce = BigInt(nonceResult as string);
-      console.log('✅ Current meta nonce:', metaNonce.toString());
 
       // Create message hash (must match MarketExecutor.sol format)
       const messageHash = keccak256(
         encodePacked(
           ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
-          [trader as `0x${string}`, symbol, isLong, BigInt(collateral), BigInt(leverage), metaNonce, marketExecutorAddress as `0x${string}`]
-        )
+          [
+            trader as `0x${string}`,
+            symbol,
+            isLong,
+            BigInt(collateral),
+            BigInt(leverage),
+            metaNonce,
+            marketExecutorAddress as `0x${string}`,
+          ],
+        ),
       );
-
-      console.log('✍️ Requesting signature for tap-to-trade order...');
 
       // Sign message using personal_sign (same as market/limit orders)
       const signature = await walletClient.request({
         method: 'personal_sign',
         params: [messageHash, trader],
       });
-
-      console.log('✅ Signature obtained');
 
       return {
         signature: signature as string,
@@ -213,7 +210,7 @@ export function useTapToTrade() {
     symbol: string,
     leverage: number,
     marginTotal: string,
-    marketExecutorAddress: string
+    marketExecutorAddress: string,
   ): Promise<boolean> => {
     if (!user?.wallet?.address) {
       setError('Wallet not connected');
@@ -231,9 +228,7 @@ export function useTapToTrade() {
     try {
       // Calculate collateral per order
       const totalClicks = clickedCells.reduce((sum, cell) => sum + cell.clickCount, 0);
-      const collateralPerOrder = Math.floor(
-        parseFloat(marginTotal) / totalClicks
-      ).toString();
+      const collateralPerOrder = Math.floor(parseFloat(marginTotal) / totalClicks).toString();
 
       // Sign each order
       const orders = [];
@@ -246,7 +241,7 @@ export function useTapToTrade() {
             cell.isLong,
             collateralPerOrder,
             leverage,
-            marketExecutorAddress
+            marketExecutorAddress,
           );
 
           if (!signResult) {
@@ -287,8 +282,6 @@ export function useTapToTrade() {
         throw new Error(result.error || 'Failed to submit orders');
       }
 
-      console.log(`✅ ${result.data.ordersCreated} orders submitted (backend-only, no gas!)`);
-
       // Clear clicked cells
       setClickedCells([]);
 
@@ -313,7 +306,7 @@ export function useTapToTrade() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
       const response = await fetch(
-        `${backendUrl}/api/tap-to-trade/orders?trader=${user.wallet.address}&status=PENDING`
+        `${backendUrl}/api/tap-to-trade/orders?trader=${user.wallet.address}&status=PENDING`,
       );
 
       const result = await response.json();
@@ -349,8 +342,6 @@ export function useTapToTrade() {
         throw new Error(result.error || 'Failed to cancel order');
       }
 
-      console.log('✅ Order cancelled (no gas fee!)');
-
       // Refresh pending orders
       await fetchPendingOrders();
 
@@ -383,8 +374,6 @@ export function useTapToTrade() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to cancel cell');
       }
-
-      console.log(`✅ ${result.data.cancelledCount} orders cancelled (no gas fee!)`);
 
       // Refresh pending orders
       await fetchPendingOrders();

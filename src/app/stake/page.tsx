@@ -124,7 +124,6 @@ export default function StakePage() {
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching staking data:', error);
         setIsLoading(false);
       }
     };

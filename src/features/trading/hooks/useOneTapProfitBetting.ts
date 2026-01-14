@@ -2,7 +2,14 @@
 
 import { useState, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { encodeFunctionData, parseUnits, createWalletClient, custom, keccak256, encodePacked } from 'viem';
+import {
+  encodeFunctionData,
+  parseUnits,
+  createWalletClient,
+  custom,
+  keccak256,
+  encodePacked,
+} from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import axios from 'axios';
@@ -15,7 +22,7 @@ const USDC_ABI = [
   {
     inputs: [
       { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' }
+      { name: 'amount', type: 'uint256' },
     ],
     name: 'approve',
     outputs: [{ name: '', type: 'bool' }],
@@ -25,7 +32,7 @@ const USDC_ABI = [
   {
     inputs: [
       { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' }
+      { name: 'spender', type: 'address' },
     ],
     name: 'allowance',
     outputs: [{ name: '', type: 'uint256' }],
@@ -72,7 +79,7 @@ export const useOneTapProfit = () => {
   const [isLoadingBets, setIsLoadingBets] = useState(false);
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
-  
+
   // Session key hook for gasless trading
   const {
     sessionKey,
@@ -86,222 +93,232 @@ export const useOneTapProfit = () => {
   /**
    * Calculate multiplier for given parameters
    */
-  const calculateMultiplier = useCallback(async (
-    entryPrice: string,
-    targetPrice: string,
-    entryTime: number,
-    targetTime: number
-  ): Promise<MultiplierResult> => {
-    try {
-      const response = await axios.post(`${BACKEND_URL}/api/one-tap/calculate-multiplier`, {
-        entryPrice,
-        targetPrice,
-        entryTime,
-        targetTime,
-      });
+  const calculateMultiplier = useCallback(
+    async (
+      entryPrice: string,
+      targetPrice: string,
+      entryTime: number,
+      targetTime: number,
+    ): Promise<MultiplierResult> => {
+      try {
+        const response = await axios.post(`${BACKEND_URL}/api/one-tap/calculate-multiplier`, {
+          entryPrice,
+          targetPrice,
+          entryTime,
+          targetTime,
+        });
 
-      return response.data.data;
-    } catch (error) {
-      console.error('Failed to calculate multiplier:', error);
-      throw error;
-    }
-  }, []);
+        return response.data.data;
+      } catch (error) {
+        console.error('Failed to calculate multiplier:', error);
+        throw error;
+      }
+    },
+    [],
+  );
 
   /**
    * Place bet with session key (fully gasless)
    */
-  const placeBetWithSession = useCallback(async (params: PlaceBetParams) => {
-    if (!authenticated || !user || !embeddedWallet) {
-      throw new Error('Wallet not connected');
-    }
+  const placeBetWithSession = useCallback(
+    async (params: PlaceBetParams) => {
+      if (!authenticated || !user || !embeddedWallet) {
+        throw new Error('Wallet not connected');
+      }
 
-    // Check if session is valid
-    if (!isSessionValid()) {
-      throw new Error('Session key expired or not created. Please enable Binary Trading again.');
-    }
+      // Check if session is valid
+      if (!isSessionValid()) {
+        throw new Error('Session key expired or not created. Please enable Binary Trading again.');
+      }
 
-    setIsPlacingBet(true);
+      setIsPlacingBet(true);
 
-    try {
-      const userAddress = embeddedWallet.address;
+      try {
+        const userAddress = embeddedWallet.address;
 
-      // Sign bet parameters with session key
-      const messageHash = keccak256(
-        encodePacked(
-          ['address', 'string', 'uint256', 'uint256', 'uint256'],
-          [
-            userAddress as `0x${string}`,
-            params.symbol,
-            parseUnits(params.betAmount, 6),
-            parseUnits(params.targetPrice, 8),
-            BigInt(Math.floor(params.targetTime)),
-          ]
-        )
-      );
+        // Sign bet parameters with session key
+        const messageHash = keccak256(
+          encodePacked(
+            ['address', 'string', 'uint256', 'uint256', 'uint256'],
+            [
+              userAddress as `0x${string}`,
+              params.symbol,
+              parseUnits(params.betAmount, 6),
+              parseUnits(params.targetPrice, 8),
+              BigInt(Math.floor(params.targetTime)),
+            ],
+          ),
+        );
 
-      const sessionSignature = await signWithSession(messageHash);
+        const sessionSignature = await signWithSession(messageHash);
 
-      // Call backend endpoint (session validation happens off-chain)
-      const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {
-        trader: userAddress,
-        symbol: params.symbol,
-        betAmount: params.betAmount,
-        targetPrice: params.targetPrice,
-        targetTime: params.targetTime,
-        entryPrice: params.entryPrice,
-        entryTime: params.entryTime,
-        sessionSignature,
-      });
+        // Call backend endpoint (session validation happens off-chain)
+        const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {
+          trader: userAddress,
+          symbol: params.symbol,
+          betAmount: params.betAmount,
+          targetPrice: params.targetPrice,
+          targetTime: params.targetTime,
+          entryPrice: params.entryPrice,
+          entryTime: params.entryTime,
+          sessionSignature,
+        });
 
-      console.log('✅ Bet placed successfully via keeper (gasless!):', response.data);
+        // Refresh active bets
+        await fetchActiveBets();
 
-      // Refresh active bets
-      await fetchActiveBets();
-
-      return response.data.data;
-    } catch (error) {
-      console.error('Failed to place bet with session:', error);
-      throw error;
-    } finally {
-      setIsPlacingBet(false);
-    }
-  }, [authenticated, user, embeddedWallet, isSessionValid, createSession, signWithSession]);
+        return response.data.data;
+      } catch (error) {
+        console.error('Failed to place bet with session:', error);
+        throw error;
+      } finally {
+        setIsPlacingBet(false);
+      }
+    },
+    [authenticated, user, embeddedWallet, isSessionValid, createSession, signWithSession],
+  );
 
   /**
    * Place a bet (legacy method with user signature)
    */
-  const placeBet = useCallback(async (params: PlaceBetParams) => {
-    if (!authenticated || !user || !embeddedWallet) {
-      throw new Error('Wallet not connected');
-    }
-
-    setIsPlacingBet(true);
-
-    try {
-      const ethereumProvider = await embeddedWallet.getEthereumProvider();
-      const userAddress = embeddedWallet.address as `0x${string}`;
-
-      // Create wallet client
-      const walletClient = createWalletClient({
-        account: userAddress,
-        chain: baseSepolia,
-        transport: custom(ethereumProvider),
-      });
-
-      // Fetch nonce from contract
-      const nonceData = encodeFunctionData({
-        abi: [{
-          inputs: [{ name: 'trader', type: 'address' }],
-          name: 'metaNonces',
-          outputs: [{ name: '', type: 'uint256' }],
-          stateMutability: 'view',
-          type: 'function',
-        }],
-        functionName: 'metaNonces',
-        args: [userAddress],
-      });
-
-      const nonceResult = await ethereumProvider.request({
-        method: 'eth_call',
-        params: [{
-          to: ONE_TAP_PROFIT_ADDRESS,
-          data: nonceData,
-        }, 'latest'],
-      });
-
-      const nonce = BigInt(nonceResult as string);
-
-      // Create message hash matching contract's expectation:
-      // keccak256(abi.encodePacked(trader, symbol, betAmount, targetPrice, targetTime, nonce, contractAddress))
-      const messageHash = keccak256(
-        encodePacked(
-          ['address', 'string', 'uint256', 'uint256', 'uint256', 'uint256', 'address'],
-          [
-            userAddress,
-            params.symbol,
-            parseUnits(params.betAmount, 6),
-            parseUnits(params.targetPrice, 8),
-            BigInt(Math.floor(params.targetTime)),
-            nonce,
-            ONE_TAP_PROFIT_ADDRESS,
-          ]
-        )
-      );
-
-      // Sign the message hash
-      const signature = await walletClient.signMessage({
-        account: userAddress,
-        message: { raw: messageHash },
-      });
-
-      // Check USDC allowance
-      const allowanceData = encodeFunctionData({
-        abi: USDC_ABI,
-        functionName: 'allowance',
-        args: [userAddress, ONE_TAP_PROFIT_ADDRESS],
-      });
-
-      const allowanceResult = await ethereumProvider.request({
-        method: 'eth_call',
-        params: [{
-          to: USDC_ADDRESS,
-          data: allowanceData,
-        }, 'latest'],
-      });
-
-      const allowance = BigInt(allowanceResult as string);
-
-      // Approve infinite USDC if needed (only once)
-      if (allowance === 0n) {
-        console.log('Approving infinite USDC...');
-        
-        // Use max uint256 for infinite approval
-        const maxApproval = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
-        
-        const approveData = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [ONE_TAP_PROFIT_ADDRESS, maxApproval],
-        });
-
-        const approveTxHash = await walletClient.sendTransaction({
-          account: userAddress,
-          to: USDC_ADDRESS,
-          data: approveData,
-        });
-
-        console.log('Waiting for USDC approval...', approveTxHash);
-        // Wait a bit for tx to be mined
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        console.log('USDC approved (infinite)');
+  const placeBet = useCallback(
+    async (params: PlaceBetParams) => {
+      if (!authenticated || !user || !embeddedWallet) {
+        throw new Error('Wallet not connected');
       }
 
-      // Call backend to place bet
-      const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet`, {
-        trader: userAddress,
-        symbol: params.symbol,
-        betAmount: params.betAmount,
-        targetPrice: params.targetPrice,
-        targetTime: params.targetTime,
-        entryPrice: params.entryPrice,
-        entryTime: params.entryTime,
-        nonce: nonce.toString(),
-        userSignature: signature,
-      });
+      setIsPlacingBet(true);
 
-      console.log('Bet placed successfully:', response.data);
+      try {
+        const ethereumProvider = await embeddedWallet.getEthereumProvider();
+        const userAddress = embeddedWallet.address as `0x${string}`;
 
-      // Refresh active bets
-      await fetchActiveBets();
+        // Create wallet client
+        const walletClient = createWalletClient({
+          account: userAddress,
+          chain: baseSepolia,
+          transport: custom(ethereumProvider),
+        });
 
-      return response.data.data;
-    } catch (error) {
-      console.error('Failed to place bet:', error);
-      throw error;
-    } finally {
-      setIsPlacingBet(false);
-    }
-  }, [authenticated, user, embeddedWallet]);
+        // Fetch nonce from contract
+        const nonceData = encodeFunctionData({
+          abi: [
+            {
+              inputs: [{ name: 'trader', type: 'address' }],
+              name: 'metaNonces',
+              outputs: [{ name: '', type: 'uint256' }],
+              stateMutability: 'view',
+              type: 'function',
+            },
+          ],
+          functionName: 'metaNonces',
+          args: [userAddress],
+        });
+
+        const nonceResult = await ethereumProvider.request({
+          method: 'eth_call',
+          params: [
+            {
+              to: ONE_TAP_PROFIT_ADDRESS,
+              data: nonceData,
+            },
+            'latest',
+          ],
+        });
+
+        const nonce = BigInt(nonceResult as string);
+
+        // Create message hash matching contract's expectation:
+        // keccak256(abi.encodePacked(trader, symbol, betAmount, targetPrice, targetTime, nonce, contractAddress))
+        const messageHash = keccak256(
+          encodePacked(
+            ['address', 'string', 'uint256', 'uint256', 'uint256', 'uint256', 'address'],
+            [
+              userAddress,
+              params.symbol,
+              parseUnits(params.betAmount, 6),
+              parseUnits(params.targetPrice, 8),
+              BigInt(Math.floor(params.targetTime)),
+              nonce,
+              ONE_TAP_PROFIT_ADDRESS,
+            ],
+          ),
+        );
+
+        // Sign the message hash
+        const signature = await walletClient.signMessage({
+          account: userAddress,
+          message: { raw: messageHash },
+        });
+
+        // Check USDC allowance
+        const allowanceData = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'allowance',
+          args: [userAddress, ONE_TAP_PROFIT_ADDRESS],
+        });
+
+        const allowanceResult = await ethereumProvider.request({
+          method: 'eth_call',
+          params: [
+            {
+              to: USDC_ADDRESS,
+              data: allowanceData,
+            },
+            'latest',
+          ],
+        });
+
+        const allowance = BigInt(allowanceResult as string);
+
+        // Approve infinite USDC if needed (only once)
+        if (allowance === 0n) {
+          // Use max uint256 for infinite approval
+          const maxApproval = BigInt(
+            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+          );
+
+          const approveData = encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: 'approve',
+            args: [ONE_TAP_PROFIT_ADDRESS, maxApproval],
+          });
+
+          const approveTxHash = await walletClient.sendTransaction({
+            account: userAddress,
+            to: USDC_ADDRESS,
+            data: approveData,
+          });
+
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+        }
+
+        // Call backend to place bet
+        const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet`, {
+          trader: userAddress,
+          symbol: params.symbol,
+          betAmount: params.betAmount,
+          targetPrice: params.targetPrice,
+          targetTime: params.targetTime,
+          entryPrice: params.entryPrice,
+          entryTime: params.entryTime,
+          nonce: nonce.toString(),
+          userSignature: signature,
+        });
+
+        // Refresh active bets
+        await fetchActiveBets();
+
+        return response.data.data;
+      } catch (error) {
+        console.error('Failed to place bet:', error);
+        throw error;
+      } finally {
+        setIsPlacingBet(false);
+      }
+    },
+    [authenticated, user, embeddedWallet],
+  );
 
   /**
    * Fetch active bets

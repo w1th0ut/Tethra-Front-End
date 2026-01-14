@@ -63,15 +63,10 @@ export function useDirectClosePosition() {
           throw new Error('Embedded wallet not found');
         }
 
-        console.log('🔒 Closing position via NEW MarketExecutor (non-gasless)...');
-        console.log('  Position ID:', params.positionId.toString());
-
         // Get current price from backend
         const signedPrice: SignedPriceData = await getSignedPrice(params.symbol);
 
         setIsLoadingPrice(false);
-
-        console.log('  Exit Price:', signedPrice.price);
 
         await embeddedWallet.switchChain(baseSepolia.id);
         const walletClient = await embeddedWallet.getEthereumProvider();
@@ -95,8 +90,6 @@ export function useDirectClosePosition() {
           ],
         });
 
-        console.log('⛽ Estimating gas...');
-
         // Estimate gas
         const gasEstimate = await walletClient.request({
           method: 'eth_estimateGas',
@@ -110,11 +103,8 @@ export function useDirectClosePosition() {
         });
 
         const gasLimit = (BigInt(gasEstimate as string) * 130n) / 100n; // 30% buffer
-        console.log('  Gas estimate:', gasEstimate.toString());
-        console.log('  Gas limit (with buffer):', gasLimit.toString());
 
         // Send transaction
-        console.log('📤 Sending close transaction...');
         const txHash = await walletClient.request({
           method: 'eth_sendTransaction',
           params: [
@@ -127,7 +117,6 @@ export function useDirectClosePosition() {
           ],
         });
 
-        console.log('✅ Position closed! TX:', txHash);
         setHash(txHash as `0x${string}`);
 
         toast.success('Position closed successfully!', {

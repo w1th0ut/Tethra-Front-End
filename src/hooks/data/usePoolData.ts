@@ -146,7 +146,6 @@ export const usePoolData = (): PoolData => {
           error: null,
         });
       } catch (error) {
-        console.error('Error fetching pool data:', error);
         setData((prev) => ({
           ...prev,
           isLoading: false,
@@ -164,7 +163,10 @@ export const usePoolData = (): PoolData => {
 };
 
 const formatCurrency = (value: number): string => {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${value.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
 
 const formatTokens = (value: number): string => {
