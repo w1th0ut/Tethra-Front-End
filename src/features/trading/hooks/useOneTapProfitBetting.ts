@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useSessionKey } from '@/features/wallet/hooks/useSessionKey';
 import {
@@ -77,8 +77,63 @@ export const useOneTapProfit = () => {
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [activeBets, setActiveBets] = useState<Bet[]>([]);
   const [isLoadingBets, setIsLoadingBets] = useState(false);
+  const prevActiveBetsRef = useRef<Bet[]>([]);
+  const hasInitializedRef = useRef(false);
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+
+  // Poll for active bets to update status and detect wins
+  useEffect(() => {
+    if (!authenticated || !user || !embeddedWallet) return;
+
+    const intervalId = setInterval(() => {
+      fetchActiveBets();
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(intervalId);
+  }, [authenticated, user, embeddedWallet]);
+
+  // Win detection logic
+  useEffect(() => {
+    // Skip first run to avoid false positives on page load
+    if (!hasInitializedRef.current) {
+      if (activeBets.length > 0) hasInitializedRef.current = true;
+      prevActiveBetsRef.current = activeBets;
+      return;
+    }
+
+    // Find bets that were active but are now gone
+    const missingBets = prevActiveBetsRef.current.filter(
+      (prevBet: Bet) => !activeBets.find((currBet: Bet) => currBet.betId === prevBet.betId),
+    );
+
+    if (missingBets.length > 0) {
+      // Check status of missing bets to see if they won
+      missingBets.forEach(async (bet: Bet) => {
+        try {
+          const response = await axios.get(`${BACKEND_URL}/api/one-tap/bet/${bet.betId}`);
+          if (response.data.data.status === 'WON') {
+            // Play win sound
+            try {
+              const audio = new Audio('/sounds/win.mp3');
+              audio.volume = 0.6;
+              await audio.play();
+            } catch (e) {
+              console.warn(
+                'Win sound failed to play (might be missing file or browser policy):',
+                e,
+              );
+            }
+            // toast.success(`You won! ${bet.multiplier/100}x on ${bet.symbol}`);
+          }
+        } catch (err) {
+          console.error('Failed to check status of finished bet:', err);
+        }
+      });
+    }
+
+    prevActiveBetsRef.current = activeBets;
+  }, [activeBets]);
 
   // Session key hook for gasless trading
   const {
@@ -172,8 +227,6 @@ export const useOneTapProfit = () => {
         );
 
         const sessionSignature = await signer(messageHash);
-
-        console.log('🚀 [useOneTapProfit] Sending bet to backend for:', userAddress);
 
         // Call backend endpoint (session validation happens off-chain)
         const response = await axios.post(`${BACKEND_URL}/api/one-tap/place-bet-with-session`, {

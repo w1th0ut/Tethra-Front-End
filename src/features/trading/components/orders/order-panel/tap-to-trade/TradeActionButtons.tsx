@@ -87,11 +87,6 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
         const walletClient = await embeddedWallet.getEthereumProvider();
         if (!walletClient) throw new Error('Could not get wallet client');
 
-        console.log(
-          '🔍 [TradeActionButtons] Approving for Contract:',
-          process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS,
-        );
-
         const newSession = await tapToTrade.createSession(
           embeddedWallet.address,
           walletClient,

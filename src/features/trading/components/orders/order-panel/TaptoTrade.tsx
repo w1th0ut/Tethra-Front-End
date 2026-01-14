@@ -63,19 +63,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
     return Boolean(oneTapProfitAllowance && oneTapProfitAllowance > parseUnits('10000', 6));
   }, [oneTapProfitAllowance]);
 
-  // DEBUG: Log allowance and balance
-  React.useEffect(() => {
-    if (wallets.length > 0) {
-      console.log('🔍 [TapToTrade] Debug Info:', {
-        address: wallets[0].address,
-        usdcBalance: usdcBalance,
-        oneTapProfitAllowance: oneTapProfitAllowance?.toString(),
-        contractAddress: process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS,
-        hasLargeOneTapProfitAllowance,
-      });
-    }
-  }, [wallets, usdcBalance, oneTapProfitAllowance, hasLargeOneTapProfitAllowance]);
-
   // Handler for pre-approve USDC in large amount
   const handlePreApprove = async () => {
     try {

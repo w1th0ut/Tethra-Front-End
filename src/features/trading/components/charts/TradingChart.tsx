@@ -180,11 +180,6 @@ const TradingChart: React.FC = () => {
                   : {})}
                 onCellClick={(targetPrice, targetTime, entryPrice, entryTime) => {
                   if (tapToTrade.tradeMode === 'one-tap-profit') {
-                    console.log(
-                      '🔍 [TradingChart] Placing bet with sessionKey:',
-                      tapToTrade.sessionKey,
-                    );
-
                     placeBetWithSession(
                       {
                         symbol: activeMarket.symbol,
