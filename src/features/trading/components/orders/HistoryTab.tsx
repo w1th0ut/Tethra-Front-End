@@ -59,22 +59,34 @@ export default function HistoryTab() {
   return (
     <div className="h-full flex flex-col">
       {/* Filter Bar */}
-      <div className="flex gap-2 p-2 px-4 border-b border-gray-800/50 overflow-x-auto no-scrollbar">
+      <div className="flex gap-4 p-4 border-b border-gray-800/50 overflow-x-auto no-scrollbar items-center">
         <button
           onClick={() => setFilter('ALL')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'ALL' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-4 py-2 text-sm rounded-lg font-bold transition-all shrink-0 ${
+            filter === 'ALL'
+              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+              : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
         >
-          All
+          All History
         </button>
         <button
           onClick={() => setFilter('BINARY')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'BINARY' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-4 py-2 text-sm rounded-lg font-bold transition-all shrink-0 ${
+            filter === 'BINARY'
+              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+              : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
         >
           One Tap Profit
         </button>
         <button
           onClick={() => setFilter('TAP')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'TAP' ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-4 py-2 text-sm rounded-lg font-bold transition-all shrink-0 ${
+            filter === 'TAP'
+              ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+              : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
         >
           Open Position
         </button>
@@ -227,7 +239,7 @@ export default function HistoryTab() {
 
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4 p-4 overflow-y-auto flex-1">
-        {filteredHistory.map((item) => (
+        {filteredHistory.map((item: any) => (
           <MobileHistoryCard
             key={`history-card-${item.type}-${item.id || item.betId}`}
             item={item}

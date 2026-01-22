@@ -29,7 +29,8 @@ interface ActiveMarket {
 }
 
 export default function TradePageContent() {
-  const { isEnabled, toggleMode, tradeMode, setTradeMode } = useTapToTrade();
+  const { isEnabled, toggleMode, tradeMode, setTradeMode, setIsBinaryTradingEnabled } =
+    useTapToTrade();
   const { activeMarket, currentPrice } = useMarket();
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [isMobileOrderPanelOpen, setIsMobileOrderPanelOpen] = useState(false);
@@ -135,6 +136,16 @@ export default function TradePageContent() {
       window.removeEventListener('toggleMobileCoinInfo', handleToggleCoinInfo as EventListener);
   }, []);
 
+  const handleStopTrading = async () => {
+    if (tradeMode === 'one-tap-profit') {
+      setIsBinaryTradingEnabled(false);
+      await toggleMode();
+      // toast.success('Binary Trading stopped'); // toast is not imported in this file, toggleMode might handle errors
+    } else {
+      await toggleMode();
+    }
+  };
+
   return (
     <main className="bg-trading-dark text-text-primary h-screen flex flex-col relative lg:p-2 p-2 lg:overflow-hidden overflow-auto">
       {/* Mobile Header - Hidden when trading is active */}
@@ -172,6 +183,29 @@ export default function TradePageContent() {
               activeMarket={activeMarketState || activeMarket}
               currentPrice={currentPrice}
             />
+
+            {/* Desktop Floating Stop Button - Distraction Free Mode */}
+            {isTapToTradeActive && (
+              <div className="hidden lg:block absolute bottom-6 right-6 z-50">
+                <button
+                  onClick={handleStopTrading}
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg flex items-center gap-2 transform transition-transform hover:scale-105"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M18 6L6 18" />
+                    <path d="M6 6L18 18" />
+                  </svg>
+                  Stop Trading
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Bottom Panel - Different behavior for Tap to Trade modes */}
@@ -235,29 +269,33 @@ export default function TradePageContent() {
           )}
         </div>
 
-        {/* Resize Handle - Desktop Only */}
-        <div
-          className="hidden lg:flex w-1 hover:bg-blue-500/50 cursor-col-resize items-center justify-center transition-colors group z-20"
-          onMouseDown={() => setIsResizing(true)}
-        >
+        {/* Resize Handle - Desktop Only - Hidden when TapToTrade Active */}
+        {!isTapToTradeActive && (
           <div
-            className={`w-0.5 h-8 bg-gray-600 group-hover:bg-blue-400 rounded-full transition-colors ${
-              isResizing ? 'bg-blue-500 h-16' : ''
-            }`}
-          />
-        </div>
+            className="hidden lg:flex w-1 hover:bg-blue-500/50 cursor-col-resize items-center justify-center transition-colors group z-20"
+            onMouseDown={() => setIsResizing(true)}
+          >
+            <div
+              className={`w-0.5 h-8 bg-gray-600 group-hover:bg-blue-400 rounded-full transition-colors ${
+                isResizing ? 'bg-blue-500 h-16' : ''
+              }`}
+            />
+          </div>
+        )}
 
-        {/* Right Order Panel - Hidden on mobile, shows as bottom sheet */}
-        <div
-          className="hidden lg:flex shrink-0 flex-col"
-          style={{
-            width: `${panelWidth}vw`,
-            minWidth: '300px',
-            maxWidth: '50vw',
-          }}
-        >
-          <OrderPanel mode="trade" />
-        </div>
+        {/* Right Order Panel - Hidden on mobile, shows as bottom sheet. ALSO HIDDEN ON DESKTOP IF TAP TO TRADE ACTIVE */}
+        {!isTapToTradeActive && (
+          <div
+            className="hidden lg:flex shrink-0 flex-col"
+            style={{
+              width: `${panelWidth}vw`,
+              minWidth: '300px',
+              maxWidth: '50vw',
+            }}
+          >
+            <OrderPanel mode="trade" />
+          </div>
+        )}
 
         {/* Tap to Trade "Open Positions" Button - Mobile Only, Independent */}
         {isTapToTradeActive && !isBottomPanelOpen && (
@@ -275,7 +313,7 @@ export default function TradePageContent() {
             <>
               {isTapToTradeActive ? (
                 /* Stop Tap to Trade Button */
-                <StopTapToTradeButton onStop={() => toggleMode()} />
+                <StopTapToTradeButton onStop={handleStopTrading} />
               ) : (
                 /* Normal Mode: Long/Short/Swap Tabs */
                 <MobileOrderTabs
@@ -316,8 +354,8 @@ export default function TradePageContent() {
         </div>
       </div>
 
-      {/* Price Ticker at bottom */}
-      <PriceTicker />
+      {/* Price Ticker at bottom - Hidden when trading is active */}
+      {!isTapToTradeActive && <PriceTicker />}
     </main>
   );
 }
