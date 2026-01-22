@@ -222,7 +222,7 @@ export default function TradePageContent() {
               </div>
 
               <div
-                className="lg:w-full transition-all duration-75 mb-20 lg:mb-0"
+                className="lg:w-full transition-all duration-75 mb-10 lg:mb-0"
                 style={{
                   height: `${bottomPanelHeight}px`,
                   minHeight: '200px',

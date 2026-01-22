@@ -1,9 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import PositionRow from './PositionRow';
+import MobilePositionCard from './MobilePositionCard';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface PositionsTableProps {
   positionIds: bigint[];
@@ -43,6 +62,34 @@ const PositionsTable = ({
   onPositionLoaded,
   onCloseAll,
 }: PositionsTableProps) => {
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState<'single' | 'all'>('single');
+  const [targetPosition, setTargetPosition] = useState<{ id: bigint; symbol: string } | null>(null);
+
+  // Handle "Close" click on a single position
+  const handleRequestClose = (positionId: bigint, symbol: string) => {
+    setTargetPosition({ id: positionId, symbol });
+    setActionType('single');
+    setIsDialogOpen(true);
+  };
+
+  // Handle "Close All" click
+  const handleRequestCloseAll = () => {
+    setActionType('all');
+    setIsDialogOpen(true);
+  };
+
+  // Confirm Action
+  const handleConfirmClose = () => {
+    if (actionType === 'all') {
+      onCloseAll();
+    } else if (targetPosition) {
+      onClosePosition(targetPosition.id, targetPosition.symbol);
+    }
+    setIsDialogOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500">
@@ -53,108 +100,109 @@ const PositionsTable = ({
   }
 
   if (positionIds.length === 0) {
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-[#0B1017] sticky top-0 z-10">
-            <tr className="border-b border-gray-800">
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                Position
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Size
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Net Value
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Collateral
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Entry Price
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Mark Price
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Liq. Price
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                TP / SL
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colSpan={9} className="text-center py-20 text-slate-500">
-                No open positions
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
+    return <div className="text-center py-16 text-gray-500">No open positions</div>;
   }
 
   return (
-    <div className="overflow-x-auto custom-scrollbar">
-      <table className="w-full text-sm text-left">
-        <thead className="bg-[#0B1017] sticky top-0 z-10">
-          <tr className="border-b border-gray-800">
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-              Position
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Size
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Net Value
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Collateral
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Entry Price
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Mark Price
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Liq. Price
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              TP / SL
-            </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-              {openPositionsCount > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={onCloseAll}
-                  disabled={isClosing}
-                  className="h-6 px-2 text-[10px] uppercase font-bold tracking-wider"
-                >
-                  Close All
-                </Button>
-              )}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-800/40">
-          {positionIds.map((positionId) => (
-            <PositionRow
-              key={`${positionId.toString()}-${tpslRefreshTrigger}`}
-              positionId={positionId}
-              onClose={onClosePosition}
-              onPositionClick={onPositionClick}
-              onTPSLClick={onTPSLClick}
-              isSelected={selectedPositionId === positionId}
-              onPositionLoaded={onPositionLoaded}
-            />
-          ))}
-        </tbody>
-      </table>
+    <div className="h-full flex flex-col">
+      {/* Actions Bar for Desktop */}
+      <div className="hidden md:flex justify-end p-2 border-b border-gray-800/50">
+        {openPositionsCount > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleRequestCloseAll}
+            disabled={isClosing}
+            className="h-7 text-xs font-bold"
+          >
+            Close All Positions
+          </Button>
+        )}
+      </div>
+
+      {/* Desktop View: Table */}
+      <div className="hidden md:block overflow-x-auto custom-scrollbar">
+        <Table>
+          <TableHeader className="bg-[#0B1017] sticky top-0 z-10">
+            <TableRow className="border-b border-gray-800 hover:bg-transparent">
+              <TableHead className="font-medium min-w-[140px]">Position</TableHead>
+              <TableHead className="text-right font-medium">Size</TableHead>
+              <TableHead className="text-right font-medium">PnL (ROE%)</TableHead>
+              <TableHead className="text-right font-medium">Collateral</TableHead>
+              <TableHead className="text-right font-medium">Entry Price</TableHead>
+              <TableHead className="text-right font-medium">Mark Price</TableHead>
+              <TableHead className="text-right font-medium">Liq. Price</TableHead>
+              <TableHead className="text-right font-medium">TP / SL</TableHead>
+              <TableHead className="text-right font-medium w-32">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {positionIds.map((positionId) => (
+              <PositionRow
+                key={`${positionId.toString()}-${tpslRefreshTrigger}`}
+                positionId={positionId}
+                onClose={handleRequestClose}
+                onPositionClick={onPositionClick}
+                onTPSLClick={onTPSLClick}
+                isSelected={selectedPositionId === positionId}
+                onPositionLoaded={onPositionLoaded}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4 flex-1 overflow-y-auto p-4">
+        {openPositionsCount > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleRequestCloseAll}
+            disabled={isClosing}
+            className="w-full mb-4 font-bold"
+          >
+            Close All Positions
+          </Button>
+        )}
+        {positionIds.map((positionId) => (
+          <MobilePositionCard
+            key={`mobile-${positionId.toString()}-${tpslRefreshTrigger}`}
+            positionId={positionId}
+            onClose={handleRequestClose}
+            onPositionClick={onPositionClick}
+            onTPSLClick={onTPSLClick}
+            onPositionLoaded={onPositionLoaded}
+          />
+        ))}
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <AlertDialogContent className="bg-[#131B26] border-gray-800 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {actionType === 'all' ? 'Close All Positions?' : 'Close Position?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {actionType === 'all'
+                ? 'Are you sure you want to close ALL open positions? This action cannot be undone.'
+                : `Are you sure you want to close your ${targetPosition?.symbol} position at market price?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmClose}
+              className="bg-red-600 hover:bg-red-700 text-white border-0"
+            >
+              Confirm Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
