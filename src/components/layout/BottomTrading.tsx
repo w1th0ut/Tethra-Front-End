@@ -6,20 +6,33 @@ import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { toast } from 'sonner';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
-import PendingOrdersTable from '@/features/trading/components/orders/PendingOrdersTable';
-import TapToTradeOrders from '@/features/trading/components/orders/TapToTradeOrders';
-import BinaryOrders from '@/features/trading/components/orders/BinaryOrders';
 import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PositionsTable from '@/features/trading/components/positions/PositionsTable';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+
+// New Components & Hooks
+import OpenOrdersTab from '@/features/trading/components/orders/OpenOrdersTab';
+import OneTapProfitTab from '@/features/trading/components/orders/OneTapProfitTab';
+import HistoryTab from '@/features/trading/components/orders/HistoryTab';
+import { useTapToTradeOrders } from '@/features/trading/hooks/useTapToTradeOrders';
+import { useUserPendingOrders } from '@/features/trading/hooks/useLimitOrder';
+import { useBinaryOrders } from '@/features/trading/hooks/useBinaryOrders';
 
 export default function BottomTrading() {
   const [openPositionsCount, setOpenPositionsCount] = useState(0);
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { closePosition, isPending: isClosing } = useGaslessClose();
   const { setSelectedPosition, selectedPosition } = useMarket();
+
+  // Counts for Tabs
+  const { orders: limitOrders } = useUserPendingOrders();
+  const { orders: tapOrders } = useTapToTradeOrders();
+  const { orders: binaryOrders } = useBinaryOrders();
+
+  const pendingTapCount = tapOrders.filter((o) => o.status === 'PENDING').length;
+  const openOrdersCount = limitOrders.length + pendingTapCount;
+  const activeBinaryCount = binaryOrders.filter((o) => o.status === 'ACTIVE').length;
 
   // TP/SL Modal state
   const [tpslModalOpen, setTpslModalOpen] = useState(false);
@@ -147,7 +160,7 @@ export default function BottomTrading() {
                   data-[state=active]:border-b-[#3B82F6] 
                   data-[state=active]:text-white 
                   text-gray-400 
-                  rounded-t-sm
+                  rounded-t-md
                   rounded-b-none 
                   h-full 
                   px-4
@@ -157,7 +170,7 @@ export default function BottomTrading() {
                   transition-all
                 "
               >
-                <div className="flex items-center gap-2 pb-3">
+                <div className="flex items-center gap-2">
                   Positions
                   {openPositionsCount > 0 && (
                     <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#1E293B] text-gray-300 rounded px-1">
@@ -167,7 +180,7 @@ export default function BottomTrading() {
                 </div>
               </TabsTrigger>
               <TabsTrigger
-                value="pending"
+                value="openorders"
                 className="
                   data-[state=active]:bg-[#131B26]
                   data-[state=active]:shadow-none 
@@ -175,7 +188,7 @@ export default function BottomTrading() {
                   data-[state=active]:border-b-[#3B82F6] 
                   data-[state=active]:text-white 
                   text-gray-400 
-                  rounded-t-sm
+                  rounded-t-md
                   rounded-b-none 
                   h-full 
                   px-4
@@ -185,10 +198,17 @@ export default function BottomTrading() {
                   transition-all
                 "
               >
-                <div>Pending Orders</div>
+                <div className="flex items-center gap-2">
+                  Open Orders
+                  {openOrdersCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#1E293B] text-gray-300 rounded px-1">
+                      {openOrdersCount}
+                    </span>
+                  )}
+                </div>
               </TabsTrigger>
               <TabsTrigger
-                value="taptotrade"
+                value="onetap"
                 className="
                   data-[state=active]:bg-[#131B26]
                   data-[state=active]:shadow-none 
@@ -196,7 +216,7 @@ export default function BottomTrading() {
                   data-[state=active]:border-b-[#3B82F6] 
                   data-[state=active]:text-white 
                   text-gray-400 
-                  rounded-t-sm
+                  rounded-t-md
                   rounded-b-none 
                   h-full 
                   px-4
@@ -206,10 +226,17 @@ export default function BottomTrading() {
                   transition-all
                 "
               >
-                <div>Tap to Trade Orders</div>
+                <div className="flex items-center gap-2">
+                  One Tap Profit
+                  {activeBinaryCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#1E293B] text-gray-300 rounded px-1">
+                      {activeBinaryCount}
+                    </span>
+                  )}
+                </div>
               </TabsTrigger>
               <TabsTrigger
-                value="binary"
+                value="history"
                 className="
                   data-[state=active]:bg-[#131B26]
                   data-[state=active]:shadow-none 
@@ -217,7 +244,7 @@ export default function BottomTrading() {
                   data-[state=active]:border-b-[#3B82F6] 
                   data-[state=active]:text-white 
                   text-gray-400 
-                  rounded-t-sm
+                  rounded-t-md
                   rounded-b-none 
                   h-full 
                   px-4
@@ -227,7 +254,7 @@ export default function BottomTrading() {
                   transition-all
                 "
               >
-                <div>Binary Orders</div>
+                <div className="pb-3">History</div>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -253,24 +280,24 @@ export default function BottomTrading() {
             </TabsContent>
 
             <TabsContent
-              value="pending"
+              value="openorders"
               className="h-full m-0 data-[state=inactive]:hidden overflow-auto"
             >
-              <PendingOrdersTable />
+              <OpenOrdersTab />
             </TabsContent>
 
             <TabsContent
-              value="taptotrade"
+              value="onetap"
               className="h-full m-0 data-[state=inactive]:hidden overflow-auto"
             >
-              <TapToTradeOrders />
+              <OneTapProfitTab />
             </TabsContent>
 
             <TabsContent
-              value="binary"
+              value="history"
               className="h-full m-0 data-[state=inactive]:hidden overflow-auto"
             >
-              <BinaryOrders />
+              <HistoryTab />
             </TabsContent>
           </div>
         </Tabs>

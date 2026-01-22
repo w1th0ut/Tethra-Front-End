@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Coins,
   List,
+  Grid2x2Plus,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -31,7 +32,7 @@ interface SidebarContentProps {
 
 export default function SidebarContent({
   navItems = [
-    { href: '/trade', icon: CandlestickChart, label: 'Tap to Trade' },
+    { href: '/trade', icon: Grid2x2Plus, label: 'Tap to Trade' },
     { href: '/market', icon: CandlestickChart, label: 'Market' },
     { href: '/vaults', icon: Vault, label: 'Vaults' },
     { href: '/stake', icon: Coins, label: 'Stake' },
