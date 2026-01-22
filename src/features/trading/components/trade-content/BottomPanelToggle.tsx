@@ -1,5 +1,5 @@
-import React from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface BottomPanelToggleProps {
   isOpen: boolean;
@@ -30,17 +30,17 @@ export default function BottomPanelToggle({
   }
 
   const buttonClasses = isMobile
-    ? 'lg:hidden fixed bottom-[56px] left-1/2 -translate-x-1/2 z-50'
-    : 'hidden lg:flex absolute bottom-10 left-1/2 -translate-x-1/2 z-50';
+    ? 'lg:hidden fixed bottom-16 left-1/2 -translate-x-1/2 z-50'
+    : 'hidden lg:flex absolute bottom-2 left-1/2 -translate-x-1/2 z-50';
 
   return (
-    <button
+    <Button
       onClick={onToggle}
       className={`${buttonClasses} bg-trading-bg border border-border-default rounded-t-lg px-4 py-2 items-center gap-2 hover:bg-button-hover transition-colors cursor-pointer`}
     >
       <ChevronUp size={16} className="text-text-secondary" />
       <span className="text-xs text-text-secondary font-medium">Open Positions</span>
       <ChevronUp size={16} className="text-text-secondary" />
-    </button>
+    </Button>
   );
 }

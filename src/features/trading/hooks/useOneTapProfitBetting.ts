@@ -13,6 +13,7 @@ import {
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 const ONE_TAP_PROFIT_ADDRESS = process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS as `0x${string}`;
@@ -82,6 +83,8 @@ export const useOneTapProfit = () => {
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
 
+  const [sessionPnL, setSessionPnL] = useState<number>(0);
+
   // Poll for active bets to update status and detect wins
   useEffect(() => {
     if (!authenticated || !user || !embeddedWallet) return;
@@ -112,7 +115,9 @@ export const useOneTapProfit = () => {
       missingBets.forEach(async (bet: Bet) => {
         try {
           const response = await axios.get(`${BACKEND_URL}/api/one-tap/bet/${bet.betId}`);
-          if (response.data.data.status === 'WON') {
+          const status = response.data.data.status;
+
+          if (status === 'WON') {
             // Play win sound
             try {
               const audio = new Audio('/sounds/win.mp3');
@@ -124,7 +129,28 @@ export const useOneTapProfit = () => {
                 e,
               );
             }
-            // toast.success(`You won! ${bet.multiplier/100}x on ${bet.symbol}`);
+
+            // Update Session PnL (Profit = Payout - Bet Amount)
+            // Payout = BetAmount * Multiplier / 100
+            const betAmountVal = parseFloat(bet.betAmount);
+            const profit = (betAmountVal * bet.multiplier) / 100 - betAmountVal;
+            setSessionPnL((prev) => prev + profit);
+
+            toast.success(`You won! +$${profit.toFixed(2)}`, {
+              description: `${(bet.multiplier / 100).toFixed(2)}x on ${bet.symbol}`,
+              position: 'top-center',
+              duration: 3000,
+            });
+          } else if (status === 'LOST') {
+            // Update Session PnL (Loss = Bet Amount)
+            const betAmountVal = parseFloat(bet.betAmount);
+            setSessionPnL((prev) => prev - betAmountVal);
+
+            toast.error(`You lost $${betAmountVal.toFixed(2)}`, {
+              description: `Better luck next time on ${bet.symbol}`,
+              position: 'top-center',
+              duration: 3000,
+            });
           }
         } catch (err) {
           console.error('Failed to check status of finished bet:', err);
@@ -485,5 +511,6 @@ export const useOneTapProfit = () => {
     createSession,
     clearSession,
     sessionTimeRemaining: getTimeRemaining(),
+    sessionPnL,
   };
 };

@@ -43,9 +43,9 @@ export const CollateralInput: React.FC<CollateralInputProps> = ({
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className="bg-transparent text-2xl text-text-primary outline-none disabled:cursor-not-allowed placeholder-text-muted"
+          className="bg-transparent text-2xl text-text-primary outline-none disabled:cursor-not-allowed placeholder-text-muted flex-1 w-full min-w-0"
         />
-        <div className="flex items-center gap-2 ">
+        <div className="flex items-center gap-2 shrink-0 ml-2">
           <Image
             src={tokenIcon}
             alt={tokenSymbol}
@@ -63,8 +63,8 @@ export const CollateralInput: React.FC<CollateralInputProps> = ({
 
       <div className="flex justify-between items-center text-xs">
         <span className="text-text-muted">{formatPrice(usdValue)}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-text-muted">
+        <div className="flex items-center gap-2 max-w-[60%] justify-end">
+          <span className="text-text-muted truncate">
             {isLoadingBalance ? 'Loading...' : `${balance} ${tokenSymbol}`}
           </span>
           <Button

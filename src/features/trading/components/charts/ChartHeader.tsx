@@ -121,7 +121,7 @@ export default function ChartHeader(props: ChartHeaderProps) {
           />
         </div>
 
-        <div className="flex flex-col min-w-[100px] md:min-w-[130px]">
+        <div className="flex flex-col ">
           <span className="font-semibold font-mono md:text-lg text-base text-text-primary">
             {Number.isFinite(displayPrice) ? formatUsd(displayPrice as number) : '$--'}
           </span>
@@ -174,36 +174,6 @@ export default function ChartHeader(props: ChartHeaderProps) {
                   : '--'}
               </span>
             </div>
-
-            {/* Futures Data */}
-            {props.futuresData && (
-              <>
-                <div className="md:flex flex-col hidden">
-                  <span className="text-xs text-text-secondary">FUNDING RATE</span>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className={`font-semibold font-mono text-sm ${
-                        isFundingPositive ? 'text-success' : 'text-error'
-                      }`}
-                    >
-                      {formatFundingRate(fundingRate)}
-                    </span>
-                    <span className="text-xs text-text-muted font-mono">
-                      / {formatTimeUntil(props.futuresData.nextFundingTime)}
-                    </span>
-                  </div>
-                </div>
-                <div className="md:flex flex-col hidden">
-                  <span className="text-xs text-text-secondary">OPEN INTEREST</span>
-                  <span className="font-semibold font-mono text-sm text-text-primary">
-                    {formatVolume(parseFloat(props.futuresData.openInterestValue))}
-                  </span>
-                </div>
-                <div className="flex">
-                  <RealTimeClock />
-                </div>
-              </>
-            )}
           </>
         )}
       </div>

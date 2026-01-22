@@ -582,7 +582,7 @@ const BottomTrading = () => {
 
   return (
     <>
-      <div className="bg-[#0B1017] border border-gray-700/50 rounded-lg h-full flex flex-col">
+      <div className="bg-[#0B1017] border border-gray-700/50 rounded-lg h-full flex flex-col z-50">
         <div className="flex items-center justify-between border-b border-gray-800/50 flex-shrink-0 md:px-4">
           {/* Mobile tabs - full width divided by 4 */}
           <div className="flex w-full md:hidden">

@@ -66,10 +66,12 @@ const OrderPanel: React.FC<OrderPanelProps> = ({
 
   return (
     <div className="h-full flex flex-col text-text-primary relative overflow-hidden md:rounded-lg">
-      {/* Wallet Connect Header - Hidden on Mobile */}
-      <div className="md:flex hidden items-center justify-end p-2.5 usd bg-trading-dark flex-shrink-0 md:rounded-t-lg">
-        <WalletConnectButton />
-      </div>
+      {/* Wallet Connect Header - Hidden on Mobile and when TapToTrade is active */}
+      {!tapToTradeEnabled && (
+        <div className="md:flex hidden items-center justify-end p-2.5 usd bg-trading-dark flex-shrink-0 md:rounded-t-lg">
+          <WalletConnectButton />
+        </div>
+      )}
 
       {/* Order Panel */}
       <div className="flex-1 flex flex-col bg-trading-bg overflow-hidden md:rounded-b-lg">
@@ -115,18 +117,18 @@ const OrderPanel: React.FC<OrderPanelProps> = ({
             >
               <TabsList className="grid w-full grid-cols-2 h-10 bg-gradient-to-r from-info/20 to-success/20 p-1">
                 <TabsTrigger
-                  value="open-position"
-                  disabled={activeTab === 'swap' || tapToTradeEnabled}
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-info data-[state=active]:to-info-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
-                >
-                  Open Position
-                </TabsTrigger>
-                <TabsTrigger
                   value="one-tap-profit"
                   disabled={activeTab === 'swap' || tapToTradeEnabled}
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-success data-[state=active]:to-success-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
                 >
                   One Tap Profit
+                </TabsTrigger>
+                <TabsTrigger
+                  value="open-position"
+                  disabled={activeTab === 'swap' || tapToTradeEnabled}
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-info data-[state=active]:to-info-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
+                >
+                  Open Position
                 </TabsTrigger>
               </TabsList>
             </Tabs>

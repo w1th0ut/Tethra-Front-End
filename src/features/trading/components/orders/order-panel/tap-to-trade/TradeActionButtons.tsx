@@ -135,7 +135,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
         {tapToTrade.isLoading
           ? 'Stopping...'
           : tradeMode === 'one-tap-profit'
-          ? 'Stop Binary Trading'
+          ? 'Stop Trading'
           : 'Stop Tap to Trade'}
       </Button>
     );

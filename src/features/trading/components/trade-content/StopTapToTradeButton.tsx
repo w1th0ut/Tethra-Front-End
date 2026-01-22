@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React from 'react';
 
 interface StopTapToTradeButtonProps {
@@ -6,21 +7,25 @@ interface StopTapToTradeButtonProps {
 
 export default function StopTapToTradeButton({ onStop }: StopTapToTradeButtonProps) {
   return (
-    <button
-      onClick={onStop}
-      className="w-full py-3.5 font-semibold text-sm bg-short text-text-primary hover:bg-short-hover transition-colors flex items-center justify-center gap-2"
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
+    <div className="w-full bg-trading-dark border-t border-border-default">
+      <Button
+        onClick={onStop}
+        variant="destructive"
+        className="w-full h-14 text-lg font-bold gap-2 uppercase tracking-wide"
       >
-        <rect x="6" y="6" width="12" height="12" />
-      </svg>
-      Stop Tap to Trade
-    </button>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <path d="M18 6L6 18" />
+          <path d="M6 6L18 18" />
+        </svg>
+        Stop Trading
+      </Button>
+    </div>
   );
 }

@@ -24,4 +24,8 @@ export interface PerSecondChartProps {
   gridPriceStep?: number;
   gridAnchorPrice?: number;
   gridAnchorTime?: number;
+  // Axis configuration
+  yAxisSide?: 'left' | 'right';
+  showXAxis?: boolean;
+  showYAxis?: boolean;
 }
