@@ -38,6 +38,44 @@ export default function TradePageContent() {
   const [marketDataState, setMarketDataState] = useState<MarketData | null>(null);
   const [activeMarketState, setActiveMarketState] = useState<ActiveMarket | null>(null);
 
+  // Resizable Panel State
+  const [panelWidth, setPanelWidth] = useState(30); // Default 30vw
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Handle Resize Logic
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      // Calculate width as percentage of window width (Right panel grows as mouse moves left)
+      // New Width = ((Window Width - Mouse X) / Window Width) * 100
+      const newWidth = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+
+      // Clamp between 20vw and 50vw
+      if (newWidth >= 20 && newWidth <= 50) {
+        setPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.body.style.userSelect = ''; // Re-enable selection
+      document.body.style.cursor = '';
+    };
+
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none'; // Disable text selection while dragging
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
   const isTapToTradeActive = isEnabled;
 
   const priceValue = currentPrice ? parseFloat(currentPrice) : null;
@@ -62,17 +100,19 @@ export default function TradePageContent() {
 
   return (
     <main className="bg-trading-dark text-text-primary h-screen flex flex-col relative lg:p-2 p-2 lg:overflow-hidden overflow-auto">
-      {/* Mobile Header */}
-      <MobileHeader rightContent={<WalletConnectButton />} />
+      {/* Mobile Header - Hidden when trading is active */}
+      {!isTapToTradeActive && <MobileHeader rightContent={<WalletConnectButton />} />}
 
       <div
         className="flex flex-col lg:flex-row w-full flex-1 lg:gap-2 gap-2 lg:overflow-hidden"
         style={{ minHeight: 0 }}
       >
         {/* Left Sidebar - Responsive (hidden on mobile, overlay on mobile when open) */}
-        <Sidebar>
-          <SidebarContent />
-        </Sidebar>
+        {!isTapToTradeActive && (
+          <Sidebar>
+            <SidebarContent />
+          </Sidebar>
+        )}
 
         {/* Center - Chart and Bottom Trading */}
         <div
@@ -145,13 +185,25 @@ export default function TradePageContent() {
           )}
         </div>
 
+        {/* Resize Handle - Desktop Only */}
+        <div
+          className="hidden lg:flex w-1 hover:bg-blue-500/50 cursor-col-resize items-center justify-center transition-colors group z-20"
+          onMouseDown={() => setIsResizing(true)}
+        >
+          <div
+            className={`w-0.5 h-8 bg-gray-600 group-hover:bg-blue-400 rounded-full transition-colors ${
+              isResizing ? 'bg-blue-500 h-16' : ''
+            }`}
+          />
+        </div>
+
         {/* Right Order Panel - Hidden on mobile, shows as bottom sheet */}
         <div
           className="hidden lg:flex shrink-0 flex-col"
           style={{
-            width: '30vw',
+            width: `${panelWidth}vw`,
             minWidth: '300px',
-            maxWidth: '520px',
+            maxWidth: '50vw',
           }}
         >
           <OrderPanel mode="trade" />
