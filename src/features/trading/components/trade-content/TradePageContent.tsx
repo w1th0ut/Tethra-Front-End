@@ -36,13 +36,50 @@ export default function TradePageContent() {
   const [isMobileCoinInfoOpen, setIsMobileCoinInfoOpen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<'long' | 'short' | 'swap'>('long');
   const [marketDataState, setMarketDataState] = useState<MarketData | null>(null);
+  // Vertical Resize Logic (Bottom Panel)
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(300); // Default 300px
+  const [isResizingBottom, setIsResizingBottom] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMoveBottom = (e: MouseEvent) => {
+      if (!isResizingBottom) return;
+
+      // Calculate new height: Total Height - Mouse Y
+      // We need to account for the bottom of the window
+      const newHeight = window.innerHeight - e.clientY;
+
+      // Constraints: Min 200px, Max 80vh
+      if (newHeight >= 200 && newHeight <= window.innerHeight * 0.8) {
+        setBottomPanelHeight(newHeight);
+      }
+    };
+
+    const handleMouseUpBottom = () => {
+      setIsResizingBottom(false);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+
+    if (isResizingBottom) {
+      window.addEventListener('mousemove', handleMouseMoveBottom);
+      window.addEventListener('mouseup', handleMouseUpBottom);
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'row-resize';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMoveBottom);
+      window.removeEventListener('mouseup', handleMouseUpBottom);
+    };
+  }, [isResizingBottom]);
+
   const [activeMarketState, setActiveMarketState] = useState<ActiveMarket | null>(null);
 
-  // Resizable Panel State
+  // Resizable Panel State (Right - Order Panel)
   const [panelWidth, setPanelWidth] = useState(30); // Default 30vw
   const [isResizing, setIsResizing] = useState(false);
 
-  // Handle Resize Logic
+  // Handle Resize Logic (Right Panel)
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
@@ -115,17 +152,15 @@ export default function TradePageContent() {
         )}
 
         {/* Center - Chart and Bottom Trading */}
-        <div
-          className="lg:flex-1 flex flex-col min-w-0 relative lg:gap-2"
-          style={{ minHeight: 0, gap: isTapToTradeActive ? 0 : '0.5rem' }}
-        >
+        <div className="lg:flex-1 flex flex-col min-w-0 relative" style={{ minHeight: 0 }}>
           {/* Trading Chart */}
           <div
             className="transition-all duration-300 relative flex-1"
             style={{
-              minHeight: isTapToTradeActive ? '80vh' : '400px',
+              minHeight: 0, // Allow shrinking
               display: 'flex',
               flexDirection: 'column',
+              marginBottom: isTapToTradeActive ? 0 : 0,
             }}
           >
             <TradingChart />
@@ -172,16 +207,31 @@ export default function TradePageContent() {
               )}
             </>
           ) : (
-            /* Normal mode - Regular layout with BottomTrading */
-            <div
-              className="lg:flex-1 transition-all duration-300 mb-20 lg:mb-0"
-              style={{
-                minHeight: '400px',
-                maxHeight: '40vh',
-              }}
-            >
-              <BottomTrading />
-            </div>
+            /* Normal mode - Resizable Bottom Panel */
+            <>
+              {/* Resize Handle */}
+              <div
+                className="hidden lg:flex w-full h-1 hover:bg-blue-500/50 cursor-row-resize items-center justify-center transition-colors group z-20 my-1"
+                onMouseDown={() => setIsResizingBottom(true)}
+              >
+                <div
+                  className={`h-0.5 w-8 bg-gray-600 group-hover:bg-blue-400 rounded-full transition-colors ${
+                    isResizingBottom ? 'bg-blue-500 w-32' : ''
+                  }`}
+                />
+              </div>
+
+              <div
+                className="lg:w-full transition-all duration-75 mb-20 lg:mb-0"
+                style={{
+                  height: `${bottomPanelHeight}px`,
+                  minHeight: '200px',
+                  maxHeight: '80vh',
+                }}
+              >
+                <BottomTrading />
+              </div>
+            </>
           )}
         </div>
 
