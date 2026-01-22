@@ -150,7 +150,7 @@ export default function BottomTrading() {
       <div className="bg-[#0B1017] rounded-lg h-full flex flex-col z-50 overflow-hidden">
         <Tabs defaultValue="positions" className="w-full h-full flex flex-col">
           <div className="flex items-center w-full border-b border-gray-800 bg-[#0B1017]">
-            <TabsList className="bg-transparent h-12 w-full justify-start p-0 gap-6 px-4">
+            <TabsList className="bg-transparent h-12 w-full justify-start p-0 gap-2 md:gap-6 px-4 overflow-x-auto no-scrollbar flex-nowrap">
               <TabsTrigger
                 value="positions"
                 className="
@@ -168,6 +168,7 @@ export default function BottomTrading() {
                   hover:text-gray-300
                   hover:bg-white/5
                   transition-all
+                  shrink-0
                 "
               >
                 <div className="flex items-center gap-2">
@@ -196,6 +197,7 @@ export default function BottomTrading() {
                   hover:text-gray-300
                   hover:bg-white/5
                   transition-all
+                  shrink-0
                 "
               >
                 <div className="flex items-center gap-2">
@@ -224,6 +226,7 @@ export default function BottomTrading() {
                   hover:text-gray-300
                   hover:bg-white/5
                   transition-all
+                  shrink-0
                 "
               >
                 <div className="flex items-center gap-2">
@@ -252,9 +255,10 @@ export default function BottomTrading() {
                   hover:text-gray-300
                   hover:bg-white/5
                   transition-all
+                  shrink-0
                 "
               >
-                <div className="pb-3">History</div>
+                <div>History</div>
               </TabsTrigger>
             </TabsList>
           </div>

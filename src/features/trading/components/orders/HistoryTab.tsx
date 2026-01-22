@@ -4,6 +4,7 @@ import { useBinaryOrders } from '@/features/trading/hooks/useBinaryOrders';
 import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import { calculateMultiplier } from '@/components/charts/PerSecondChart/utils';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
+import MobileHistoryCard from './MobileHistoryCard';
 import {
   Table,
   TableBody,
@@ -58,28 +59,29 @@ export default function HistoryTab() {
   return (
     <div className="h-full flex flex-col">
       {/* Filter Bar */}
-      <div className="flex gap-2 p-2 border-b border-gray-800/50">
+      <div className="flex gap-2 p-2 px-4 border-b border-gray-800/50 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setFilter('ALL')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors ${filter === 'ALL' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'ALL' ? 'bg-blue-500/20 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
         >
           All
         </button>
         <button
           onClick={() => setFilter('BINARY')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors ${filter === 'BINARY' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'BINARY' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-400 hover:text-gray-300'}`}
         >
           One Tap Profit
         </button>
         <button
           onClick={() => setFilter('TAP')}
-          className={`px-3 py-1 text-xs rounded font-medium transition-colors ${filter === 'TAP' ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-gray-300'}`}
+          className={`px-3 py-1 text-xs rounded font-medium transition-colors shrink-0 ${filter === 'TAP' ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-gray-300'}`}
         >
           Open Position
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop View: Table */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader className="bg-[#0B1017] sticky top-0 z-10">
             <TableRow className="border-b border-gray-800 hover:bg-transparent">
@@ -221,6 +223,16 @@ export default function HistoryTab() {
             })}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4 p-4 overflow-y-auto flex-1">
+        {filteredHistory.map((item) => (
+          <MobileHistoryCard
+            key={`history-card-${item.type}-${item.id || item.betId}`}
+            item={item}
+          />
+        ))}
       </div>
     </div>
   );

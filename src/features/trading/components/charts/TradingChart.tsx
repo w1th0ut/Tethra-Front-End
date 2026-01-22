@@ -248,7 +248,7 @@ const TradingChart: React.FC = () => {
 
             {/* Right: Price & Change + Settings */}
             <div className="flex flex-col items-end pointer-events-auto rounded-xl gap-2">
-              <div className="flex flex-col items-end bg-black -mt-3 py-4 pl-6 rounded-bl-xl">
+              <div className="flex flex-col items-end -mt-3 py-4 pl-6 rounded-bl-xl">
                 <span className="font-mono font-bold text-2xl text-text-primary">
                   {formatDynamicUsd(headerDisplayPrice)}
                 </span>

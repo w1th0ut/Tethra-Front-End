@@ -10,6 +10,7 @@ import { formatUnits } from 'viem';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
+import MobileOpenOrderCard from './MobileOpenOrderCard';
 import {
   Table,
   TableBody,
@@ -80,13 +81,19 @@ export default function OpenOrdersTab() {
       {/* Actions Bar */}
       <div className="flex justify-end p-2 border-b border-gray-800/50">
         {pendingTapOrders.length > 0 && (
-          <Button variant="destructive" size="sm" onClick={cancelAllTap} className="h-7 text-xs">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={cancelAllTap}
+            className="h-7 text-xs font-bold"
+          >
             Cancel All Tap Orders
           </Button>
         )}
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop View: Table */}
+      <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader className="bg-[#0B1017] sticky top-0 z-10">
             <TableRow className="border-b border-gray-800 hover:bg-transparent">
@@ -234,6 +241,31 @@ export default function OpenOrdersTab() {
             })}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile View: Cards */}
+      <div className="md:hidden space-y-4 p-4 overflow-y-auto flex-1">
+        {/* Limit Orders Cards */}
+        {limitOrders.map((order) => (
+          <MobileOpenOrderCard
+            key={`limit-card-${order.id.toString()}`}
+            order={order}
+            type="LIMIT"
+            onCancel={handleCancelLimit}
+            isCancelling={isCancellingLimit}
+          />
+        ))}
+
+        {/* Tap Orders Cards */}
+        {pendingTapOrders.map((order) => (
+          <MobileOpenOrderCard
+            key={`tap-card-${order.id}`}
+            order={order}
+            type="TAP"
+            onCancel={handleCancelTap}
+            isCancelling={cancellingOrders.has(order.id)}
+          />
+        ))}
       </div>
     </div>
   );
