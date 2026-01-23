@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { parseUnits, formatUnits } from 'viem';
-import { USDC_ADDRESS, TAP_TO_TRADE_EXECUTOR_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
+import { STABILITY_FUND_ADDRESS, USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
 
 const USDC_ABI = [
   {
@@ -27,7 +27,7 @@ const USDC_ABI = [
 ];
 
 /**
- * Hook for USDC approval specifically for TapToTradeExecutor contract
+ * Hook for USDC approval via StabilityFund (single approval target)
  */
 export function useTapToTradeApproval() {
   const { authenticated } = usePrivy();
@@ -37,7 +37,7 @@ export function useTapToTradeApproval() {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Fetch current USDC allowance for TapToTradeExecutor
+   * Fetch current USDC allowance for StabilityFund
    */
   const fetchAllowance = useCallback(async () => {
     if (!authenticated || !walletsReady) return;
@@ -54,7 +54,7 @@ export function useTapToTradeApproval() {
       // Encode allowance call
       const allowanceData = `0xdd62ed3e${userAddress
         .slice(2)
-        .padStart(64, '0')}${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(64, '0')}`;
+        .padStart(64, '0')}${STABILITY_FUND_ADDRESS.slice(2).padStart(64, '0')}`;
 
       const result = await walletClient.request({
         method: 'eth_call',
@@ -97,7 +97,7 @@ export function useTapToTradeApproval() {
         }
 
         // Encode approve function call
-        const approveData = `0x095ea7b3${TAP_TO_TRADE_EXECUTOR_ADDRESS.slice(2).padStart(
+        const approveData = `0x095ea7b3${STABILITY_FUND_ADDRESS.slice(2).padStart(
           64,
           '0',
         )}${BigInt(amount).toString(16).padStart(64, '0')}`;

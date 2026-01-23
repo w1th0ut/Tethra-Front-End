@@ -14,10 +14,10 @@ import {
 import { baseSepolia } from 'viem/chains';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { STABILITY_FUND_ADDRESS, USDC_ADDRESS } from '@/config/contracts';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 const ONE_TAP_PROFIT_ADDRESS = process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS as `0x${string}`;
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as `0x${string}`;
 
 const USDC_ABI = [
   {
@@ -365,7 +365,7 @@ export const useOneTapProfit = () => {
         const allowanceData = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'allowance',
-          args: [userAddress, ONE_TAP_PROFIT_ADDRESS],
+          args: [userAddress, STABILITY_FUND_ADDRESS],
         });
 
         const allowanceResult = await ethereumProvider.request({
@@ -391,7 +391,7 @@ export const useOneTapProfit = () => {
           const approveData = encodeFunctionData({
             abi: USDC_ABI,
             functionName: 'approve',
-            args: [ONE_TAP_PROFIT_ADDRESS, maxApproval],
+            args: [STABILITY_FUND_ADDRESS, maxApproval],
           });
 
           const approveTxHash = await walletClient.sendTransaction({

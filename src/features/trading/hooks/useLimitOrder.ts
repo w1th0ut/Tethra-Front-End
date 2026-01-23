@@ -20,7 +20,13 @@ import {
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { baseSepolia } from 'wagmi/chains';
 import { useWallets } from '@privy-io/react-auth';
-import { LIMIT_EXECUTOR_ADDRESS, USDC_ADDRESS, USDC_DECIMALS, RPC_URL } from '@/config/contracts';
+import {
+  LIMIT_EXECUTOR_ADDRESS,
+  STABILITY_FUND_ADDRESS,
+  USDC_ADDRESS,
+  USDC_DECIMALS,
+  RPC_URL,
+} from '@/config/contracts';
 import LimitExecutorJSON from '@/contracts/abis/LimitExecutor.json';
 import MockUSDCABI from '@/contracts/abis/MockUSDC.json';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
@@ -83,7 +89,7 @@ export interface CreateStopLossParams {
 }
 
 /**
- * Hook to check and approve USDC for LimitExecutor
+ * Hook to check and approve USDC for StabilityFund (single approval target)
  */
 export function useApproveUSDCForLimitOrders() {
   const { address } = useEmbeddedWallet();
@@ -100,7 +106,7 @@ export function useApproveUSDCForLimitOrders() {
     address: USDC_ADDRESS,
     abi: MockUSDCABI,
     functionName: 'allowance',
-    args: address ? [address, LIMIT_EXECUTOR_ADDRESS] : undefined,
+    args: address ? [address, STABILITY_FUND_ADDRESS] : undefined,
     query: {
       enabled: !!address,
     },
@@ -131,7 +137,7 @@ export function useApproveUSDCForLimitOrders() {
       const data = encodeFunctionData({
         abi: MockUSDCABI,
         functionName: 'approve',
-        args: [LIMIT_EXECUTOR_ADDRESS, amountBigInt],
+        args: [STABILITY_FUND_ADDRESS, amountBigInt],
       });
 
       // Estimate gas

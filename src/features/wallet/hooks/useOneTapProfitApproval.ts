@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { createWalletClient, custom, encodeFunctionData, parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
-
-const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_TOKEN_ADDRESS as `0x${string}`;
-const ONE_TAP_PROFIT_ADDRESS = process.env.NEXT_PUBLIC_ONE_TAP_PROFIT_ADDRESS as `0x${string}`;
+import { STABILITY_FUND_ADDRESS, USDC_ADDRESS } from '@/config/contracts';
 
 const USDC_ABI = [
   {
@@ -40,7 +38,7 @@ export const useOneTapProfitApproval = () => {
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
 
-  // Check current allowance
+  // Check current allowance (StabilityFund spender)
   const checkAllowance = useCallback(async () => {
     if (!authenticated || !embeddedWallet) {
       setAllowance(null);
@@ -55,7 +53,7 @@ export const useOneTapProfitApproval = () => {
       const allowanceData = encodeFunctionData({
         abi: USDC_ABI,
         functionName: 'allowance',
-        args: [userAddress, ONE_TAP_PROFIT_ADDRESS],
+        args: [userAddress, STABILITY_FUND_ADDRESS],
       });
 
       const result = await ethereumProvider.request({
@@ -72,7 +70,7 @@ export const useOneTapProfitApproval = () => {
       const currentAllowance = BigInt(result as string);
       setAllowance(currentAllowance);
     } catch (error) {
-      console.error('Failed to check OneTapProfit allowance:', error);
+      console.error('Failed to check StabilityFund allowance:', error);
       setAllowance(null);
     } finally {
       setIsLoading(false);
@@ -84,7 +82,7 @@ export const useOneTapProfitApproval = () => {
     checkAllowance();
   }, [checkAllowance]);
 
-  // Approve USDC spending
+  // Approve USDC spending (StabilityFund spender)
   const approve = useCallback(
     async (amount: string) => {
       if (!authenticated || !embeddedWallet) {
@@ -106,7 +104,7 @@ export const useOneTapProfitApproval = () => {
         const approveData = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'approve',
-          args: [ONE_TAP_PROFIT_ADDRESS, BigInt(amount)],
+          args: [STABILITY_FUND_ADDRESS, BigInt(amount)],
         });
 
         const txHash = await walletClient.sendTransaction({

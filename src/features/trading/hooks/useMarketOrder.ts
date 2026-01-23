@@ -7,7 +7,12 @@ import { parseUnits, encodeFunctionData, keccak256, encodePacked } from 'viem';
 import { useState, useCallback, useEffect } from 'react';
 import { baseSepolia } from 'wagmi/chains';
 import { useWallets } from '@privy-io/react-auth';
-import { MARKET_EXECUTOR_ADDRESS, USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
+import {
+  MARKET_EXECUTOR_ADDRESS,
+  STABILITY_FUND_ADDRESS,
+  USDC_ADDRESS,
+  USDC_DECIMALS,
+} from '@/config/contracts';
 import MarketExecutorJSON from '@/contracts/abis/MarketExecutor.json';
 import MockUSDCABI from '@/contracts/abis/MockUSDC.json';
 
@@ -32,7 +37,7 @@ export interface ClosePositionParams {
 }
 
 /**
- * Hook to check and approve USDC for MarketExecutor
+ * Hook to check and approve USDC for StabilityFund (single approval target)
  */
 export function useApproveUSDCForTrading() {
   const { address } = useEmbeddedWallet();
@@ -49,7 +54,7 @@ export function useApproveUSDCForTrading() {
     address: USDC_ADDRESS,
     abi: MockUSDCABI,
     functionName: 'allowance',
-    args: address ? [address, MARKET_EXECUTOR_ADDRESS] : undefined,
+    args: address ? [address, STABILITY_FUND_ADDRESS] : undefined,
     query: {
       enabled: !!address,
       refetchInterval: 2000, // Poll every 2 seconds for real-time allowance updates
@@ -81,7 +86,7 @@ export function useApproveUSDCForTrading() {
       const data = encodeFunctionData({
         abi: MockUSDCABI,
         functionName: 'approve',
-        args: [MARKET_EXECUTOR_ADDRESS, amountBigInt],
+        args: [STABILITY_FUND_ADDRESS, amountBigInt],
       });
 
       // Estimate gas
@@ -233,7 +238,7 @@ export function useOpenMarketPosition() {
                 data: encodeFunctionData({
                   abi: MockUSDCABI,
                   functionName: 'allowance',
-                  args: [address, MARKET_EXECUTOR_ADDRESS],
+                  args: [address, STABILITY_FUND_ADDRESS],
                 }),
               },
               'latest',
