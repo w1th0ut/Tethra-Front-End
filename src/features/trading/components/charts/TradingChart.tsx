@@ -11,6 +11,20 @@ import PerSecondChart from '@/components/charts/PerSecondChart';
 import ChartHeader from './ChartHeader';
 import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
 import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
+import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
+import Image from 'next/image';
+import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
+import { Settings2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 const TradingChart: React.FC = () => {
   const {
@@ -28,7 +42,32 @@ const TradingChart: React.FC = () => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
-  const { placeBetWithSession, isPlacingBet, activeBets } = useOneTapProfit();
+  const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL } = useOneTapProfit();
+  const { usdcBalance } = useUSDCBalance();
+
+  // Axis Configuration
+  const [axisConfig, setAxisConfig] = useState({
+    showX: true,
+    showY: true,
+    ySide: 'right' as 'left' | 'right',
+  });
+
+  // Set default axis side based on screen width
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setAxisConfig((prev) => ({ ...prev, showX: false, showY: false }));
+      } else {
+        setAxisConfig((prev) => ({ ...prev, ySide: 'right' }));
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { allPrices, marketDataMap, futuresDataMap, oraclePrices } =
     useMarketWebSocket(baseMarkets);
@@ -105,40 +144,196 @@ const TradingChart: React.FC = () => {
     }
   };
 
+  // derived values for minimal header
+  const headerDisplayPrice =
+    currentOraclePrice?.price ??
+    (currentMarketData?.price ? parseFloat(currentMarketData.price) : 0);
+  const headerPriceChange = currentMarketData?.priceChangePercent
+    ? parseFloat(currentMarketData.priceChangePercent)
+    : 0;
+  const isHeaderPositive = headerPriceChange >= 0;
+
   return (
     <div
-      className="w-full h-full flex flex-col bg-trading-dark text-text-primary"
+      className="w-full h-[95vh] flex flex-col bg-trading-dark text-text-primary relative"
       style={{ borderRadius: '0.5rem' }}
     >
       {/* Header with market info and controls */}
-      <div
-        style={{
-          flexShrink: 0,
-          flexGrow: 0,
-          borderTopLeftRadius: '0.5rem',
-          borderTopRightRadius: '0.5rem',
-          position: 'relative',
-          zIndex: 10,
-        }}
-      >
-        <ChartHeader
-          activeMarket={activeMarket}
-          marketData={currentMarketData}
-          futuresData={currentFuturesData}
-          allPrices={allPrices}
-          marketDataMap={marketDataMap}
-          futuresDataMap={futuresDataMap}
-          oraclePrice={currentOraclePrice}
-          oraclePrices={oraclePrices}
-          onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
-          isMarketSelectorOpen={isMarketSelectorOpen}
-          onClose={() => setIsMarketSelectorOpen(false)}
-          markets={markets}
-          onSelect={handleMarketSelect}
-          triggerRef={triggerButtonRef}
-          disabled={tapToTrade.isEnabled}
-        />
-      </div>
+      {!tapToTrade.isEnabled ? (
+        <div
+          style={{
+            flexShrink: 0,
+            flexGrow: 0,
+            borderTopLeftRadius: '0.5rem',
+            borderTopRightRadius: '0.5rem',
+            position: 'relative',
+            zIndex: 10,
+          }}
+        >
+          <ChartHeader
+            activeMarket={activeMarket}
+            marketData={currentMarketData}
+            futuresData={currentFuturesData}
+            allPrices={allPrices}
+            marketDataMap={marketDataMap}
+            futuresDataMap={futuresDataMap}
+            oraclePrice={currentOraclePrice}
+            oraclePrices={oraclePrices}
+            onSymbolChangeClick={() => setIsMarketSelectorOpen(!isMarketSelectorOpen)}
+            isMarketSelectorOpen={isMarketSelectorOpen}
+            onClose={() => setIsMarketSelectorOpen(false)}
+            markets={markets}
+            onSelect={handleMarketSelect}
+            triggerRef={triggerButtonRef}
+            disabled={tapToTrade.isEnabled}
+          />
+        </div>
+      ) : (
+        /* Distraction-Free Overlay (Header + PnL) */
+        <>
+          {/* Minimal Header */}
+          <div className="flex items-start justify-between px-4 py-3 absolute top-0 left-0 right-0 z-20 pointer-events-none">
+            {/* Left: Logo, Name & Balance */}
+            <div className="flex flex-col gap-1 pointer-events-auto">
+              <div className="flex items-center gap-3">
+                {activeMarket && (
+                  <Image
+                    src={`${activeMarket.logoUrl || '/icons/usdc.png'}`}
+                    alt={`${activeMarket.symbol}`}
+                    width={26}
+                    height={26}
+                    className="w-8 h-8 rounded-full"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                    }}
+                  />
+                )}
+                <span className="font-bold text-text-primary text-2xl">
+                  {activeMarket ? formatMarketPair(activeMarket.symbol) : ''}
+                </span>
+              </div>
+
+              {/* Wallet Balance */}
+              <div className="flex flex-col gap-1 pt-3">
+                <div className="flex gap-2">
+                  <span className="text-background text-sm font-medium">Your Balance</span>
+                  <button
+                    className="w-5 h-5 rounded-full bg-primary hover:bg-primary-hover flex items-center justify-center text-white transition-colors"
+                    onClick={() => {
+                      /* TODO: Open deposit modal logic  */
+                    }}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M5 1V9M1 5H9"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <span className="text-text-primary text-xl font-bold">${usdcBalance}</span>
+              </div>
+            </div>
+
+            {/* Right: Price & Change + Settings */}
+            <div className="flex flex-col items-end pointer-events-auto rounded-xl gap-2">
+              <div className="flex flex-col items-end -mt-3 py-4 pl-6 rounded-bl-xl">
+                <span className="font-mono font-bold text-2xl text-text-primary">
+                  {formatDynamicUsd(headerDisplayPrice)}
+                </span>
+                <span
+                  className={`font-mono text-base font-semibold ${
+                    isHeaderPositive ? 'text-success' : 'text-error'
+                  }`}
+                >
+                  {isHeaderPositive ? '+' : ''}
+                  {headerPriceChange.toFixed(2)}%
+                </span>
+              </div>
+
+              {/* Chart Settings Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 bg-black/50 hover:bg-black text-text-secondary rounded-full"
+                  >
+                    <Settings2 size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 bg-zinc-950 border-zinc-800 text-slate-200"
+                >
+                  <DropdownMenuLabel>Chart Settings</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={axisConfig.showX}
+                    onCheckedChange={(checked) =>
+                      setAxisConfig((prev) => ({ ...prev, showX: checked }))
+                    }
+                  >
+                    Show Time Axis (X)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={axisConfig.showY}
+                    onCheckedChange={(checked) =>
+                      setAxisConfig((prev) => ({ ...prev, showY: checked }))
+                    }
+                  >
+                    Show Price Axis (Y)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Y-Axis Position</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => setAxisConfig((prev) => ({ ...prev, ySide: 'left' }))}
+                    className="flex justify-between"
+                  >
+                    Left {axisConfig.ySide === 'left' && '✓'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setAxisConfig((prev) => ({ ...prev, ySide: 'right' }))}
+                    className="flex justify-between"
+                  >
+                    Right {axisConfig.ySide === 'right' && '✓'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Bottom Session PnL */}
+          <div
+            className={`absolute lg:bottom-1/10 bottom-20 pointer-events-auto px-4 py-2 rounded-full flex flex-col items-center gap-2 shadow-lg z-10 transition-all duration-300 ${
+              tapToTrade.tradeMode === 'one-tap-profit'
+                ? 'left-1/2 -translate-x-1/2' // Center for Tap Profit
+                : 'left-4' // Left for Open Position
+            }`}
+          >
+            <span className="text-lg font-medium text-text-secondary">Session PnL</span>
+            <span
+              className={`font-mono font-bold text-4xl ${
+                sessionPnL >= 0 ? 'text-success' : 'text-error'
+              }`}
+            >
+              {sessionPnL >= 0 ? '+' : ''}
+              {formatDynamicUsd(sessionPnL)}
+            </span>
+          </div>
+        </>
+      )}
 
       {/* Chart container */}
       <div
@@ -165,7 +360,10 @@ const TradingChart: React.FC = () => {
                 logoUrl={activeMarket.logoUrl}
                 activeBets={activeBets} // Pass active bets
                 tradeMode={tapToTrade.tradeMode} // Pass tradeMode explicitly
-                // Pass grid props for Open Position mode
+                // Pass axis props
+                yAxisSide={axisConfig.ySide}
+                showXAxis={axisConfig.showX}
+                showYAxis={axisConfig.showY}
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
                   ? {
                       gridIntervalSeconds:

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 export interface Market {
   symbol: string;
@@ -39,7 +39,7 @@ interface MarketNavbarProps {
 
 const formatPrice = (price: number): string => {
   if (price >= 1000) {
-    return `$${price.toLocaleString("en-US", {
+    return `$${price.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -66,7 +66,7 @@ const formatFundingRate = (rate: number): string => {
 const formatTimeUntil = (timestamp: number): string => {
   const now = Date.now();
   const diff = timestamp - now;
-  if (diff <= 0) return "0h 0m";
+  if (diff <= 0) return '0h 0m';
 
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -83,9 +83,7 @@ export default function MarketNavbar({
   isMarketSelectorOpen = false,
   children,
 }: MarketNavbarProps) {
-  const displayPrice =
-    oraclePrice?.price ||
-    (marketData?.price ? parseFloat(marketData.price) : 0);
+  const displayPrice = oraclePrice?.price || (marketData?.price ? parseFloat(marketData.price) : 0);
   const priceChangePercent = marketData?.priceChangePercent
     ? parseFloat(marketData.priceChangePercent)
     : 0;
@@ -96,7 +94,7 @@ export default function MarketNavbar({
   return (
     <div
       className="hidden lg:flex items-center justify-between px-4 py-2 bg-[#0B1017] rounded-lg"
-      style={{ flexShrink: 0, gap: "0.75rem" }}
+      style={{ flexShrink: 0, gap: '0.75rem' }}
     >
       <div className="flex items-center gap-6 flex-wrap">
         {/* Market Selector */}
@@ -113,13 +111,13 @@ export default function MarketNavbar({
                 onError={(e) => {
                   const target = e.currentTarget;
                   target.onerror = null;
-                  target.style.visibility = "hidden";
+                  target.style.visibility = 'hidden';
                 }}
               />
               <span className="text-base">{activeMarket.symbol}/USD</span>
               <svg
                 className={`w-4 h-4 transition-transform duration-200 ${
-                  isMarketSelectorOpen ? "rotate-180" : ""
+                  isMarketSelectorOpen ? 'rotate-180' : ''
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -139,18 +137,16 @@ export default function MarketNavbar({
         {/* Price and Change */}
         <div className="flex flex-col min-w-[130px]">
           <span className="font-semibold font-mono text-lg text-white">
-            {displayPrice ? formatPrice(displayPrice) : "$--"}
+            {displayPrice ? formatPrice(displayPrice) : '$--'}
           </span>
           <span
             className={`font-semibold font-mono text-sm ${
-              isPositive ? "text-green-400" : "text-red-400"
+              isPositive ? 'text-green-400' : 'text-red-400'
             }`}
           >
             {marketData?.priceChangePercent
-              ? `${isPositive ? "+" : ""}${parseFloat(
-                  marketData.priceChangePercent
-                ).toFixed(2)}%`
-              : "--"}
+              ? `${isPositive ? '+' : ''}${parseFloat(marketData.priceChangePercent).toFixed(2)}%`
+              : '--'}
           </span>
         </div>
 
@@ -162,9 +158,7 @@ export default function MarketNavbar({
               <div className="flex items-center gap-1">
                 <span className="text-green-400 text-xs">▲</span>
                 <span className="font-semibold font-mono text-sm text-slate-200">
-                  {marketData?.high24h
-                    ? formatPrice(parseFloat(marketData.high24h))
-                    : "$--"}
+                  {marketData?.high24h ? formatPrice(parseFloat(marketData.high24h)) : '$--'}
                 </span>
               </div>
             </div>
@@ -174,9 +168,7 @@ export default function MarketNavbar({
               <div className="flex items-center gap-1">
                 <span className="text-red-400 text-xs">▼</span>
                 <span className="font-semibold font-mono text-sm text-slate-200">
-                  {marketData?.low24h
-                    ? formatPrice(parseFloat(marketData.low24h))
-                    : "$--"}
+                  {marketData?.low24h ? formatPrice(parseFloat(marketData.low24h)) : '$--'}
                 </span>
               </div>
             </div>
@@ -184,9 +176,7 @@ export default function MarketNavbar({
             <div className="flex flex-col">
               <span className="text-xs text-slate-400">24H VOLUME</span>
               <span className="font-semibold font-mono text-sm text-slate-200">
-                {marketData?.volume24h
-                  ? formatVolume(parseFloat(marketData.volume24h))
-                  : "--"}
+                {marketData?.volume24h ? formatVolume(parseFloat(marketData.volume24h)) : '--'}
               </span>
             </div>
           </>
@@ -200,7 +190,7 @@ export default function MarketNavbar({
               <div className="flex items-center gap-1">
                 <span
                   className={`font-semibold font-mono text-sm ${
-                    isFundingPositive ? "text-green-400" : "text-red-400"
+                    isFundingPositive ? 'text-green-400' : 'text-red-400'
                   }`}
                 >
                   {formatFundingRate(fundingRate)}

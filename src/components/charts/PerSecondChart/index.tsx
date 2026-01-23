@@ -26,6 +26,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   gridPriceStep,
   gridAnchorPrice,
   gridAnchorTime,
+  yAxisSide = 'right',
+  showXAxis = true,
+  showYAxis = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -59,8 +62,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   }, [currentPrice]);
 
   // Derived constants
-  // Derived constants
-  // Ensure we never have 0 grid step (avoids division by zero in drawing)
+  // ensure we never have 0 grid step (avoids division by zero in drawing)
   const basePrice = initialPrice > 0 ? initialPrice : currentPrice > 0 ? currentPrice : 1000; // Fallback to 1000 if no price
   const GRID_Y_DOLLARS = gridPriceStep || basePrice * DEFAULT_GRID_Y_PERCENT;
 
@@ -78,30 +80,22 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   });
 
   // 5. Interaction (Mouse/Keyboard)
-  const {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    mousePos,
-    isDragging,
-    selectedCells,
-    // setSelectedCells is internal to hook, but we might need it if we want to manipulate it?
-    // The hook manages selection state.
-  } = useChartInteraction({
-    canvasRef,
-    scrollOffset,
-    verticalOffset,
-    setScrollOffset,
-    setVerticalOffset,
-    setIsFocusMode,
-    hoveredCell,
-    isPlacingBet,
-    onCellClick,
-    priceHistory,
-    currentPrice,
-    gridIntervalSeconds,
-    gridYDollars: GRID_Y_DOLLARS,
-  });
+  const { handleMouseDown, handleMouseMove, handleMouseUp, mousePos, isDragging, selectedCells } =
+    useChartInteraction({
+      canvasRef,
+      scrollOffset,
+      verticalOffset,
+      setScrollOffset,
+      setVerticalOffset,
+      setIsFocusMode,
+      hoveredCell,
+      isPlacingBet,
+      onCellClick,
+      priceHistory,
+      currentPrice,
+      gridIntervalSeconds,
+      gridYDollars: GRID_Y_DOLLARS,
+    });
 
   // 6. Drawing Logic (View)
   useEffect(() => {
@@ -121,15 +115,21 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Define margins
-    const rightMargin = 80;
-    const bottomMargin = 30;
-    const chartWidth = canvas.width - rightMargin;
+    const Y_AXIS_WIDTH = 80;
+    const X_AXIS_HEIGHT = 30;
+
+    const leftMargin = showYAxis && yAxisSide === 'left' ? Y_AXIS_WIDTH : 0;
+    const rightMargin = showYAxis && yAxisSide === 'right' ? Y_AXIS_WIDTH : 0;
+    const bottomMargin = showXAxis ? X_AXIS_HEIGHT : 0;
+
+    const chartWidth = canvas.width - leftMargin - rightMargin;
     const chartHeight = canvas.height - bottomMargin;
 
     // Draw background for margins
     ctx.fillStyle = '#000000';
-    ctx.fillRect(chartWidth, 0, rightMargin, canvas.height);
-    ctx.fillRect(0, chartHeight, canvas.width, bottomMargin);
+    if (leftMargin > 0) ctx.fillRect(0, 0, leftMargin, canvas.height);
+    if (rightMargin > 0) ctx.fillRect(leftMargin + chartWidth, 0, rightMargin, canvas.height);
+    if (bottomMargin > 0) ctx.fillRect(0, chartHeight, canvas.width, bottomMargin);
 
     // Calculate grid square size
     const targetVerticalGrids = 10;
@@ -161,7 +161,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     const timeToX = (timestamp: number): number => {
       const now = Date.now();
       const secondsFromNow = (timestamp - now) / 1000;
-      return nowX + secondsFromNow * pixelsPerSecond - scrollOffset;
+      return leftMargin + nowX + secondsFromNow * pixelsPerSecond - scrollOffset;
     };
 
     // --- Draw Grid ---
@@ -178,7 +178,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       lowestPriceLevel = parseFloat(
         (
           Math.floor(
-            (baseDisplayMinPrice - largeBufferGrids * GRID_Y_DOLLARS - gridAnchorPrice) /
+            (displayMinPrice - largeBufferGrids * GRID_Y_DOLLARS - gridAnchorPrice) /
               GRID_Y_DOLLARS,
           ) *
             GRID_Y_DOLLARS +
@@ -188,7 +188,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     } else {
       lowestPriceLevel = parseFloat(
         (
-          Math.floor((baseDisplayMinPrice - largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
+          Math.floor((displayMinPrice - largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
           GRID_Y_DOLLARS
         ).toFixed(priceDecimals),
       );
@@ -196,7 +196,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
     const highestPriceLevel = parseFloat(
       (
-        Math.ceil((baseDisplayMaxPrice + largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
+        Math.ceil((displayMaxPrice + largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
         GRID_Y_DOLLARS
       ).toFixed(priceDecimals),
     );
@@ -204,13 +204,22 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     for (let price = lowestPriceLevel; price <= highestPriceLevel; price += GRID_Y_DOLLARS) {
       const y = priceToY(price);
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(chartWidth, y);
+      ctx.moveTo(leftMargin, y);
+      ctx.lineTo(leftMargin + chartWidth, y);
       ctx.stroke();
 
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '11px monospace';
-      ctx.fillText(`$${price.toFixed(priceDecimals)}`, chartWidth + 5, y + 4);
+      if (showYAxis) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px monospace';
+
+        // Prevent label overlap with the top-right header if on right side
+        if (yAxisSide === 'right' && y < 100) {
+          // Skip
+        } else {
+          const xLabel = yAxisSide === 'left' ? 5 : leftMargin + chartWidth + 5;
+          ctx.fillText(`$${price.toFixed(priceDecimals)}`, xLabel, y + 4);
+        }
+      }
     }
     ctx.setLineDash([]);
 
@@ -246,23 +255,25 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     ) {
       const x = timeToX(timestamp);
 
-      if (x >= -10 && x <= chartWidth + 10) {
+      if (x >= leftMargin - 10 && x <= leftMargin + chartWidth + 10) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, chartHeight);
         ctx.stroke();
 
-        const date = new Date(timestamp);
-        const timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(
-          date.getMinutes(),
-        ).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+        if (showXAxis) {
+          const date = new Date(timestamp);
+          const timeLabel = `${String(date.getHours()).padStart(2, '0')}:${String(
+            date.getMinutes(),
+          ).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '9px monospace';
-        const textWidth = ctx.measureText(timeLabel).width;
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '9px monospace';
+          const textWidth = ctx.measureText(timeLabel).width;
 
-        if (x - textWidth / 2 >= 0 && x + textWidth / 2 <= chartWidth) {
-          ctx.fillText(timeLabel, x - textWidth / 2, chartHeight + 18);
+          if (x - textWidth / 2 >= leftMargin && x + textWidth / 2 <= leftMargin + chartWidth) {
+            ctx.fillText(timeLabel, x - textWidth / 2, chartHeight + 18);
+          }
         }
       }
     }
@@ -273,15 +284,15 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     const currentGridStartTs = Math.floor(nowTs / gridIntervalSeconds) * gridIntervalSeconds;
     // const minSelectableGridStartTs = currentGridStartTs + gridIntervalSeconds * 1.5; // (Old ref)
 
-    let headX = nowX;
+    let headX = leftMargin + nowX;
     if (interpolatedHistory.length > 0) {
       const latestPoint = interpolatedHistory[interpolatedHistory.length - 1];
       headX = timeToX(latestPoint.time);
     }
 
-    if (headX > 0) {
+    if (headX > leftMargin) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.fillRect(0, 0, headX, chartHeight);
+      ctx.fillRect(leftMargin, 0, headX - leftMargin, chartHeight);
 
       ctx.strokeStyle = '#374151';
       ctx.lineWidth = 1.5;
@@ -495,6 +506,11 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
     // --- Draw Price Line ---
     if (interpolatedHistory.length > 1) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, chartWidth, chartHeight);
+      ctx.clip();
+
       // Gradient
       ctx.beginPath();
       let firstPoint = true;
@@ -577,6 +593,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         ctx.fill();
         ctx.shadowBlur = 0;
       }
+      ctx.restore();
     }
   }, [
     dimensions,

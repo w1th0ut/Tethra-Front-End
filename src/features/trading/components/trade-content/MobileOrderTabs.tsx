@@ -20,17 +20,6 @@ export default function MobileOrderTabs({
     return (
       <div className="flex items-center bg-trading-panel">
         <button
-          onClick={() => onTradeModeClick && onTradeModeClick('open-position')}
-          className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
-            activeTradeMode === 'open-position'
-              ? 'bg-info/20 text-info border-t-2 border-info'
-              : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
-          }`}
-        >
-          <TrendingUp size={16} />
-          Open Position
-        </button>
-        <button
           onClick={() => onTradeModeClick && onTradeModeClick('one-tap-profit')}
           className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
             activeTradeMode === 'one-tap-profit'
@@ -40,6 +29,17 @@ export default function MobileOrderTabs({
         >
           <MousePointerClick size={16} />
           One Tap Profit
+        </button>
+        <button
+          onClick={() => onTradeModeClick && onTradeModeClick('open-position')}
+          className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+            activeTradeMode === 'open-position'
+              ? 'bg-info/20 text-info border-t-2 border-info'
+              : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
+          }`}
+        >
+          <TrendingUp size={16} />
+          Open Position
         </button>
       </div>
     );
