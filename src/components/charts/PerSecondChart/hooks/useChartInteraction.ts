@@ -102,12 +102,12 @@ export const useChartInteraction = ({
 
   const handleMouseUp = useCallback(
     async (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (isDragging && !hasMoved && hoveredCell) {
-        if (isPlacingBet) {
-          toast.error('Please wait, placing bet...');
-          setIsDragging(false);
-          return;
-        }
+    if (isDragging && !hasMoved && hoveredCell && onCellClick) {
+      if (isPlacingBet) {
+        toast.error('Please wait, placing bet...');
+        setIsDragging(false);
+        return;
+      }
 
         // Cell interaction logic
         const [timestampStr, priceLevelStr] = hoveredCell.split('_');
@@ -138,10 +138,8 @@ export const useChartInteraction = ({
           return newSet;
         });
 
-        if (onCellClick) {
-          onCellClick(targetPrice, targetTime, entryPrice, entryTime);
-        }
-      }
+      onCellClick(targetPrice, targetTime, entryPrice, entryTime);
+    }
 
       // Enforce "Always Stick": Re-enable focus mode immediately after interaction ends
       // This ensures the user has to "hold" to drag/view elsewhere, but it snaps back on release.

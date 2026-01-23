@@ -80,22 +80,39 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   });
 
   // 5. Interaction (Mouse/Keyboard)
-  const { handleMouseDown, handleMouseMove, handleMouseUp, mousePos, isDragging, selectedCells } =
-    useChartInteraction({
-      canvasRef,
-      scrollOffset,
-      verticalOffset,
-      setScrollOffset,
-      setVerticalOffset,
-      setIsFocusMode,
-      hoveredCell,
-      isPlacingBet,
-      onCellClick,
-      priceHistory,
-      currentPrice,
-      gridIntervalSeconds,
-      gridYDollars: GRID_Y_DOLLARS,
-    });
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    mousePos,
+    isDragging,
+    selectedCells,
+    setSelectedCells,
+  } = useChartInteraction({
+    canvasRef,
+    scrollOffset,
+    verticalOffset,
+    setScrollOffset,
+    setVerticalOffset,
+    setIsFocusMode,
+    hoveredCell,
+    isPlacingBet,
+    onCellClick,
+    priceHistory,
+    currentPrice,
+    gridIntervalSeconds,
+    gridYDollars: GRID_Y_DOLLARS,
+  });
+
+  const isGridInteractive = tradeMode !== 'quick-tap' && Boolean(onCellClick);
+
+  useEffect(() => {
+    if (tradeMode === 'quick-tap') {
+      setHoveredCell(null);
+      setHoveredCellInfo(null);
+      setSelectedCells(new Set());
+    }
+  }, [tradeMode, setSelectedCells]);
 
   // 6. Drawing Logic (View)
   useEffect(() => {
@@ -353,6 +370,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
         // Check hover
         if (
+          isGridInteractive &&
           mousePos &&
           mousePos.x >= xLeft &&
           mousePos.x <= xRight &&
@@ -371,7 +389,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         }
 
         const isSelected = selectedCells.has(cellId);
-        const isHovered = hoveredCell === cellId;
+        const isHovered = isGridInteractive && hoveredCell === cellId;
 
         // Default colors
         let cellColor = '59, 130, 246'; // Blue
@@ -408,7 +426,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         }
 
         // Shared text drawing logic
-        if (isSelected || (isHovered && !isDragging) || activeBet) {
+        if ((isSelected || (isHovered && !isDragging)) || activeBet) {
           // Calculate values
           const targetPrice = priceLevel + GRID_Y_DOLLARS / 2;
           const targetTime = gridEndTime;
@@ -473,7 +491,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     }
 
     // Update hovered cell logic
-    if (currentHoveredCellId !== hoveredCell) {
+    if (isGridInteractive && currentHoveredCellId !== hoveredCell) {
       setHoveredCell(currentHoveredCellId);
 
       if (currentHoveredCellId && priceHistory.length > 0) {
@@ -502,6 +520,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       } else {
         setHoveredCellInfo(null);
       }
+    } else if (!isGridInteractive && hoveredCell) {
+      setHoveredCell(null);
+      setHoveredCellInfo(null);
     }
 
     // --- Draw Price Line ---
@@ -617,6 +638,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     gridAnchorTime,
     symbol,
     activeBets,
+    isGridInteractive,
   ]);
 
   return (
@@ -628,7 +650,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       onMouseLeave={() => {
         // Optional: clear hover
       }}
-      className="w-full h-full cursor-crosshair touch-none select-none"
+      className={`w-full h-full touch-none select-none ${
+        isGridInteractive ? 'cursor-crosshair' : 'cursor-default'
+      }`}
     />
   );
 };

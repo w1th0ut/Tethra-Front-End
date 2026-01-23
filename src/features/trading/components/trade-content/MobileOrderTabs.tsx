@@ -1,12 +1,12 @@
 import React from 'react';
-import { MousePointerClick, TrendingUp } from 'lucide-react';
+import { MousePointerClick, TrendingUp, Zap } from 'lucide-react';
 
 interface MobileOrderTabsProps {
   mobileActiveTab?: 'long' | 'short' | 'swap';
   onTabClick?: (tab: 'long' | 'short' | 'swap') => void;
   mode?: 'market' | 'trade';
-  activeTradeMode?: 'open-position' | 'one-tap-profit';
-  onTradeModeClick?: (mode: 'open-position' | 'one-tap-profit') => void;
+  activeTradeMode?: 'open-position' | 'one-tap-profit' | 'quick-tap';
+  onTradeModeClick?: (mode: 'open-position' | 'one-tap-profit' | 'quick-tap') => void;
 }
 
 export default function MobileOrderTabs({
@@ -40,6 +40,17 @@ export default function MobileOrderTabs({
         >
           <TrendingUp size={16} />
           Open Position
+        </button>
+        <button
+          onClick={() => onTradeModeClick && onTradeModeClick('quick-tap')}
+          className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+            activeTradeMode === 'quick-tap'
+              ? 'bg-primary/20 text-primary border-t-2 border-primary'
+              : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
+          }`}
+        >
+          <Zap size={16} />
+          Quick Tap
         </button>
       </div>
     );

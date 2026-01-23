@@ -111,11 +111,11 @@ const OrderPanel: React.FC<OrderPanelProps> = ({
               onValueChange={(value) => {
                 if (tapToTradeEnabled) return; // Double check protection
                 setActiveOrderType('Tap to Trade');
-                setTradeMode(value as 'open-position' | 'one-tap-profit');
+                setTradeMode(value as 'open-position' | 'one-tap-profit' | 'quick-tap');
               }}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-2 h-10 bg-gradient-to-r from-info/20 to-success/20 p-1">
+              <TabsList className="grid w-full grid-cols-3 h-10 bg-gradient-to-r from-info/20 to-success/20 p-1">
                 <TabsTrigger
                   value="one-tap-profit"
                   disabled={activeTab === 'swap' || tapToTradeEnabled}
@@ -129,6 +129,13 @@ const OrderPanel: React.FC<OrderPanelProps> = ({
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-info data-[state=active]:to-info-dark data-[state=active]:text-white data-[state=active]:shadow-lg"
                 >
                   Open Position
+                </TabsTrigger>
+                <TabsTrigger
+                  value="quick-tap"
+                  disabled={activeTab === 'swap' || tapToTradeEnabled}
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                >
+                  Quick Tap
                 </TabsTrigger>
               </TabsList>
             </Tabs>

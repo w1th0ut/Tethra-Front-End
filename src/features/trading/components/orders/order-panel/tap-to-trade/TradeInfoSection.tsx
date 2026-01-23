@@ -3,7 +3,7 @@ import { formatPrice } from '../utils/formatUtils';
 import { Market } from '../components/MarketSelector';
 
 interface TradeInfoSectionProps {
-  tradeMode: 'open-position' | 'one-tap-profit';
+  tradeMode: 'open-position' | 'one-tap-profit' | 'quick-tap';
   activeMarket: Market | null;
   marginUsdValue: number;
   leverage: number;
@@ -27,7 +27,11 @@ export const TradeInfoSection: React.FC<TradeInfoSectionProps> = ({
       <div className="flex justify-between">
         <span>Mode:</span>
         <span className="text-text-primary">
-          {tradeMode === 'open-position' ? 'Open Position' : 'One Tap Profit'}
+          {tradeMode === 'open-position'
+            ? 'Open Position'
+            : tradeMode === 'one-tap-profit'
+            ? 'One Tap Profit'
+            : 'Quick Tap'}
         </span>
       </div>
       <div className="flex justify-between">

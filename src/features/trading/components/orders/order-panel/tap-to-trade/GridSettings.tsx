@@ -8,7 +8,7 @@ import { Market } from '../components/MarketSelector';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GridSettingsProps {
-  tradeMode: 'open-position' | 'one-tap-profit';
+  tradeMode: 'open-position' | 'one-tap-profit' | 'quick-tap';
   activeMarket: Market | null;
   timeframe: string;
   currentPrice: string;

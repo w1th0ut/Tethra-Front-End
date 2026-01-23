@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Info } from 'lucide-react';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
 import { useTapToTrade } from '@/features/trading/contexts/TapToTradeContext';
@@ -51,7 +51,13 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
   // Use trade mode from context
   const tradeMode = tapToTrade.tradeMode;
 
-  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100]; // Updated to match MarketOrder
+  const leverageMarkers = [1, 2, 5, 10, 25, 50, 100, 1000]; // Updated to match MarketOrder + Quick Tap
+
+  useEffect(() => {
+    if (tradeMode === 'quick-tap' && leverage !== 1000) {
+      setLeverage(1000);
+    }
+  }, [tradeMode, leverage]);
 
   // Check if we have large allowance (> $10,000) - memoized to prevent setState during render
   const hasLargeAllowance = useMemo(() => {
@@ -62,6 +68,9 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
   const hasLargeOneTapProfitAllowance = useMemo(() => {
     return Boolean(oneTapProfitAllowance && oneTapProfitAllowance > parseUnits('10000', 6));
   }, [oneTapProfitAllowance]);
+
+  const needsActivation =
+    tradeMode === 'one-tap-profit' ? !hasLargeOneTapProfitAllowance : !hasLargeAllowance;
 
   // Handler for pre-approve USDC in large amount
   const handlePreApprove = async () => {
@@ -165,11 +174,28 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         </div>
       )}
 
+      {/* Quick Tap Info Banner */}
+      {tradeMode === 'quick-tap' && (
+        <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <div className="text-xs font-semibold text-amber-400">Quick Tap Mode</div>
+              <div className="text-xs text-amber-300 space-y-0.5">
+                <div>- Instant market-style execution</div>
+                <div>- Session key required (default 30 minutes)</div>
+                <div>- Long/Short buttons appear on the chart after enable</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Market Selector */}
       <MarketSelector
         value={activeMarket}
         onSelect={handleMarketSelect}
-        disabled={tapToTrade.isEnabled && tradeMode === 'open-position'}
+        disabled={tapToTrade.isEnabled}
       />
 
       {/* Margin Input (USDC) */}
@@ -185,12 +211,17 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
 
       {/* Leverage Input - Hidden for One Tap Profit */}
       {tradeMode !== 'one-tap-profit' && (
-        <LeverageSelector
-          leverage={leverage}
-          onLeverageChange={setLeverage}
-          disabled={tapToTrade.isEnabled}
-          markers={leverageMarkers}
-        />
+        <div className="space-y-2">
+          <LeverageSelector
+            leverage={leverage}
+            onLeverageChange={setLeverage}
+            disabled={tapToTrade.isEnabled || tradeMode === 'quick-tap'}
+            markers={leverageMarkers}
+          />
+          {tradeMode === 'quick-tap' && (
+            <div className="text-xs text-text-muted">Leverage fixed at 1000x for Quick Tap.</div>
+          )}
+        </div>
       )}
 
       {/* Timeframe Selector - Only for Open Position mode */}
@@ -204,7 +235,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
 
       {/* Grid Configuration - Only for Open Position mode */}
       <GridSettings
-        tradeMode={tradeMode === 'open-position' ? 'open-position' : 'one-tap-profit'}
+        tradeMode={tradeMode}
         activeMarket={activeMarket}
         timeframe={timeframe}
         currentPrice={currentPrice}
@@ -213,19 +244,27 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
 
       {/* Info Section */}
       <TradeInfoSection
-        tradeMode={tradeMode === 'open-position' ? 'open-position' : 'one-tap-profit'}
+        tradeMode={tradeMode}
         activeMarket={activeMarket}
         marginUsdValue={marginUsdValue}
         leverage={leverage}
         timeframe={timeframe}
         selectedTimeframeLabel={selectedTimeframeLabel}
-        xCoordinate={tapToTrade.gridSizeX ? tapToTrade.gridSizeX.toString() : ''}
-        yCoordinate={tapToTrade.gridSizeY ? tapToTrade.gridSizeY.toString() : ''}
+        xCoordinate={
+          tradeMode === 'open-position' && tapToTrade.gridSizeX
+            ? tapToTrade.gridSizeX.toString()
+            : ''
+        }
+        yCoordinate={
+          tradeMode === 'open-position' && tapToTrade.gridSizeY
+            ? tapToTrade.gridSizeY.toString()
+            : ''
+        }
       />
 
       {/* Action Buttons - Now handles approval logic */}
       <TradeActionButtons
-        tradeMode={tradeMode === 'open-position' ? 'open-position' : 'one-tap-profit'}
+        tradeMode={tradeMode}
         tapToTrade={tapToTrade}
         activeMarket={activeMarket}
         marginAmount={marginAmount}
@@ -241,8 +280,12 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         isApprovalPending={isApprovalPending}
         isOneTapProfitApprovalPending={isOneTapProfitApprovalPending}
         disabled={
-          tradeMode === 'one-tap-profit'
+          needsActivation
+            ? false
+            : tradeMode === 'one-tap-profit'
             ? !marginAmount || !activeMarket
+            : tradeMode === 'quick-tap'
+            ? !marginAmount || !leverage || !activeMarket
             : !marginAmount || !leverage || !timeframe || !activeMarket || !hasSelectedYGrid
         }
         onMobileClose={onMobileClose}

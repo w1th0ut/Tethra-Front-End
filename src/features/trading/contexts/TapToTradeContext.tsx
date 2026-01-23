@@ -31,7 +31,7 @@ interface CellOrderInfo {
   isLong: boolean;
 }
 
-type TradeMode = 'open-position' | 'one-tap-profit';
+type TradeMode = 'open-position' | 'one-tap-profit' | 'quick-tap';
 
 interface TapToTradeContextType {
   // Mode state
@@ -42,7 +42,7 @@ interface TapToTradeContextType {
     symbol: string;
     margin: string;
     leverage: number;
-    timeframe: string;
+    timeframe?: string;
     currentPrice: number;
   }) => Promise<void>;
 
@@ -74,6 +74,10 @@ interface TapToTradeContextType {
     durationMs?: number,
   ) => Promise<any | null>;
 
+  // Quick tap execution
+  executeQuickTap: (isLong: boolean) => Promise<any>;
+  isQuickTapExecuting: boolean;
+
   // Backend integration
   gridSession: GridSession | null;
   isLoading: boolean;
@@ -96,6 +100,12 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
   const [cellOrders, setCellOrders] = useState<Map<string, CellOrderInfo>>(new Map());
   const [betAmount, setBetAmount] = useState('10'); // Default 10 USDC for OneTapProfit
   const [isBinaryTradingEnabled, setIsBinaryTradingEnabled] = useState(false); // Binary trading toggle
+  const [quickTapSettings, setQuickTapSettings] = useState<{
+    symbol: string;
+    margin: string;
+    leverage: number;
+  } | null>(null);
+  const [isQuickTapExecuting, setIsQuickTapExecuting] = useState(false);
 
   // Backend integration state
   const [gridSession, setGridSession] = useState<GridSession | null>(null);
@@ -363,7 +373,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
     symbol: string;
     margin: string;
     leverage: number;
-    timeframe: string;
+    timeframe?: string;
     currentPrice: number;
   }) => {
     if (isEnabled) {
@@ -399,6 +409,7 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       setError(null);
       setLocalNonce(BigInt(0)); // Reset nonce
       attemptedResignOrders.current.clear(); // Clear attempted re-sign tracking
+      setQuickTapSettings(null);
 
       // Clear session key
       if (sessionKey) {
@@ -429,180 +440,268 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
       setError(null);
 
       try {
-        // Convert timeframe to seconds
-        const timeframeMap: { [key: string]: number } = {
-          '1': 60,
-          '5': 300,
-          '15': 900,
-          '30': 1800,
-          '60': 3600,
-          '240': 14400,
-          D: 86400,
-          W: 604800,
-        };
-        const timeframeSeconds = timeframeMap[params.timeframe] || 60;
+        if (tradeMode === 'quick-tap') {
+          const walletClient = await embeddedWallet.getEthereumProvider();
+          if (!walletClient) {
+            throw new Error('Could not get wallet client');
+          }
 
-        // Convert price to 8 decimals (contract format)
-        const priceWith8Decimals = Math.round(params.currentPrice * 100000000).toString();
+          // Always require a session key for quick tap
+          const newSession = await createSession(
+            traderAddress,
+            walletClient,
+            30 * 60 * 1000, // 30 minutes
+          );
 
-        // Convert margin to base units (6 decimals for USDC)
-        const marginInBaseUnits = (parseFloat(params.margin) * 1000000).toString();
+          if (!newSession) {
+            throw new Error('Failed to create session key');
+          }
 
-        // Convert gridSizeY from % to basis points (0.5% = 50 basis points)
-        const gridSizeYPercent = Math.round(gridSizeY * 100);
-
-        // Calculate reference time - snap to start of current timeframe window
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        const columnDurationSeconds = gridSizeX * timeframeSeconds;
-        const referenceTimeSnapped =
-          Math.floor(nowSeconds / columnDurationSeconds) * columnDurationSeconds;
-
-        const response = await fetch(`${BACKEND_API_URL}/api/grid/create-session`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trader: traderAddress,
+          setQuickTapSettings({
             symbol: params.symbol,
-            marginTotal: marginInBaseUnits,
+            margin: params.margin,
             leverage: params.leverage,
-            timeframeSeconds,
-            gridSizeX,
-            gridSizeYPercent,
-            referenceTime: referenceTimeSnapped,
-            referencePrice: priceWith8Decimals,
-          }),
-        });
+          });
 
-        const result = await response.json();
+          setIsEnabled(true);
+          await initializeNonce();
+        } else {
+          // Convert timeframe to seconds
+          const timeframeMap: { [key: string]: number } = {
+            '1': 60,
+            '5': 300,
+            '15': 900,
+            '30': 1800,
+            '60': 3600,
+            '240': 14400,
+            D: 86400,
+            W: 604800,
+          };
+          const timeframeSeconds = timeframeMap[params.timeframe || '1'] || 60;
 
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to create grid session');
-        }
+          // Convert price to 8 decimals (contract format)
+          const priceWith8Decimals = Math.round(params.currentPrice * 100000000).toString();
 
-        const session = result.data as GridSession;
-        setGridSession(session);
+          // Convert margin to base units (6 decimals for USDC)
+          const marginInBaseUnits = (parseFloat(params.margin) * 1000000).toString();
 
-        setIsEnabled(true);
+          // Convert gridSizeY from % to basis points (0.5% = 50 basis points)
+          const gridSizeYPercent = Math.round(gridSizeY * 100);
 
-        // Initialize nonce from contract when enabling
-        await initializeNonce();
+          // Calculate reference time - snap to start of current timeframe window
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          const columnDurationSeconds = gridSizeX * timeframeSeconds;
+          const referenceTimeSnapped =
+            Math.floor(nowSeconds / columnDurationSeconds) * columnDurationSeconds;
 
-        // Create session key ONLY for open-position mode (tap-to-trade)
-        // One Tap Profit mode doesn't need session key (signs each trade)
-        if (tradeMode === 'open-position') {
-          try {
-            const walletClient = await embeddedWallet.getEthereumProvider();
-            if (!walletClient) {
-              throw new Error('Could not get wallet client');
-            }
+          const response = await fetch(`${BACKEND_API_URL}/api/grid/create-session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              trader: traderAddress,
+              symbol: params.symbol,
+              marginTotal: marginInBaseUnits,
+              leverage: params.leverage,
+              timeframeSeconds,
+              gridSizeX,
+              gridSizeYPercent,
+              referenceTime: referenceTimeSnapped,
+              referencePrice: priceWith8Decimals,
+            }),
+          });
 
-            const newSession = await createSession(
-              traderAddress,
-              walletClient,
-              30 * 60 * 1000, // 30 minutes
-            );
+          const result = await response.json();
 
-            if (!newSession) {
-              throw new Error('Failed to create session key');
-            }
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to create grid session');
+          }
 
-            // Step 2: Register session key with backend (NO ON-CHAIN TX!)
+          const session = result.data as GridSession;
+          setGridSession(session);
 
+          setIsEnabled(true);
+
+          // Initialize nonce from contract when enabling
+          await initializeNonce();
+
+          // Create session key ONLY for open-position mode (tap-to-trade)
+          // One Tap Profit mode doesn't need session key (signs each trade)
+          if (tradeMode === 'open-position') {
             try {
-              // We skip on-chain authorization for 100% gasless experience
-              // Backend will validate session signature for each order
-              const sessionDurationSeconds = 30 * 60; // 30 minutes in seconds
-              const expiresAtSeconds = Math.floor(newSession.expiresAt / 1000);
-
-              // Create authorization message EXACTLY matching smart contract format
-              // Smart contract uses: keccak256(abi.encodePacked("Authorize session key ", address, " for Tethra Tap-to-Trade until ", uint256))
-              // We need to encode address and uint256 as bytes, not as string!
-
-              // IMPORTANT: Convert address to checksum format
-              const sessionAddressChecksum = newSession.address as `0x${string}`;
-
-              const authMessageHash = keccak256(
-                encodePacked(
-                  ['string', 'address', 'string', 'uint256'],
-                  [
-                    'Authorize session key ',
-                    sessionAddressChecksum,
-                    ' for Tethra Tap-to-Trade until ',
-                    BigInt(expiresAtSeconds),
-                  ],
-                ),
-              );
-
-              // IMPORTANT: Use the authSignature that was already created in createSession()
-              // Don't sign again here - it will create different signature!
-              const authSignature = newSession.authSignature;
-
-              // DEBUG: Verify signature locally before sending to contract
-              try {
-                const { recoverMessageAddress } = await import('viem');
-                const recovered = await recoverMessageAddress({
-                  message: { raw: authMessageHash },
-                  signature: authSignature as `0x${string}`,
-                });
-
-                if (recovered.toLowerCase() !== traderAddress.toLowerCase()) {
-                  throw new Error(
-                    `Signature mismatch! Recovered: ${recovered}, Expected: ${traderAddress}`,
-                  );
-                }
-              } catch (verifyErr: any) {
-                console.error('❌ Local verification failed:', verifyErr);
-                throw verifyErr;
+              const walletClient = await embeddedWallet.getEthereumProvider();
+              if (!walletClient) {
+                throw new Error('Could not get wallet client');
               }
 
-              // Call authorizeSessionKey on TapToTradeExecutor contract
-              const TapToTradeExecutorABI = [
-                {
-                  inputs: [
-                    { name: 'sessionKeyAddress', type: 'address' },
-                    { name: 'duration', type: 'uint256' },
-                    { name: 'authSignature', type: 'bytes' },
-                  ],
-                  name: 'authorizeSessionKey',
-                  outputs: [],
-                  stateMutability: 'nonpayable',
-                  type: 'function',
-                },
-              ];
+              const newSession = await createSession(
+                traderAddress,
+                walletClient,
+                30 * 60 * 1000, // 30 minutes
+              );
 
-              const authData = encodeFunctionData({
-                abi: TapToTradeExecutorABI,
-                functionName: 'authorizeSessionKey',
-                args: [
-                  newSession.address as `0x${string}`,
-                  BigInt(sessionDurationSeconds),
-                  authSignature as `0x${string}`,
-                ],
-              });
+              if (!newSession) {
+                throw new Error('Failed to create session key');
+              }
 
-              // Send authorization request to backend
-              // Backend will call authorizeSessionKey() on contract and pay gas!
-              // Skip backend authorization - we only need local session storage!
-              // Backend will validate session signature when orders are executed
+              try {
+                const sessionDurationSeconds = 30 * 60;
+                const expiresAtSeconds = Math.floor(newSession.expiresAt / 1000);
 
-              // No need to call backend for authorization
-              // Session is stored in localStorage and validated by backend on each order
-            } catch (authErr: any) {
-              clearSession();
-              throw new Error(`Session setup failed: ${authErr.message}. Please try again.`);
+                const sessionAddressChecksum = newSession.address as `0x${string}`;
+
+                const authMessageHash = keccak256(
+                  encodePacked(
+                    ['string', 'address', 'string', 'uint256'],
+                    [
+                      'Authorize session key ',
+                      sessionAddressChecksum,
+                      ' for Tethra Tap-to-Trade until ',
+                      BigInt(expiresAtSeconds),
+                    ],
+                  ),
+                );
+
+                const authSignature = newSession.authSignature;
+
+                try {
+                  const { recoverMessageAddress } = await import('viem');
+                  const recovered = await recoverMessageAddress({
+                    message: { raw: authMessageHash },
+                    signature: authSignature as `0x${string}`,
+                  });
+
+                  if (recovered.toLowerCase() !== traderAddress.toLowerCase()) {
+                    throw new Error(
+                      `Signature mismatch! Recovered: ${recovered}, Expected: ${traderAddress}`,
+                    );
+                  }
+                } catch (verifyErr: any) {
+                  console.error('❌ Local verification failed:', verifyErr);
+                  throw verifyErr;
+                }
+              } catch (authErr: any) {
+                clearSession();
+                throw new Error(`Session setup failed: ${authErr.message}. Please try again.`);
+              }
+            } catch (sessionErr: any) {
+              setError(`Session setup failed: ${sessionErr.message}`);
             }
-          } catch (sessionErr: any) {
-            // Don't fail the entire enable if session creation fails
-            // User can still use with regular signatures
-            setError(`Session setup failed: ${sessionErr.message}`);
           }
-        } else {
         }
       } catch (err: any) {
         setError(err.message || 'Failed to enable tap-to-trade');
       } finally {
         setIsLoading(false);
       }
+    }
+  };
+
+  const executeQuickTap = async (isLong: boolean) => {
+    if (!isEnabled || tradeMode !== 'quick-tap' || !quickTapSettings) {
+      throw new Error('Quick tap not enabled');
+    }
+    if (isQuickTapExecuting) return null;
+
+    setIsQuickTapExecuting(true);
+    try {
+      const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+      if (!embeddedWallet) {
+        throw new Error('Privy embedded wallet not found');
+      }
+
+      const traderAddress = embeddedWallet.address;
+      const walletClient = await embeddedWallet.getEthereumProvider();
+      if (!walletClient) {
+        throw new Error('Could not get wallet client');
+      }
+
+      const nonceData = encodeFunctionData({
+        abi: [
+          {
+            inputs: [{ name: '', type: 'address' }],
+            name: 'metaNonces',
+            outputs: [{ name: '', type: 'uint256' }],
+            stateMutability: 'view',
+            type: 'function',
+          },
+        ],
+        functionName: 'metaNonces',
+        args: [traderAddress as `0x${string}`],
+      });
+
+      const nonceResult = await walletClient.request({
+        method: 'eth_call',
+        params: [
+          {
+            to: TAP_TO_TRADE_EXECUTOR_ADDRESS,
+            data: nonceData,
+          },
+          'latest',
+        ],
+      });
+
+      const currentNonce =
+        nonceResult === '0x' || !nonceResult ? BigInt(0) : BigInt(nonceResult as string);
+
+      const collateralInBaseUnits = (parseFloat(quickTapSettings.margin) * 1000000).toString();
+
+      const messageHash = keccak256(
+        encodePacked(
+          ['address', 'string', 'bool', 'uint256', 'uint256', 'uint256', 'address'],
+          [
+            traderAddress as `0x${string}`,
+            quickTapSettings.symbol,
+            isLong,
+            BigInt(collateralInBaseUnits),
+            BigInt(quickTapSettings.leverage),
+            currentNonce,
+            TAP_TO_TRADE_EXECUTOR_ADDRESS as `0x${string}`,
+          ],
+        ),
+      );
+
+      if (!isSessionValid() || !sessionKey) {
+        throw new Error('Session key expired. Please re-enable Quick Tap.');
+      }
+
+      const sessionSignature = await signWithSession(messageHash);
+      if (!sessionSignature) {
+        throw new Error('Session signature failed');
+      }
+
+      const signature = sessionSignature;
+
+      const payload: any = {
+        trader: traderAddress,
+        symbol: quickTapSettings.symbol,
+        isLong,
+        collateral: collateralInBaseUnits,
+        leverage: quickTapSettings.leverage,
+        nonce: currentNonce.toString(),
+        signature,
+      };
+
+      payload.sessionKey = {
+        address: sessionKey.address,
+        expiresAt: sessionKey.expiresAt,
+        authorizedBy: sessionKey.authorizedBy,
+        authSignature: sessionKey.authSignature,
+      };
+
+      const response = await fetch(`${BACKEND_API_URL}/api/tap-to-trade/execute-now`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to execute quick tap');
+      }
+
+      return result.data;
+    } finally {
+      setIsQuickTapExecuting(false);
     }
   };
 
@@ -850,6 +949,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         setIsBinaryTradingEnabled,
         signWithSession,
         createSession, // Export createSession
+        executeQuickTap,
+        isQuickTapExecuting,
       }}
     >
       {children}

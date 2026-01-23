@@ -134,22 +134,23 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   }, [activeMarket]);
 
   const handleCreateOrder = async () => {
-    if (!activeMarket) return;
+    const needsActivation = !hasLargeAllowance;
 
-    const needsApproval = (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
-
-    if (needsApproval) {
+    if (needsActivation) {
       try {
-        toast.loading('Approving USDC...', { id: 'limit-approval' });
+        toast.loading('Activating trading...', { id: 'limit-approval' });
         const maxAmount = parseUnits('1000000', 6).toString();
         await approveUSDC(maxAmount);
-        toast.success('Approved!', { id: 'limit-approval' });
+        toast.success('Trading activated!', { id: 'limit-approval' });
       } catch (error) {
         console.error('Approval failed:', error);
         toast.error('Approval failed or rejected', { id: 'limit-approval' });
         return;
       }
+      return;
     }
+
+    if (!activeMarket) return;
 
     let tpPrice: string | undefined;
     let slPrice: string | undefined;

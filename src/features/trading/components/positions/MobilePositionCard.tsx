@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { usePosition } from '@/hooks/data/usePositions';
+import { usePosition, Position } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
@@ -25,6 +25,13 @@ interface MobilePositionCardProps {
     isLong: boolean,
   ) => void;
   onPositionLoaded?: (positionId: bigint, isOpen: boolean, symbol: string) => void;
+  filterPosition?: (position: Position) => boolean;
+  onVisibilityChange?: (positionId: bigint, isVisible: boolean) => void;
+  hideSize?: boolean;
+  hideLeverage?: boolean;
+  hideTpSl?: boolean;
+  lockedClosePrice?: number;
+  isCloseLocked?: boolean;
 }
 
 const MobilePositionCard = ({
@@ -33,21 +40,43 @@ const MobilePositionCard = ({
   onPositionClick,
   onTPSLClick,
   onPositionLoaded,
+  filterPosition,
+  onVisibilityChange,
+  hideSize = false,
+  hideLeverage = false,
+  hideTpSl = false,
+  lockedClosePrice,
+  isCloseLocked = false,
 }: MobilePositionCardProps) => {
   const { position, isLoading } = usePosition(positionId);
-  const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
-  const currentPrice = priceData?.price || null;
+  const { price: priceData } = usePrice(position?.symbol);
+  const livePrice = priceData?.price || null;
 
   const { getConfig } = useTPSLContext();
   const tpslConfig = position ? getConfig(Number(position.id)) : null;
 
   useEffect(() => {
-    if (!isLoading && position && onPositionLoaded) {
-      onPositionLoaded(positionId, position.status === 0, position.symbol);
-    }
-  }, [isLoading, position, positionId, onPositionLoaded]);
+    if (isLoading) return;
 
-  if (isLoading || !position || position.status !== 0) {
+    if (!position) {
+      onVisibilityChange?.(positionId, false);
+      return;
+    }
+
+    const isOpen = position.status === 0;
+    const passesFilter = filterPosition ? filterPosition(position) : true;
+    const isVisible = isOpen && passesFilter;
+
+    onVisibilityChange?.(positionId, isVisible);
+
+    if (isVisible && onPositionLoaded) {
+      onPositionLoaded(positionId, isOpen, position.symbol);
+    }
+  }, [isLoading, position, positionId, onPositionLoaded, filterPosition, onVisibilityChange]);
+
+  const passesFilter = position && (filterPosition ? filterPosition(position) : true);
+
+  if (isLoading || !position || position.status !== 0 || !passesFilter) {
     return null;
   }
 
@@ -58,10 +87,10 @@ const MobilePositionCard = ({
 
   let unrealizedPnl = 0;
   let pnlPercentage = 0;
-  const markPrice = currentPrice || entryPrice;
+  const markPrice = lockedClosePrice ?? livePrice ?? entryPrice;
 
-  if (currentPrice && entryPrice > 0) {
-    const priceDiff = position.isLong ? currentPrice - entryPrice : entryPrice - currentPrice;
+  if (markPrice && entryPrice > 0) {
+    const priceDiff = position.isLong ? markPrice - entryPrice : entryPrice - markPrice;
     unrealizedPnl = (priceDiff / entryPrice) * size;
     pnlPercentage = (unrealizedPnl / collateral) * 100;
   }
@@ -106,7 +135,7 @@ const MobilePositionCard = ({
                 {position.isLong ? 'Long' : 'Short'}
               </span>
             </div>
-            <span className="text-xs text-gray-400">{leverage}x Leverage</span>
+            {!hideLeverage && <span className="text-xs text-gray-400">{leverage}x Leverage</span>}
           </div>
         </div>
         <div className="text-right">
@@ -123,10 +152,12 @@ const MobilePositionCard = ({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
-        <div className="flex justify-between">
-          <span className="text-gray-500">Size</span>
-          <span className="text-white font-medium">${size.toFixed(2)}</span>
-        </div>
+        {!hideSize && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">Size</span>
+            <span className="text-white font-medium">${size.toFixed(2)}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-gray-500">Margin</span>
           <span className="text-white font-medium">${collateral.toFixed(2)}</span>
@@ -146,7 +177,7 @@ const MobilePositionCard = ({
       </div>
 
       {/* TP/SL Info */}
-      {tpslConfig && (tpslConfig.takeProfit || tpslConfig.stopLoss) && (
+      {!hideTpSl && tpslConfig && (tpslConfig.takeProfit || tpslConfig.stopLoss) && (
         <div className="flex gap-4 text-xs pt-2 border-t border-gray-800/50">
           {tpslConfig.takeProfit && (
             <span className="text-emerald-400">
@@ -162,18 +193,21 @@ const MobilePositionCard = ({
       )}
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTPSLClick(position.id, position.trader, position.symbol, entryPrice, position.isLong);
-          }}
-        >
-          TP / SL
-        </Button>
+      <div className={`grid ${hideTpSl ? 'grid-cols-1' : 'grid-cols-2'} gap-3 pt-2`}>
+        {!hideTpSl && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full bg-slate-800 border-slate-700 hover:bg-slate-700 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTPSLClick(position.id, position.trader, position.symbol, entryPrice, position.isLong);
+            }}
+            disabled={isCloseLocked}
+          >
+            TP / SL
+          </Button>
+        )}
         <Button
           variant="destructive"
           size="sm"
@@ -182,8 +216,9 @@ const MobilePositionCard = ({
             e.stopPropagation();
             onClose(position.id, position.symbol);
           }}
+          disabled={isCloseLocked}
         >
-          Close Position
+          {isCloseLocked ? 'Closing...' : 'Close Position'}
         </Button>
       </div>
     </div>

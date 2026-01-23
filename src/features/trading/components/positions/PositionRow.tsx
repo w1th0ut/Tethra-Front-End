@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { usePosition } from '@/hooks/data/usePositions';
+import { usePosition, Position } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
@@ -28,7 +28,19 @@ interface PositionRowProps {
     isLong: boolean,
   ) => void;
   isSelected: boolean;
-  onPositionLoaded?: (positionId: bigint, isOpen: boolean, symbol: string) => void;
+  onPositionLoaded?: (
+    positionId: bigint,
+    isOpen: boolean,
+    symbol: string,
+    leverage: number,
+  ) => void;
+  filterPosition?: (position: Position) => boolean;
+  onVisibilityChange?: (positionId: bigint, isVisible: boolean) => void;
+  hideSize?: boolean;
+  hideLeverage?: boolean;
+  hideTpSl?: boolean;
+  lockedClosePrice?: number;
+  isCloseLocked?: boolean;
 }
 
 const PositionRow = ({
@@ -38,12 +50,19 @@ const PositionRow = ({
   onTPSLClick,
   isSelected,
   onPositionLoaded,
+  filterPosition,
+  onVisibilityChange,
+  hideSize = false,
+  hideLeverage = false,
+  hideTpSl = false,
+  lockedClosePrice,
+  isCloseLocked = false,
 }: PositionRowProps) => {
   const { position, isLoading } = usePosition(positionId);
 
   // Use shared price hook
   const { price: priceData, isLoading: loadingPrice } = usePrice(position?.symbol);
-  const currentPrice = priceData?.price || null;
+  const livePrice = priceData?.price || null;
 
   // Fetch TP/SL config
   const { getConfig } = useTPSLContext();
@@ -51,22 +70,39 @@ const PositionRow = ({
 
   // Report position status
   useEffect(() => {
-    if (!isLoading && position && onPositionLoaded) {
-      onPositionLoaded(positionId, position.status === 0, position.symbol);
+    if (isLoading) return;
+
+    if (!position) {
+      onVisibilityChange?.(positionId, false);
+      return;
     }
-  }, [isLoading, position, positionId, onPositionLoaded]);
+
+    const isOpen = position.status === 0;
+    const leverage = Number(position.leverage);
+    const passesFilter = filterPosition ? filterPosition(position) : true;
+    const isVisible = isOpen && passesFilter;
+
+    onVisibilityChange?.(positionId, isVisible);
+
+    if (isVisible && onPositionLoaded) {
+      onPositionLoaded(positionId, isOpen, position.symbol, leverage);
+    }
+  }, [isLoading, position, positionId, onPositionLoaded, filterPosition, onVisibilityChange]);
 
   if (isLoading) {
+    const loadingColSpan = 8 + (hideSize ? 0 : 1) + (hideTpSl ? 0 : 1);
     return (
       <TableRow className="border-b border-gray-800 hover:bg-transparent">
-        <TableCell colSpan={9} className="text-center py-4 text-gray-500">
+        <TableCell colSpan={loadingColSpan} className="text-center py-4 text-gray-500">
           Loading...
         </TableCell>
       </TableRow>
     );
   }
 
-  if (!position || position.status !== 0) {
+  const passesFilter = position && (filterPosition ? filterPosition(position) : true);
+
+  if (!position || position.status !== 0 || !passesFilter) {
     return null;
   }
 
@@ -78,10 +114,11 @@ const PositionRow = ({
   // Calculate unrealized PnL and net value
   let unrealizedPnl = 0;
   let pnlPercentage = 0;
-  const markPrice = currentPrice || entryPrice;
+  const effectivePrice = lockedClosePrice ?? livePrice ?? entryPrice;
+  const markPrice = effectivePrice || entryPrice;
 
-  if (currentPrice && entryPrice > 0) {
-    const priceDiff = position.isLong ? currentPrice - entryPrice : entryPrice - currentPrice;
+  if (effectivePrice && entryPrice > 0) {
+    const priceDiff = position.isLong ? effectivePrice - entryPrice : entryPrice - effectivePrice;
     unrealizedPnl = (priceDiff / entryPrice) * size;
     pnlPercentage = (unrealizedPnl / collateral) * 100;
   }
@@ -133,7 +170,9 @@ const PositionRow = ({
           <div className="flex flex-col">
             <span className="font-bold text-white">{formatMarketPair(position.symbol)}</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-slate-400">{leverage}x</span>
+              {!hideLeverage && (
+                <span className="text-xs font-semibold text-slate-400">{leverage}x</span>
+              )}
               <span
                 className={cn(
                   'text-xs font-semibold px-1.5 rounded-[3px] bg-opacity-20',
@@ -150,7 +189,9 @@ const PositionRow = ({
       </TableCell>
 
       {/* Size */}
-      <TableCell className="text-right text-white font-medium">${size.toFixed(2)}</TableCell>
+      {!hideSize && (
+        <TableCell className="text-right text-white font-medium">${size.toFixed(2)}</TableCell>
+      )}
 
       {/* PnL (ROE%) */}
       <TableCell className="text-right">
@@ -180,7 +221,7 @@ const PositionRow = ({
 
       {/* Mark Price */}
       <TableCell className="text-right text-white font-mono">
-        {loadingPrice ? (
+        {loadingPrice && lockedClosePrice === undefined ? (
           <span className="text-slate-600">...</span>
         ) : (
           `$${markPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -197,43 +238,49 @@ const PositionRow = ({
       </TableCell>
 
       {/* TP / SL (Values) */}
-      <TableCell className="text-right">
-        {tpslConfig && (tpslConfig.takeProfit || tpslConfig.stopLoss) ? (
-          <div className="flex flex-col items-end gap-1 text-xs font-medium">
-            {tpslConfig.takeProfit && (
-              <span className="text-emerald-400/90">
-                TP: ${(Number(tpslConfig.takeProfit) / 1e8).toFixed(2)}
-              </span>
-            )}
-            {tpslConfig.stopLoss && (
-              <span className="text-red-400/90">
-                SL: ${(Number(tpslConfig.stopLoss) / 1e8).toFixed(2)}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-slate-600 text-xs">-</span>
-        )}
-      </TableCell>
+      {!hideTpSl && (
+        <TableCell className="text-right">
+          {tpslConfig && (tpslConfig.takeProfit || tpslConfig.stopLoss) ? (
+            <div className="flex flex-col items-end gap-1 text-xs font-medium">
+              {tpslConfig.takeProfit && (
+                <span className="text-emerald-400/90">
+                  TP: ${(Number(tpslConfig.takeProfit) / 1e8).toFixed(2)}
+                </span>
+              )}
+              {tpslConfig.stopLoss && (
+                <span className="text-red-400/90">
+                  SL: ${(Number(tpslConfig.stopLoss) / 1e8).toFixed(2)}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-slate-600 text-xs">-</span>
+          )}
+        </TableCell>
+      )}
 
       {/* Actions (Always Visible) */}
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleTPSLClick}
-            className="h-7 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 hover:border-slate-600"
-          >
-            TP/SL
-          </Button>
+          {!hideTpSl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleTPSLClick}
+              className="h-7 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 hover:border-slate-600"
+              disabled={isCloseLocked}
+            >
+              TP/SL
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onClose(position.id, position.symbol)}
             className="h-7 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-medium border border-red-500/20 hover:border-red-500/30"
+            disabled={isCloseLocked}
           >
-            Close
+            {isCloseLocked ? 'Closing...' : 'Close'}
           </Button>
         </div>
       </TableCell>

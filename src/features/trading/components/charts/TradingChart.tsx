@@ -15,6 +15,7 @@ import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marke
 import Image from 'next/image';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
 import { Settings2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,7 @@ const TradingChart: React.FC = () => {
   const tapToTrade = useTapToTrade();
   const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL } = useOneTapProfit();
   const { usdcBalance } = useUSDCBalance();
+  const isQuickTap = tapToTrade.tradeMode === 'quick-tap';
 
   // Axis Configuration
   const [axisConfig, setAxisConfig] = useState({
@@ -130,20 +132,6 @@ const TradingChart: React.FC = () => {
     setIsMarketSelectorOpen(false);
   };
 
-  // Handle tap to trade cell click
-  const handleTapCellClick = (cellId: string) => {
-    // Extract cellX and cellY from cellId (format: "cellX,cellY")
-    const parts = cellId.split(',');
-    if (parts.length === 2) {
-      const cellX = parseInt(parts[0]);
-      const cellY = parseInt(parts[1]);
-
-      tapToTrade.handleCellClick(cellX, cellY);
-    } else {
-      console.error('❌ Invalid cellId format:', cellId);
-    }
-  };
-
   // derived values for minimal header
   const headerDisplayPrice =
     currentOraclePrice?.price ??
@@ -152,6 +140,15 @@ const TradingChart: React.FC = () => {
     ? parseFloat(currentMarketData.priceChangePercent)
     : 0;
   const isHeaderPositive = headerPriceChange >= 0;
+
+  const handleQuickTap = async (isLong: boolean) => {
+    try {
+      await tapToTrade.executeQuickTap(isLong);
+      toast.success(isLong ? 'Quick tap long sent' : 'Quick tap short sent');
+    } catch (error: any) {
+      toast.error(error?.message || 'Quick tap failed');
+    }
+  };
 
   return (
     <div
@@ -317,8 +314,8 @@ const TradingChart: React.FC = () => {
           {/* Bottom Session PnL */}
           <div
             className={`absolute lg:bottom-1/10 bottom-20 pointer-events-auto px-4 py-2 rounded-full flex flex-col items-center gap-2 shadow-lg z-10 transition-all duration-300 ${
-              tapToTrade.tradeMode === 'one-tap-profit'
-                ? 'left-1/2 -translate-x-1/2' // Center for Tap Profit
+              tapToTrade.tradeMode === 'one-tap-profit' || tapToTrade.tradeMode === 'quick-tap'
+                ? 'left-1/2 -translate-x-1/2' // Center for Tap Profit and Quick Tap
                 : 'left-4' // Left for Open Position
             }`}
           >
@@ -331,6 +328,24 @@ const TradingChart: React.FC = () => {
               {sessionPnL >= 0 ? '+' : ''}
               {formatDynamicUsd(sessionPnL)}
             </span>
+            {isQuickTap && (
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => handleQuickTap(true)}
+                  disabled={tapToTrade.isQuickTapExecuting}
+                  className="px-6 py-2 rounded-full bg-long/80 hover:bg-long text-white font-semibold shadow-md transition-colors disabled:opacity-60"
+                >
+                  Long
+                </button>
+                <button
+                  onClick={() => handleQuickTap(false)}
+                  disabled={tapToTrade.isQuickTapExecuting}
+                  className="px-6 py-2 rounded-full bg-short/80 hover:bg-short text-white font-semibold shadow-md transition-colors disabled:opacity-60"
+                >
+                  Short
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -376,64 +391,68 @@ const TradingChart: React.FC = () => {
                       gridAnchorTime: tapToTrade.gridSession.referenceTime,
                     }
                   : {})}
-                onCellClick={(targetPrice, targetTime, entryPrice, entryTime) => {
-                  if (tapToTrade.tradeMode === 'one-tap-profit') {
-                    placeBetWithSession(
-                      {
-                        symbol: activeMarket.symbol,
-                        betAmount: tapToTrade.betAmount || '10',
-                        targetPrice: targetPrice.toString(),
-                        targetTime: targetTime,
-                        entryPrice: entryPrice.toString(),
-                        entryTime: entryTime,
-                      },
-                      {
-                        sessionKey: tapToTrade.sessionKey,
-                        sessionSigner: tapToTrade.signWithSession,
-                      },
-                    );
-                  } else if (tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession) {
-                    // Open Position mode - map click to grid cell
-                    const session = tapToTrade.gridSession;
-                    const refPrice = parseFloat(session.referencePrice) / 100000000;
-                    const gridPriceStep = refPrice * (session.gridSizeYPercent / 10000);
-                    const gridInterval = session.gridSizeX * session.timeframeSeconds;
+                onCellClick={
+                  tapToTrade.tradeMode === 'quick-tap'
+                    ? undefined
+                    : (targetPrice, targetTime, entryPrice, entryTime) => {
+                        if (tapToTrade.tradeMode === 'one-tap-profit') {
+                          placeBetWithSession(
+                            {
+                              symbol: activeMarket.symbol,
+                              betAmount: tapToTrade.betAmount || '10',
+                              targetPrice: targetPrice.toString(),
+                              targetTime: targetTime,
+                              entryPrice: entryPrice.toString(),
+                              entryTime: entryTime,
+                            },
+                            {
+                              sessionKey: tapToTrade.sessionKey,
+                              sessionSigner: tapToTrade.signWithSession,
+                            },
+                          );
+                        } else if (tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession) {
+                          // Open Position mode - map click to grid cell
+                          const session = tapToTrade.gridSession;
+                          const refPrice = parseFloat(session.referencePrice) / 100000000;
+                          const gridPriceStep = refPrice * (session.gridSizeYPercent / 10000);
+                          const gridInterval = session.gridSizeX * session.timeframeSeconds;
 
-                    // Calculate cell indices
-                    // Cell Y: How many steps from reference price?
-                    // Note: targetPrice corresponds to the BOTTOM of the cell in PerSecondChart logic?
-                    // No, PerSecondChart logic returns CENTER of cell now?
-                    // Wait, I check PerSecondChart handleMouseUp:
-                    // const targetPrice = gridBottomPrice + GRID_Y_DOLLARS / 2;
-                    // So targetPrice is CENTER.
+                          // Calculate cell indices
+                          // Cell Y: How many steps from reference price?
+                          // Note: targetPrice corresponds to the BOTTOM of the cell in PerSecondChart logic?
+                          // No, PerSecondChart logic returns CENTER of cell now?
+                          // Wait, I check PerSecondChart handleMouseUp:
+                          // const targetPrice = gridBottomPrice + GRID_Y_DOLLARS / 2;
+                          // So targetPrice is CENTER.
 
-                    // We need to find the integer index.
-                    // cellY = (center - ref) / step
-                    // This will result in X.5.
-                    // So math.floor(val) should give the index if positive?
-                    // Let's use the bottom price explicitly if we can, but we receive targetPrice (center).
-                    // Center = ref + cellY * step + step/2
-                    // Center - ref = step * (cellY + 0.5)
-                    // (Center - ref) / step = cellY + 0.5
-                    // cellY = round((Center - ref) / step - 0.5)
+                          // We need to find the integer index.
+                          // cellY = (center - ref) / step
+                          // This will result in X.5.
+                          // So math.floor(val) should give the index if positive?
+                          // Let's use the bottom price explicitly if we can, but we receive targetPrice (center).
+                          // Center = ref + cellY * step + step/2
+                          // Center - ref = step * (cellY + 0.5)
+                          // (Center - ref) / step = cellY + 0.5
+                          // cellY = round((Center - ref) / step - 0.5)
 
-                    const priceDiff = targetPrice - refPrice;
-                    const cellY = Math.round(priceDiff / gridPriceStep - 0.5);
+                          const priceDiff = targetPrice - refPrice;
+                          const cellY = Math.round(priceDiff / gridPriceStep - 0.5);
 
-                    // Cell X: Time steps from reference time
-                    // targetTime in PerSecondChart is END of cell.
-                    // targetTime = start + duration
-                    // start = ref + cellX * duration
-                    // targetTime = ref + (cellX + 1) * duration
-                    // (targetTime - ref) / duration = cellX + 1
-                    // cellX = round((targetTime - ref) / duration - 1)
+                          // Cell X: Time steps from reference time
+                          // targetTime in PerSecondChart is END of cell.
+                          // targetTime = start + duration
+                          // start = ref + cellX * duration
+                          // targetTime = ref + (cellX + 1) * duration
+                          // (targetTime - ref) / duration = cellX + 1
+                          // cellX = round((targetTime - ref) / duration - 1)
 
-                    const timeDiff = targetTime - session.referenceTime;
-                    const cellX = Math.round(timeDiff / gridInterval - 1);
+                          const timeDiff = targetTime - session.referenceTime;
+                          const cellX = Math.round(timeDiff / gridInterval - 1);
 
-                    tapToTrade.handleCellClick(cellX, cellY);
-                  }
-                }}
+                          tapToTrade.handleCellClick(cellX, cellY);
+                        }
+                      }
+                }
               />
             ) : (
               <TradingViewWidget

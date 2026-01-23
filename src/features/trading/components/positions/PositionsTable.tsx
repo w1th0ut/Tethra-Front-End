@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PositionRow from './PositionRow';
 import MobilePositionCard from './MobilePositionCard';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -23,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Position } from '@/hooks/data/usePositions';
 
 interface PositionsTableProps {
   positionIds: bigint[];
@@ -45,8 +44,23 @@ interface PositionsTableProps {
     entryPrice: number,
     isLong: boolean,
   ) => void;
-  onPositionLoaded: (positionId: bigint, isOpen: boolean, symbol: string) => void;
+  onPositionLoaded: (
+    positionId: bigint,
+    isOpen: boolean,
+    symbol: string,
+    leverage?: number,
+  ) => void;
   onCloseAll: () => void;
+  filterPosition?: (position: Position) => boolean;
+  emptyLabel?: string;
+  onVisibleCountChange?: (count: number) => void;
+  onVisibleIdsChange?: (ids: bigint[]) => void;
+  showCloseAll?: boolean;
+  hideSizeColumn?: boolean;
+  hideLeverage?: boolean;
+  hideTpSl?: boolean;
+  lockedClosePrices?: Map<bigint, number>;
+  closingPositionIds?: Set<bigint>;
 }
 
 const PositionsTable = ({
@@ -61,11 +75,56 @@ const PositionsTable = ({
   onTPSLClick,
   onPositionLoaded,
   onCloseAll,
+  filterPosition,
+  emptyLabel = 'No open positions',
+  onVisibleCountChange,
+  onVisibleIdsChange,
+  showCloseAll = true,
+  hideSizeColumn = false,
+  hideLeverage = false,
+  hideTpSl = false,
+  lockedClosePrices,
+  closingPositionIds,
 }: PositionsTableProps) => {
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [actionType, setActionType] = useState<'single' | 'all'>('single');
   const [targetPosition, setTargetPosition] = useState<{ id: bigint; symbol: string } | null>(null);
+  const [visibilityMap, setVisibilityMap] = useState<Map<string, boolean>>(new Map());
+
+  useEffect(() => {
+    setVisibilityMap(new Map());
+  }, [positionIds.join(',')]);
+
+  const handleVisibilityChange = useCallback((positionId: bigint, isVisible: boolean) => {
+    setVisibilityMap((prev) => {
+      const key = positionId.toString();
+      if (prev.get(key) === isVisible) return prev;
+      const next = new Map(prev);
+      next.set(key, isVisible);
+      return next;
+    });
+  }, []);
+
+  const visibleCount = Array.from(visibilityMap.values()).filter(Boolean).length;
+  const allReported = visibilityMap.size >= positionIds.length;
+
+  useEffect(() => {
+    if (allReported && onVisibleCountChange) {
+      onVisibleCountChange(visibleCount);
+    }
+  }, [allReported, visibleCount, onVisibleCountChange]);
+
+  const visibleIds = useMemo(
+    () => positionIds.filter((id) => visibilityMap.get(id.toString())),
+    [positionIds, visibilityMap],
+  );
+
+  useEffect(() => {
+    if (allReported && onVisibleIdsChange) {
+      onVisibleIdsChange(visibleIds);
+    }
+  }, [allReported, visibleIds, onVisibleIdsChange]);
 
   // Handle "Close" click on a single position
   const handleRequestClose = (positionId: bigint, symbol: string) => {
@@ -100,14 +159,18 @@ const PositionsTable = ({
   }
 
   if (positionIds.length === 0) {
-    return <div className="text-center py-16 text-gray-500">No open positions</div>;
+    return <div className="text-center py-16 text-gray-500">{emptyLabel}</div>;
+  }
+
+  if (allReported && visibleCount === 0) {
+    return <div className="text-center py-16 text-gray-500">{emptyLabel}</div>;
   }
 
   return (
     <div className="h-full flex flex-col">
       {/* Actions Bar for Desktop */}
       <div className="hidden md:flex justify-end p-2 border-b border-gray-800/50">
-        {openPositionsCount > 0 && (
+        {showCloseAll && openPositionsCount > 0 && (
           <Button
             variant="destructive"
             size="sm"
@@ -126,13 +189,13 @@ const PositionsTable = ({
           <TableHeader className="bg-[#0B1017] sticky top-0 z-10">
             <TableRow className="border-b border-gray-800 hover:bg-transparent">
               <TableHead className="font-medium min-w-[140px]">Position</TableHead>
-              <TableHead className="text-right font-medium">Size</TableHead>
+              {!hideSizeColumn && <TableHead className="text-right font-medium">Size</TableHead>}
               <TableHead className="text-right font-medium">PnL (ROE%)</TableHead>
               <TableHead className="text-right font-medium">Collateral</TableHead>
               <TableHead className="text-right font-medium">Entry Price</TableHead>
               <TableHead className="text-right font-medium">Mark Price</TableHead>
               <TableHead className="text-right font-medium">Liq. Price</TableHead>
-              <TableHead className="text-right font-medium">TP / SL</TableHead>
+              {!hideTpSl && <TableHead className="text-right font-medium">TP / SL</TableHead>}
               <TableHead className="text-right font-medium w-32">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -146,6 +209,13 @@ const PositionsTable = ({
                 onTPSLClick={onTPSLClick}
                 isSelected={selectedPositionId === positionId}
                 onPositionLoaded={onPositionLoaded}
+                filterPosition={filterPosition}
+                onVisibilityChange={handleVisibilityChange}
+                hideSize={hideSizeColumn}
+                hideLeverage={hideLeverage}
+                hideTpSl={hideTpSl}
+                lockedClosePrice={lockedClosePrices?.get(positionId)}
+                isCloseLocked={closingPositionIds?.has(positionId)}
               />
             ))}
           </TableBody>
@@ -154,7 +224,7 @@ const PositionsTable = ({
 
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4 flex-1 overflow-y-auto p-4">
-        {openPositionsCount > 0 && (
+        {showCloseAll && openPositionsCount > 0 && (
           <Button
             variant="destructive"
             size="sm"
@@ -173,6 +243,13 @@ const PositionsTable = ({
             onPositionClick={onPositionClick}
             onTPSLClick={onTPSLClick}
             onPositionLoaded={onPositionLoaded}
+            filterPosition={filterPosition}
+            onVisibilityChange={handleVisibilityChange}
+            hideSize={hideSizeColumn}
+            hideLeverage={hideLeverage}
+            hideTpSl={hideTpSl}
+            lockedClosePrice={lockedClosePrices?.get(positionId)}
+            isCloseLocked={closingPositionIds?.has(positionId)}
           />
         ))}
       </div>

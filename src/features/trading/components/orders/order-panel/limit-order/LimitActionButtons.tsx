@@ -23,8 +23,12 @@ export const LimitActionButtons: React.FC<LimitActionButtonsProps> = ({
   hasLargeAllowance,
   onAction,
 }) => {
+  const needsActivation = !hasLargeAllowance;
   const isButtonDisabled =
-    !authenticated || !payAmount || !limitPrice || isProcessing || isUSDCApprovalPending;
+    !authenticated ||
+    isProcessing ||
+    isUSDCApprovalPending ||
+    (!needsActivation && (!payAmount || !limitPrice));
 
   // Variant mapping
   const getButtonClass = () => {
@@ -39,6 +43,7 @@ export const LimitActionButtons: React.FC<LimitActionButtonsProps> = ({
 
   const getButtonText = () => {
     if (!authenticated) return 'Connect Wallet';
+    if (needsActivation) return isUSDCApprovalPending ? 'Activating Trading...' : 'Activate Trading';
     if (isUSDCApprovalPending) return 'Approving USDC...';
     if (isProcessing) return 'Processing...';
     if (!payAmount) return 'Enter Amount';

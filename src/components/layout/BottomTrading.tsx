@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useUserPositions } from '@/hooks/data/usePositions';
-import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
+import { useState, useCallback, useEffect } from 'react';
+import { useUserPositions, Position } from '@/hooks/data/usePositions';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
 import { toast } from 'sonner';
 import { useMarket } from '@/features/trading/contexts/MarketContext';
+import { getSignedPrice } from '@/lib/priceApi';
 import TPSLModal from '@/features/trading/components/modals/TPSLModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PositionsTable from '@/features/trading/components/positions/PositionsTable';
-import { Button } from '@/components/ui/button';
 
 // New Components & Hooks
 import OpenOrdersTab from '@/features/trading/components/orders/OpenOrdersTab';
@@ -20,7 +19,12 @@ import { useUserPendingOrders } from '@/features/trading/hooks/useLimitOrder';
 import { useBinaryOrders } from '@/features/trading/hooks/useBinaryOrders';
 
 export default function BottomTrading() {
-  const [openPositionsCount, setOpenPositionsCount] = useState(0);
+  const [nonQuickTapIds, setNonQuickTapIds] = useState<bigint[]>([]);
+  const [quickTapIds, setQuickTapIds] = useState<bigint[]>([]);
+  const [closingQuickTapIds, setClosingQuickTapIds] = useState<Set<bigint>>(new Set());
+  const [lockedQuickTapPrices, setLockedQuickTapPrices] = useState<Map<bigint, number>>(
+    new Map(),
+  );
   const { positionIds, isLoading: isLoadingIds, refetch: refetchPositions } = useUserPositions();
   const { closePosition, isPending: isClosing } = useGaslessClose();
   const { setSelectedPosition, selectedPosition } = useMarket();
@@ -34,6 +38,36 @@ export default function BottomTrading() {
   const openOrdersCount = limitOrders.length + pendingTapCount;
   const activeBinaryCount = binaryOrders.filter((o) => o.status === 'ACTIVE').length;
 
+  const isQuickTapPosition = useCallback((position: Position) => {
+    return position.leverage === 1000n;
+  }, []);
+
+  const isNonQuickTapPosition = useCallback((position: Position) => {
+    return position.leverage !== 1000n;
+  }, []);
+
+  useEffect(() => {
+    setClosingQuickTapIds((prev) => {
+      const next = new Set<bigint>();
+      for (const id of prev) {
+        if (quickTapIds.includes(id)) {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+
+    setLockedQuickTapPrices((prev) => {
+      const next = new Map<bigint, number>();
+      for (const [id, price] of prev.entries()) {
+        if (quickTapIds.includes(id)) {
+          next.set(id, price);
+        }
+      }
+      return next;
+    });
+  }, [quickTapIds]);
+
   // TP/SL Modal state
   const [tpslModalOpen, setTpslModalOpen] = useState(false);
   const [tpslModalData, setTpslModalData] = useState<{
@@ -45,24 +79,49 @@ export default function BottomTrading() {
   } | null>(null);
   const [tpslRefreshTrigger, setTpslRefreshTrigger] = useState(0);
 
-  // Map to store position statuses
-  const [positionStatuses, setPositionStatuses] = useState<Map<bigint, boolean>>(new Map());
-
   // Map to store symbols for positions
-  const [positionSymbols, setPositionSymbols] = useState<Map<bigint, string>>(new Map());
+  const [nonQuickTapSymbols, setNonQuickTapSymbols] = useState<Map<bigint, string>>(new Map());
+  const [quickTapSymbols, setQuickTapSymbols] = useState<Map<bigint, string>>(new Map());
 
-  // Update open positions count when statuses change
-  useEffect(() => {
-    const count = Array.from(positionStatuses.values()).filter((isOpen) => isOpen).length;
-    setOpenPositionsCount(count);
-  }, [positionStatuses]);
+  const openPositionsCount = nonQuickTapIds.length;
+  const quickTapPositionsCount = quickTapIds.length;
 
   const handleClosePosition = async (positionId: bigint, symbol: string) => {
-    if (!confirm(`Are you sure you want to close position #${positionId}?`)) return;
     try {
       await closePosition({ positionId, symbol });
       setTimeout(() => refetchPositions?.(), 1000);
     } catch (error) {}
+  };
+
+  const lockQuickTapPrice = async (positionId: bigint, symbol: string) => {
+    setClosingQuickTapIds((prev) => new Set(prev).add(positionId));
+    const signed = await getSignedPrice(symbol);
+    const lockedPrice = Number(signed.price) / 1e8;
+    setLockedQuickTapPrices((prev) => {
+      const next = new Map(prev);
+      next.set(positionId, lockedPrice);
+      return next;
+    });
+    return signed;
+  };
+
+  const handleQuickTapClose = async (positionId: bigint, symbol: string) => {
+    try {
+      const signedPrice = await lockQuickTapPrice(positionId, symbol);
+      await closePosition({ positionId, symbol, signedPrice });
+      setTimeout(() => refetchPositions?.(), 1000);
+    } catch (error) {
+      setClosingQuickTapIds((prev) => {
+        const next = new Set(prev);
+        next.delete(positionId);
+        return next;
+      });
+      setLockedQuickTapPrices((prev) => {
+        const next = new Map(prev);
+        next.delete(positionId);
+        return next;
+      });
+    }
   };
 
   const handlePositionClick = (
@@ -99,37 +158,38 @@ export default function BottomTrading() {
     }
   };
 
-  const handlePositionDataLoaded = useCallback(
-    (positionId: bigint, isOpen: boolean, symbol: string) => {
-      setPositionStatuses((prev) => {
-        if (prev.get(positionId) === isOpen) return prev;
-        const newMap = new Map(prev);
-        newMap.set(positionId, isOpen);
-        return newMap;
-      });
-      setPositionSymbols((prev) => {
+  const handleNonQuickTapLoaded = useCallback(
+    (positionId: bigint, _isOpen: boolean, symbol: string) => {
+      setNonQuickTapSymbols((prev) => {
         if (prev.get(positionId) === symbol) return prev;
-        const newMap = new Map(prev);
-        newMap.set(positionId, symbol);
-        return newMap;
+        const next = new Map(prev);
+        next.set(positionId, symbol);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleQuickTapLoaded = useCallback(
+    (positionId: bigint, _isOpen: boolean, symbol: string) => {
+      setQuickTapSymbols((prev) => {
+        if (prev.get(positionId) === symbol) return prev;
+        const next = new Map(prev);
+        next.set(positionId, symbol);
+        return next;
       });
     },
     [],
   );
 
   const executeCloseAll = async () => {
-    const openPositionIds = Array.from(positionStatuses.entries())
-      .filter(([_, isOpen]) => isOpen)
-      .map(([id]) => id);
-
-    if (openPositionIds.length === 0) return;
-    if (!confirm(`Close all ${openPositionIds.length} positions?`)) return;
+    if (nonQuickTapIds.length === 0) return;
 
     toast.loading(`Closing all positions...`, { id: 'close-all' });
 
     let successCount = 0;
-    for (const id of openPositionIds) {
-      const symbol = positionSymbols.get(id);
+    for (const id of nonQuickTapIds) {
+      const symbol = nonQuickTapSymbols.get(id);
       if (symbol) {
         try {
           await closePosition({ positionId: id, symbol });
@@ -142,6 +202,81 @@ export default function BottomTrading() {
     if (successCount > 0) {
       toast.success(`Closed ${successCount} positions!`);
       setTimeout(() => refetchPositions?.(), 2000);
+    }
+  };
+
+  const executeCloseAllQuickTap = async () => {
+    if (quickTapIds.length === 0) return;
+
+    toast.loading(`Closing all quick tap positions...`, { id: 'close-all-quicktap' });
+    setClosingQuickTapIds(new Set(quickTapIds));
+
+    const signedBySymbol = new Map<string, Awaited<ReturnType<typeof getSignedPrice>>>();
+    const lockedPrices = new Map<bigint, number>();
+
+    const skippedIds: bigint[] = [];
+    for (const id of quickTapIds) {
+      const symbol = quickTapSymbols.get(id);
+      if (!symbol) {
+        skippedIds.push(id);
+        continue;
+      }
+      if (!signedBySymbol.has(symbol)) {
+        try {
+          const signed = await getSignedPrice(symbol);
+          signedBySymbol.set(symbol, signed);
+        } catch (e) {
+          skippedIds.push(id);
+          continue;
+        }
+      }
+      const signed = signedBySymbol.get(symbol);
+      if (signed) {
+        lockedPrices.set(id, Number(signed.price) / 1e8);
+      } else {
+        skippedIds.push(id);
+      }
+    }
+
+    setLockedQuickTapPrices((prev) => {
+      const next = new Map(prev);
+      lockedPrices.forEach((value, key) => next.set(key, value));
+      return next;
+    });
+
+    let successCount = 0;
+    const failedIds: bigint[] = [];
+    for (const id of quickTapIds) {
+      const symbol = quickTapSymbols.get(id);
+      if (!symbol) continue;
+      const signed = signedBySymbol.get(symbol);
+      if (!signed) continue;
+      try {
+        await closePosition({ positionId: id, symbol, signedPrice: signed });
+        successCount++;
+      } catch (e) {
+        failedIds.push(id);
+      }
+    }
+
+    toast.dismiss('close-all-quicktap');
+    if (successCount > 0) {
+      toast.success(`Closed ${successCount} quick tap positions!`);
+      setTimeout(() => refetchPositions?.(), 2000);
+    }
+
+    const unlockIds = failedIds.concat(skippedIds);
+    if (unlockIds.length > 0) {
+      setClosingQuickTapIds((prev) => {
+        const next = new Set(prev);
+        unlockIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      setLockedQuickTapPrices((prev) => {
+        const next = new Map(prev);
+        unlockIds.forEach((id) => next.delete(id));
+        return next;
+      });
     }
   };
 
@@ -205,6 +340,35 @@ export default function BottomTrading() {
                   {openOrdersCount > 0 && (
                     <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#1E293B] text-gray-300 rounded px-1">
                       {openOrdersCount}
+                    </span>
+                  )}
+                </div>
+              </TabsTrigger>
+              <TabsTrigger
+                value="quicktap"
+                className="
+                  data-[state=active]:bg-[#131B26]
+                  data-[state=active]:shadow-none 
+                  data-[state=active]:border-b-2 
+                  data-[state=active]:border-b-[#3B82F6] 
+                  data-[state=active]:text-white 
+                  text-gray-400 
+                  rounded-t-md
+                  rounded-b-none 
+                  h-full 
+                  px-4
+                  font-medium
+                  hover:text-gray-300
+                  hover:bg-white/5
+                  transition-all
+                  shrink-0
+                "
+              >
+                <div className="flex items-center gap-2">
+                  Quick Tap
+                  {quickTapPositionsCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold bg-[#1E293B] text-gray-300 rounded px-1">
+                      {quickTapPositionsCount}
                     </span>
                   )}
                 </div>
@@ -278,8 +442,10 @@ export default function BottomTrading() {
                 onClosePosition={handleClosePosition}
                 onPositionClick={handlePositionClick}
                 onTPSLClick={handleTPSLModalOpen}
-                onPositionLoaded={handlePositionDataLoaded}
+                onPositionLoaded={handleNonQuickTapLoaded}
                 onCloseAll={executeCloseAll}
+                filterPosition={isNonQuickTapPosition}
+                onVisibleIdsChange={setNonQuickTapIds}
               />
             </TabsContent>
 
@@ -288,6 +454,34 @@ export default function BottomTrading() {
               className="h-full m-0 data-[state=inactive]:hidden overflow-auto"
             >
               <OpenOrdersTab />
+            </TabsContent>
+
+            <TabsContent
+              value="quicktap"
+              className="h-full m-0 data-[state=inactive]:hidden overflow-auto"
+            >
+              <PositionsTable
+                positionIds={positionIds}
+                isLoading={isLoadingIds}
+                openPositionsCount={quickTapPositionsCount}
+                isClosing={isClosing}
+                selectedPositionId={selectedPosition?.positionId}
+                tpslRefreshTrigger={tpslRefreshTrigger}
+                onClosePosition={handleQuickTapClose}
+                onPositionClick={handlePositionClick}
+                onTPSLClick={handleTPSLModalOpen}
+                onPositionLoaded={handleQuickTapLoaded}
+                onCloseAll={executeCloseAllQuickTap}
+                filterPosition={isQuickTapPosition}
+                emptyLabel="No quick tap positions"
+                onVisibleIdsChange={setQuickTapIds}
+                showCloseAll={true}
+                hideSizeColumn={true}
+                hideLeverage={true}
+                hideTpSl={true}
+                lockedClosePrices={lockedQuickTapPrices}
+                closingPositionIds={closingQuickTapIds}
+              />
             </TabsContent>
 
             <TabsContent

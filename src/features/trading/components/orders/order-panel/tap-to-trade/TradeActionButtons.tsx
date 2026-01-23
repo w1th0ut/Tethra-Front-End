@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Market } from '../components/MarketSelector';
 
 interface TradeActionButtonsProps {
-  tradeMode: 'open-position' | 'one-tap-profit';
+  tradeMode: 'open-position' | 'one-tap-profit' | 'quick-tap';
   tapToTrade: any;
   activeMarket: Market | null;
   marginAmount: string;
@@ -47,10 +47,12 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   onMobileClose,
 }) => {
   const handleMainAction = async () => {
-    if (tradeMode === 'open-position' && !hasLargeAllowance) {
+    if ((tradeMode === 'open-position' || tradeMode === 'quick-tap') && !hasLargeAllowance) {
       await onPreApprove();
+      return;
     } else if (tradeMode === 'one-tap-profit' && !hasLargeOneTapProfitAllowance) {
       await onPreApproveOneTapProfit();
+      return;
     }
 
     if (!marginAmount || parseFloat(marginAmount) === 0) {
@@ -65,13 +67,26 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       return;
     }
 
-    if (tradeMode === 'open-position') {
-      await tapToTrade.toggleMode({
+    if (tradeMode === 'open-position' || tradeMode === 'quick-tap') {
+      const params: {
+        symbol: string;
+        margin: string;
+        leverage: number;
+        timeframe?: string;
+        currentPrice: number;
+      } = {
         symbol: activeMarket?.symbol || 'BTC',
         margin: marginAmount,
         leverage: leverage,
-        timeframe: timeframe,
         currentPrice: Number(currentPrice) || 0,
+      };
+
+      if (tradeMode === 'open-position') {
+        params.timeframe = timeframe;
+      }
+
+      await tapToTrade.toggleMode({
+        ...params,
       });
       onMobileClose?.();
     } else {
@@ -136,6 +151,8 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
           ? 'Stopping...'
           : tradeMode === 'one-tap-profit'
           ? 'Stop Trading'
+          : tradeMode === 'quick-tap'
+          ? 'Stop Quick Tap'
           : 'Stop Tap to Trade'}
       </Button>
     );
@@ -153,6 +170,15 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       variant = 'default';
     } else {
       buttonText = tapToTrade.isLoading ? 'Setting up session...' : 'Enable Tap to Trade';
+      isLoading = tapToTrade.isLoading;
+    }
+  } else if (tradeMode === 'quick-tap') {
+    if (!hasLargeAllowance) {
+      buttonText = isApprovalPending ? 'Approving USDC...' : 'Enable One-Click Trading';
+      isLoading = isApprovalPending;
+      variant = 'default';
+    } else {
+      buttonText = tapToTrade.isLoading ? 'Setting up session...' : 'Enable Quick Tap';
       isLoading = tapToTrade.isLoading;
     }
   } else {

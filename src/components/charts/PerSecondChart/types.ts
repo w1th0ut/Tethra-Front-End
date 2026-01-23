@@ -9,7 +9,7 @@ export interface PerSecondChartProps {
   currentPrice: number;
   betAmount?: string; // Bet amount from sidebar (optional, default 10)
   isBinaryTradingEnabled?: boolean; // Whether binary trading is enabled with session key
-  tradeMode?: 'one-tap-profit' | 'open-position'; // Trade mode
+  tradeMode?: 'one-tap-profit' | 'open-position' | 'quick-tap'; // Trade mode
   activeBets?: Bet[]; // Active bets to display
   onCellClick?: (
     targetPrice: number,

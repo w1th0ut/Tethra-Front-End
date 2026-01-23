@@ -6,12 +6,14 @@
 import { useState, useCallback } from 'react';
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { toast } from 'sonner';
+import { SignedPriceData } from '@/lib/priceApi';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export interface GaslessCloseParams {
   positionId: bigint;
   symbol: string;
+  signedPrice?: SignedPriceData;
 }
 
 export function useGaslessClose() {
@@ -41,6 +43,7 @@ export function useGaslessClose() {
             userAddress: address,
             positionId: params.positionId.toString(),
             symbol: params.symbol,
+            signedPrice: params.signedPrice,
           }),
         });
 

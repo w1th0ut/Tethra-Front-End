@@ -124,18 +124,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
       return;
     }
 
-    if (!payAmount || parseFloat(payAmount) <= 0) {
-      toast.error('Please enter collateral amount');
-      return;
-    }
-
-    if (!activeMarket) {
-      toast.error('Please select a market');
-      return;
-    }
-
-    // Check if USDC is approved first (only for long/short, not swap)
-    const needsApproval = (activeTab === 'long' || activeTab === 'short') && !hasLargeAllowance;
+    const needsActivation = !hasLargeAllowance;
 
     // Find and set active embedded wallet used for both actions
     const embeddedWallet = wallets.find(
@@ -149,20 +138,31 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
     await embeddedWallet.switchChain(baseSepolia.id);
 
-    // 1. Handle Approval if needed
-    if (needsApproval) {
+    // 1. Handle activation if needed (global gate)
+    if (needsActivation) {
       try {
-        toast.loading('Approving USDC...', { id: 'market-approval' });
+        toast.loading('Activating trading...', { id: 'market-approval' });
         const maxAmount = parseUnits('1000000', 6).toString();
         // This likely prompts wallet and waits for tx hash.
         // We assume verify or wait logic is inside or handled by blockchain speed.
         await approveUSDC(maxAmount);
-        toast.success('✅ Approved!', { id: 'market-approval' });
+        toast.success('✅ Trading activated!', { id: 'market-approval' });
       } catch (error) {
         console.error('Approval failed:', error);
         toast.error('Approval failed or rejected', { id: 'market-approval' });
         return; // Stop flow if approval fails
       }
+      return; // Require activation before trading
+    }
+
+    if (!payAmount || parseFloat(payAmount) <= 0) {
+      toast.error('Please enter collateral amount');
+      return;
+    }
+
+    if (!activeMarket) {
+      toast.error('Please select a market');
+      return;
     }
 
     // 2. Proceed to trade
