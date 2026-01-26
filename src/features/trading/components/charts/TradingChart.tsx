@@ -158,7 +158,12 @@ const TradingChart: React.FC = () => {
     if (!isQuickTap || !activeMarket || positions.length === 0) return [];
 
     return positions
-      .filter((position) => position.status === 0 && position.symbol === activeMarket.symbol)
+      .filter(
+        (position) =>
+          position.status === 0 &&
+          position.symbol === activeMarket.symbol &&
+          position.leverage === 1000n,
+      )
       .map((position) => ({
         id: position.id.toString(),
         entryPrice: parseFloat(formatUnits(position.entryPrice, 8)),

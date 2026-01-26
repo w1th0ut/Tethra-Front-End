@@ -15,6 +15,7 @@ interface TradeActionButtonsProps {
   currentPrice: string;
   hasLargeAllowance: boolean;
   hasLargeOneTapProfitAllowance: boolean;
+  hasUnifiedAllowance?: boolean;
   hasSelectedYGrid: boolean;
   wallets: ConnectedWallet[];
 
@@ -36,6 +37,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   currentPrice,
   hasLargeAllowance,
   hasLargeOneTapProfitAllowance,
+  hasUnifiedAllowance,
   hasSelectedYGrid,
   wallets,
 
@@ -46,12 +48,14 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   disabled,
   onMobileClose,
 }) => {
+  const resolvedHasAllowance = hasUnifiedAllowance ?? (hasLargeAllowance || hasLargeOneTapProfitAllowance);
   const handleMainAction = async () => {
-    if ((tradeMode === 'open-position' || tradeMode === 'quick-tap') && !hasLargeAllowance) {
-      await onPreApprove();
-      return;
-    } else if (tradeMode === 'one-tap-profit' && !hasLargeOneTapProfitAllowance) {
-      await onPreApproveOneTapProfit();
+    if (!resolvedHasAllowance) {
+      if (tradeMode === 'one-tap-profit') {
+        await onPreApproveOneTapProfit();
+      } else {
+        await onPreApprove();
+      }
       return;
     }
 
@@ -164,7 +168,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   let variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link' = 'default';
 
   if (tradeMode === 'open-position') {
-    if (!hasLargeAllowance) {
+    if (!resolvedHasAllowance) {
       buttonText = isApprovalPending ? 'Activating Trading...' : 'Activate Trading';
       isLoading = isApprovalPending;
       variant = 'default';
@@ -173,7 +177,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       isLoading = tapToTrade.isLoading;
     }
   } else if (tradeMode === 'quick-tap') {
-    if (!hasLargeAllowance) {
+    if (!resolvedHasAllowance) {
       buttonText = isApprovalPending ? 'Activating Trading...' : 'Activate Trading';
       isLoading = isApprovalPending;
       variant = 'default';
@@ -182,9 +186,10 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
       isLoading = tapToTrade.isLoading;
     }
   } else {
-    if (!hasLargeOneTapProfitAllowance) {
-      buttonText = isOneTapProfitApprovalPending ? 'Activating Trading...' : 'Activate Trading';
-      isLoading = isOneTapProfitApprovalPending;
+    if (!resolvedHasAllowance) {
+      const loading = tradeMode === 'one-tap-profit' ? isOneTapProfitApprovalPending : isApprovalPending;
+      buttonText = loading ? 'Activating Trading...' : 'Activate Trading';
+      isLoading = loading;
     } else {
       buttonText = tapToTrade.isLoading ? 'Setting up session...' : 'Enable Binary Trade';
       isLoading = tapToTrade.isLoading;

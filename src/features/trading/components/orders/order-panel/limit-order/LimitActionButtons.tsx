@@ -10,6 +10,7 @@ interface LimitActionButtonsProps {
   payAmount: string;
   limitPrice: string;
   hasLargeAllowance: boolean;
+  hasInsufficientBalance?: boolean;
   onAction: () => void;
 }
 
@@ -21,11 +22,14 @@ export const LimitActionButtons: React.FC<LimitActionButtonsProps> = ({
   payAmount,
   limitPrice,
   hasLargeAllowance,
+  hasInsufficientBalance,
   onAction,
 }) => {
   const needsActivation = !hasLargeAllowance;
+  const isInsufficient = Boolean(hasInsufficientBalance);
   const isButtonDisabled =
     !authenticated ||
+    isInsufficient ||
     isProcessing ||
     isUSDCApprovalPending ||
     (!needsActivation && (!payAmount || !limitPrice));
@@ -43,6 +47,7 @@ export const LimitActionButtons: React.FC<LimitActionButtonsProps> = ({
 
   const getButtonText = () => {
     if (!authenticated) return 'Connect Wallet';
+    if (isInsufficient) return 'Insufficient Balance';
     if (needsActivation) return isUSDCApprovalPending ? 'Activating Trading...' : 'Activate Trading';
     if (isUSDCApprovalPending) return 'Approving USDC...';
     if (isProcessing) return 'Processing...';

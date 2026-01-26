@@ -63,6 +63,9 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
 
   const effectiveOraclePrice = oraclePrice || (currentPrice ? parseFloat(currentPrice) : 0);
   const payUsdValue = payAmount ? parseFloat(payAmount) : 0;
+  const balanceValue = usdcBalance ? parseFloat(usdcBalance) : 0;
+  const hasInsufficientBalance =
+    payAmount !== '' && !Number.isNaN(payUsdValue) && payUsdValue > balanceValue;
   const longShortUsdValue = payUsdValue * leverage;
   const tokenAmount = effectiveOraclePrice > 0 ? longShortUsdValue / effectiveOraclePrice : 0;
 
@@ -151,6 +154,10 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
     }
 
     if (!activeMarket) return;
+    if (hasInsufficientBalance) {
+      toast.error('Insufficient USDC balance');
+      return;
+    }
 
     let tpPrice: string | undefined;
     let slPrice: string | undefined;
@@ -259,6 +266,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         payAmount={payAmount}
         limitPrice={limitPrice}
         hasLargeAllowance={hasLargeAllowance}
+        hasInsufficientBalance={hasInsufficientBalance}
         onAction={handleCreateOrder}
       />
     </div>

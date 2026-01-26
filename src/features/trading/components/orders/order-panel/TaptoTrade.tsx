@@ -69,8 +69,8 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
     return Boolean(oneTapProfitAllowance && oneTapProfitAllowance > parseUnits('10000', 6));
   }, [oneTapProfitAllowance]);
 
-  const needsActivation =
-    tradeMode === 'one-tap-profit' ? !hasLargeOneTapProfitAllowance : !hasLargeAllowance;
+  const hasUnifiedAllowance = hasLargeAllowance || hasLargeOneTapProfitAllowance;
+  const needsActivation = !hasUnifiedAllowance;
 
   // Handler for pre-approve USDC in large amount
   const handlePreApprove = async () => {
@@ -134,6 +134,9 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
   };
 
   const marginUsdValue = marginAmount ? parseFloat(marginAmount) : 0;
+  const balanceValue = usdcBalance ? parseFloat(usdcBalance) : 0;
+  const hasInsufficientBalance =
+    marginAmount !== '' && !Number.isNaN(marginUsdValue) && marginUsdValue > balanceValue;
 
   const selectedTimeframeLabel =
     timeframe === '1'
@@ -273,6 +276,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         currentPrice={currentPrice}
         hasLargeAllowance={hasLargeAllowance}
         hasLargeOneTapProfitAllowance={hasLargeOneTapProfitAllowance}
+        hasUnifiedAllowance={hasUnifiedAllowance}
         hasSelectedYGrid={hasSelectedYGrid}
         wallets={wallets}
         onPreApprove={handlePreApprove}
@@ -282,6 +286,8 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         disabled={
           needsActivation
             ? false
+            : hasInsufficientBalance
+            ? true
             : tradeMode === 'one-tap-profit'
             ? !marginAmount || !activeMarket
             : tradeMode === 'quick-tap'

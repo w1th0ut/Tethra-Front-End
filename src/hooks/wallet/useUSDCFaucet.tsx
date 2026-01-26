@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
 import { encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
 import { USDC_ADDRESS } from '@/config/contracts';
@@ -38,6 +38,7 @@ const MOCK_USDC_ABI = [
 export const useUSDCFaucet = () => {
   const { authenticated, user } = usePrivy();
   const { wallets } = useWallets();
+  const { sendTransaction } = useSendTransaction();
   const [isClaiming, setIsClaiming] = useState(false);
 
   const handleClaimUSDC = async () => {
@@ -97,16 +98,17 @@ export const useUSDCFaucet = () => {
         args: [],
       });
 
-      const txHash = await provider.request({
-        method: 'eth_sendTransaction',
-        params: [
-          {
-            from: walletAddress,
-            to: USDC_ADDRESS,
-            data: data,
-          },
-        ],
-      });
+      const { hash } = await sendTransaction(
+        {
+          to: USDC_ADDRESS,
+          data,
+        },
+        {
+          sponsor: true,
+          address: walletAddress,
+        },
+      );
+      const txHash = hash;
 
       toast.success('USDC claimed successfully! 🎉', {
         id: loadingToast,

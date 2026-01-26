@@ -11,6 +11,7 @@ interface MarketActionButtonsProps {
   isRelayPending: boolean;
   payAmount: string;
   hasLargeAllowance: boolean;
+  hasInsufficientBalance?: boolean;
   onAction: () => void;
 }
 
@@ -23,12 +24,15 @@ export const MarketActionButtons: React.FC<MarketActionButtonsProps> = ({
   isUSDCApprovalPending,
   payAmount,
   hasLargeAllowance,
+  hasInsufficientBalance,
   onAction,
 }) => {
   const needsActivation = !hasLargeAllowance;
+  const isInsufficient = Boolean(hasInsufficientBalance);
 
   const getButtonText = () => {
     if (!authenticated) return 'Connect Wallet';
+    if (isInsufficient) return 'Insufficient Balance';
     if (needsActivation) return isUSDCApprovalPending ? 'Activating Trading...' : 'Activate Trading';
     if (isUSDCApprovalPending) return 'Approving USDC...';
     if (isApproving) return 'Approving for Paymaster...';
@@ -47,6 +51,7 @@ export const MarketActionButtons: React.FC<MarketActionButtonsProps> = ({
 
   const isButtonDisabled =
     !authenticated ||
+    isInsufficient ||
     isRelayPending ||
     isApproving ||
     isDepositing ||

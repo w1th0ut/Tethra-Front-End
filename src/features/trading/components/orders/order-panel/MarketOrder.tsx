@@ -75,6 +75,12 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
   const payUsdValue = useMemo(() => {
     return payAmount ? parseFloat(payAmount) : 0;
   }, [payAmount]);
+  const balanceValue = useMemo(() => {
+    return usdcBalance ? parseFloat(usdcBalance) : 0;
+  }, [usdcBalance]);
+  const hasInsufficientBalance = useMemo(() => {
+    return payAmount !== '' && !Number.isNaN(payUsdValue) && payUsdValue > balanceValue;
+  }, [payAmount, payUsdValue, balanceValue]);
 
   const longShortUsdValue = useMemo(() => {
     return payUsdValue * leverage;
@@ -162,6 +168,10 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
     if (!activeMarket) {
       toast.error('Please select a market');
+      return;
+    }
+    if (hasInsufficientBalance) {
+      toast.error('Insufficient USDC balance');
       return;
     }
 
@@ -338,6 +348,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         isUSDCApprovalPending={isApprovalPending}
         payAmount={payAmount}
         hasLargeAllowance={hasLargeAllowance}
+        hasInsufficientBalance={hasInsufficientBalance}
         onAction={handleOpenPosition}
       />
 
