@@ -24,6 +24,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: 'dark',
           accentColor: '#676FFF',
+          showWalletLoginFirst: true,
+          walletList: [
+            'base_account',
+            'detected_ethereum_wallets',
+            'metamask',
+            'coinbase_wallet',
+            'wallet_connect',
+          ],
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {

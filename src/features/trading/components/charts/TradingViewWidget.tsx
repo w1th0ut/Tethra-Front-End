@@ -37,7 +37,7 @@ const TradingViewWidget: React.FC<TradingViewWidgetProps> = memo(({ symbol }) =>
       new (window as any).TradingView.widget({
         autosize: true,
         symbol: tvSymbol,
-        interval: '240', // 4h default
+        interval: '1', // 1m default
         timezone: 'Asia/Jakarta',
         theme: 'dark',
         style: '1',

@@ -158,28 +158,21 @@ export default function MarketSelector(props: MarketSelectorProps) {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-3 overflow-x-auto bg-trading-panel border-b border-border-muted custom-scrollbar-slate">
-        {CATEGORY_TABS.map((tab) => {
-          const hasMarkets =
-            tab.id === 'starred'
-              ? favorites.size > 0
-              : props.markets.some((m) => m.category === tab.id);
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              disabled={!hasMarkets && tab.id !== 'starred'}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-all ${
-                activeTab === tab.id
-                  ? 'bg-primary/10 border-primary text-primary'
-                  : 'bg-trading-surface border-border-muted text-text-secondary hover:text-text-primary'
-              } ${!hasMarkets && tab.id !== 'starred' ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-trading-panel border-b border-border-muted">
+        {CATEGORY_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex flex-none items-center gap-2 px-3 py-1.5 rounded-full text-sm border transition-all ${
+              activeTab === tab.id
+                ? 'bg-trading-elevated border-border-light text-text-primary shadow-sm'
+                : 'bg-trading-surface border-border-muted text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-semibold text-text-secondary bg-trading-elevated border-b border-border-default sticky top-0">

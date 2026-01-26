@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { createWalletClient, custom, encodeFunctionData, parseUnits } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
+import { encodeFunctionData, parseUnits } from 'viem';
 import { STABILITY_FUND_ADDRESS, USDC_ADDRESS } from '@/config/contracts';
 
 const USDC_ABI = [
@@ -32,6 +31,7 @@ const USDC_ABI = [
 export const useOneTapProfitApproval = () => {
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
+  const { sendTransaction } = useSendTransaction();
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,14 +92,7 @@ export const useOneTapProfitApproval = () => {
       setIsPending(true);
 
       try {
-        const ethereumProvider = await embeddedWallet.getEthereumProvider();
         const userAddress = embeddedWallet.address as `0x${string}`;
-
-        const walletClient = createWalletClient({
-          account: userAddress,
-          chain: baseSepolia,
-          transport: custom(ethereumProvider),
-        });
 
         const approveData = encodeFunctionData({
           abi: USDC_ABI,
@@ -107,11 +100,17 @@ export const useOneTapProfitApproval = () => {
           args: [STABILITY_FUND_ADDRESS, BigInt(amount)],
         });
 
-        const txHash = await walletClient.sendTransaction({
-          account: userAddress,
-          to: USDC_ADDRESS,
-          data: approveData,
-        });
+        const { hash } = await sendTransaction(
+          {
+            to: USDC_ADDRESS,
+            data: approveData,
+          },
+          {
+            sponsor: true,
+            address: userAddress,
+          },
+        );
+        const txHash = hash;
 
         // Wait a bit for transaction to be mined
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -127,7 +126,7 @@ export const useOneTapProfitApproval = () => {
         setIsPending(false);
       }
     },
-    [authenticated, embeddedWallet, checkAllowance],
+    [authenticated, embeddedWallet, sendTransaction, checkAllowance],
   );
 
   // Check if user has sufficient allowance for a specific amount

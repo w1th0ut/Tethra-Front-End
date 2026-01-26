@@ -6,7 +6,7 @@ import { useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, encodeFunctionData, keccak256, encodePacked } from 'viem';
 import { useState, useCallback, useEffect } from 'react';
 import { baseSepolia } from 'wagmi/chains';
-import { useWallets } from '@privy-io/react-auth';
+import { useSendTransaction, useWallets } from '@privy-io/react-auth';
 import {
   MARKET_EXECUTOR_ADDRESS,
   STABILITY_FUND_ADDRESS,
@@ -42,6 +42,7 @@ export interface ClosePositionParams {
 export function useApproveUSDCForTrading() {
   const { address } = useEmbeddedWallet();
   const { wallets } = useWallets();
+  const { sendTransaction } = useSendTransaction();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -75,11 +76,6 @@ export function useApproveUSDCForTrading() {
       }
 
       await embeddedWallet.switchChain(baseSepolia.id);
-      const walletClient = await embeddedWallet.getEthereumProvider();
-
-      if (!walletClient) {
-        throw new Error('Could not get wallet client');
-      }
 
       const amountBigInt = parseUnits(amount, USDC_DECIMALS);
 
@@ -89,32 +85,18 @@ export function useApproveUSDCForTrading() {
         args: [STABILITY_FUND_ADDRESS, amountBigInt],
       });
 
-      // Estimate gas
-      const gasEstimate = await walletClient.request({
-        method: 'eth_estimateGas',
-        params: [
-          {
-            from: address,
-            to: USDC_ADDRESS,
-            data,
-          },
-        ],
-      });
-      const gasLimit = (BigInt(gasEstimate as string) * 120n) / 100n;
+      const { hash } = await sendTransaction(
+        {
+          to: USDC_ADDRESS,
+          data,
+        },
+        {
+          sponsor: true,
+          address: embeddedWallet.address,
+        },
+      );
 
-      const txHash = await walletClient.request({
-        method: 'eth_sendTransaction',
-        params: [
-          {
-            from: address,
-            to: USDC_ADDRESS,
-            data,
-            gas: '0x' + gasLimit.toString(16),
-          },
-        ],
-      });
-
-      setHash(txHash as `0x${string}`);
+      setHash(hash as `0x${string}`);
     } catch (err) {
       console.error('❌ Approve error:', err);
       setError(err as Error);

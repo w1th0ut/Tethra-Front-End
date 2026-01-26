@@ -29,6 +29,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   yAxisSide = 'right',
   showXAxis = true,
   showYAxis = true,
+  positionMarkers = [],
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -616,6 +617,70 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       }
       ctx.restore();
     }
+
+    // --- Draw Quick Tap Entry Lines ---
+    if (tradeMode === 'quick-tap' && positionMarkers.length > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(leftMargin, 0, chartWidth, chartHeight);
+      ctx.clip();
+
+      ctx.setLineDash([6, 6]);
+      ctx.lineWidth = 2;
+
+      positionMarkers.forEach((marker) => {
+        const y = priceToY(marker.entryPrice);
+        if (y < 0 || y > chartHeight) return;
+
+        const lineColor = marker.isLong ? '#16c784' : '#ea3943';
+        ctx.strokeStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(leftMargin + chartWidth, y);
+        ctx.stroke();
+      });
+
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      positionMarkers.forEach((marker) => {
+        const y = priceToY(marker.entryPrice);
+        if (y < 0 || y > chartHeight) return;
+
+        if (showYAxis && yAxisSide === 'right' && y < 100) {
+          return;
+        }
+
+        const labelText = `${marker.isLong ? 'L' : 'S'} ${marker.entryPrice.toFixed(
+          priceDecimals,
+        )}`;
+        const paddingX = 6;
+        const labelHeight = 16;
+        ctx.font = '11px monospace';
+        const textWidth = ctx.measureText(labelText).width;
+        const labelWidth = textWidth + paddingX * 2;
+        const clampedY = Math.min(
+          Math.max(y - labelHeight / 2, 2),
+          chartHeight - labelHeight - 2,
+        );
+
+        let labelX = leftMargin + chartWidth - labelWidth - 4;
+        if (showYAxis) {
+          labelX = yAxisSide === 'right' ? leftMargin + chartWidth + 4 : 4;
+        }
+
+        const fillColor = marker.isLong ? 'rgba(22, 199, 132, 0.9)' : 'rgba(234, 57, 67, 0.9)';
+
+        ctx.save();
+        ctx.fillStyle = fillColor;
+        ctx.fillRect(labelX, clampedY, labelWidth, labelHeight);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, labelX + paddingX, clampedY + labelHeight / 2 + 0.5);
+        ctx.restore();
+      });
+    }
   }, [
     dimensions,
     interpolatedHistory,
@@ -636,9 +701,13 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     currentPrice,
     gridAnchorPrice,
     gridAnchorTime,
+    showXAxis,
+    showYAxis,
+    yAxisSide,
     symbol,
     activeBets,
     isGridInteractive,
+    positionMarkers,
   ]);
 
   return (

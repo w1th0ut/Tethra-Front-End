@@ -14,8 +14,10 @@ import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting
 import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
 import Image from 'next/image';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
+import { usePositionsByIds, useUserPositions } from '@/hooks/data/usePositions';
 import { Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatUnits } from 'viem';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +48,8 @@ const TradingChart: React.FC = () => {
   const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL } = useOneTapProfit();
   const { usdcBalance } = useUSDCBalance();
   const isQuickTap = tapToTrade.tradeMode === 'quick-tap';
+  const { positionIds } = useUserPositions();
+  const { positions } = usePositionsByIds(positionIds);
 
   // Axis Configuration
   const [axisConfig, setAxisConfig] = useState({
@@ -149,6 +153,18 @@ const TradingChart: React.FC = () => {
       toast.error(error?.message || 'Quick tap failed');
     }
   };
+
+  const quickTapPositionMarkers = useMemo(() => {
+    if (!isQuickTap || !activeMarket || positions.length === 0) return [];
+
+    return positions
+      .filter((position) => position.status === 0 && position.symbol === activeMarket.symbol)
+      .map((position) => ({
+        id: position.id.toString(),
+        entryPrice: parseFloat(formatUnits(position.entryPrice, 8)),
+        isLong: position.isLong,
+      }));
+  }, [isQuickTap, activeMarket, positions]);
 
   return (
     <div
@@ -379,6 +395,7 @@ const TradingChart: React.FC = () => {
                 yAxisSide={axisConfig.ySide}
                 showXAxis={axisConfig.showX}
                 showYAxis={axisConfig.showY}
+                positionMarkers={quickTapPositionMarkers}
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
                   ? {
                       gridIntervalSeconds:

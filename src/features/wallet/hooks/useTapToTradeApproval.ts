@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
 import { parseUnits, formatUnits } from 'viem';
 import { STABILITY_FUND_ADDRESS, USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
 
@@ -32,6 +32,7 @@ const USDC_ABI = [
 export function useTapToTradeApproval() {
   const { authenticated } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
+  const { sendTransaction } = useSendTransaction();
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,16 +103,17 @@ export function useTapToTradeApproval() {
           '0',
         )}${BigInt(amount).toString(16).padStart(64, '0')}`;
 
-        const txHash = await walletClient.request({
-          method: 'eth_sendTransaction',
-          params: [
-            {
-              from: embeddedWallet.address,
-              to: USDC_ADDRESS,
-              data: approveData,
-            },
-          ],
-        });
+        const { hash } = await sendTransaction(
+          {
+            to: USDC_ADDRESS,
+            data: approveData,
+          },
+          {
+            sponsor: true,
+            address: embeddedWallet.address,
+          },
+        );
+        const txHash = hash;
 
         // Wait for confirmation
         let confirmed = false;
@@ -143,7 +145,7 @@ export function useTapToTradeApproval() {
         setIsPending(false);
       }
     },
-    [authenticated, walletsReady, wallets, fetchAllowance],
+    [authenticated, walletsReady, wallets, sendTransaction, fetchAllowance],
   );
 
   /**

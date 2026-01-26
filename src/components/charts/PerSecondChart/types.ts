@@ -28,4 +28,9 @@ export interface PerSecondChartProps {
   yAxisSide?: 'left' | 'right';
   showXAxis?: boolean;
   showYAxis?: boolean;
+  positionMarkers?: {
+    id: string;
+    entryPrice: number;
+    isLong: boolean;
+  }[];
 }

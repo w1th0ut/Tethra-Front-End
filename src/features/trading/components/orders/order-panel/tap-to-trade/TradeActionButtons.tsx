@@ -165,7 +165,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
 
   if (tradeMode === 'open-position') {
     if (!hasLargeAllowance) {
-      buttonText = isApprovalPending ? 'Approving USDC...' : 'Enable One-Click Trading';
+      buttonText = isApprovalPending ? 'Activating Trading...' : 'Activate Trading';
       isLoading = isApprovalPending;
       variant = 'default';
     } else {
@@ -174,7 +174,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     }
   } else if (tradeMode === 'quick-tap') {
     if (!hasLargeAllowance) {
-      buttonText = isApprovalPending ? 'Approving USDC...' : 'Enable One-Click Trading';
+      buttonText = isApprovalPending ? 'Activating Trading...' : 'Activate Trading';
       isLoading = isApprovalPending;
       variant = 'default';
     } else {
@@ -183,7 +183,7 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     }
   } else {
     if (!hasLargeOneTapProfitAllowance) {
-      buttonText = isOneTapProfitApprovalPending ? 'Approving USDC...' : 'Enable One-Click Binary';
+      buttonText = isOneTapProfitApprovalPending ? 'Activating Trading...' : 'Activate Trading';
       isLoading = isOneTapProfitApprovalPending;
     } else {
       buttonText = tapToTrade.isLoading ? 'Setting up session...' : 'Enable Binary Trade';
