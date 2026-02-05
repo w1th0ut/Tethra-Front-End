@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallets } from '@privy-io/react-auth';
 import { keccak256, encodePacked, encodeFunctionData } from 'viem';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export interface ClickedCell {
   cellX: number;
@@ -35,7 +36,7 @@ export interface TapToTradeOrder {
 }
 
 export function useTapToTrade() {
-  const { user } = usePrivy();
+  const { address } = useEmbeddedWallet();
   const { wallets } = useWallets();
   const [clickedCells, setClickedCells] = useState<ClickedCell[]>([]);
   const [pendingOrders, setPendingOrders] = useState<TapToTradeOrder[]>([]);
@@ -212,7 +213,7 @@ export function useTapToTrade() {
     marginTotal: string,
     marketExecutorAddress: string,
   ): Promise<boolean> => {
-    if (!user?.wallet?.address) {
+    if (!address) {
       setError('Wallet not connected');
       return false;
     }
@@ -236,7 +237,7 @@ export function useTapToTrade() {
       for (const cell of clickedCells) {
         for (let i = 0; i < cell.clickCount; i++) {
           const signResult = await signMarketOrder(
-            user.wallet.address,
+            address,
             symbol,
             cell.isLong,
             collateralPerOrder,
@@ -251,7 +252,7 @@ export function useTapToTrade() {
           orders.push({
             gridSessionId,
             cellId: `cell_${cell.cellX}_${cell.cellY}`,
-            trader: user.wallet.address,
+            trader: address,
             symbol,
             isLong: cell.isLong,
             collateral: collateralPerOrder,
@@ -301,12 +302,12 @@ export function useTapToTrade() {
    * Fetch pending orders from backend
    */
   const fetchPendingOrders = async (): Promise<void> => {
-    if (!user?.wallet?.address) return;
+    if (!address) return;
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
       const response = await fetch(
-        `${backendUrl}/api/tap-to-trade/orders?trader=${user.wallet.address}&status=PENDING`,
+        `${backendUrl}/api/tap-to-trade/orders?trader=${address}&status=PENDING`,
       );
 
       const result = await response.json();
@@ -323,7 +324,7 @@ export function useTapToTrade() {
    * Cancel single order
    */
   const cancelOrder = async (orderId: string): Promise<boolean> => {
-    if (!user?.wallet?.address) return false;
+    if (!address) return false;
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -332,7 +333,7 @@ export function useTapToTrade() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          trader: user.wallet.address,
+          trader: address,
         }),
       });
 
@@ -356,7 +357,7 @@ export function useTapToTrade() {
    * Cancel all orders in a cell
    */
   const cancelCell = async (cellId: string): Promise<boolean> => {
-    if (!user?.wallet?.address) return false;
+    if (!address) return false;
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -365,7 +366,7 @@ export function useTapToTrade() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cellId,
-          trader: user.wallet.address,
+          trader: address,
         }),
       });
 

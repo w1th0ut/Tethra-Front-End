@@ -6,8 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useWallets } from '@privy-io/react-auth';
 import usePoolData from '@/hooks/data/usePoolData';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 const TETHRA_TOKEN = process.env.NEXT_PUBLIC_TETHRA_TOKEN_ADDRESS as `0x${string}`;
 const TETHRA_STAKING = process.env.NEXT_PUBLIC_TETHRA_STAKING_ADDRESS as `0x${string}`;
@@ -53,7 +53,7 @@ const stakingABI = [
 
 export default function StakePage() {
   const publicClient = usePublicClient();
-  const { wallets } = useWallets();
+  const { address } = useEmbeddedWallet();
   const poolData = usePoolData();
 
   const [totalSupply, setTotalSupply] = useState<bigint>(BigInt(0));
@@ -63,15 +63,7 @@ export default function StakePage() {
   const [pendingRewards, setPendingRewards] = useState<bigint>(BigInt(0));
   const [isLoading, setIsLoading] = useState(true);
 
-  // Get external wallet
-  const externalWallet = wallets.find(
-    (wallet) =>
-      wallet.walletClientType === 'metamask' ||
-      wallet.walletClientType === 'coinbase_wallet' ||
-      wallet.walletClientType === 'wallet_connect' ||
-      (wallet.walletClientType !== 'privy' && wallet.connectorType !== 'embedded'),
-  );
-  const userAddress = externalWallet?.address;
+  const userAddress = address;
 
   useEffect(() => {
     const fetchData = async () => {

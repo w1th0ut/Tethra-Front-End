@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'react-hot-toast';
 import { DollarSign } from 'lucide-react';
 import { BACKEND_API_URL } from '@/config/contracts';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 const ClaimUSDCButton: React.FC = () => {
   const { authenticated, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { address } = useEmbeddedWallet();
   const [isClaiming, setIsClaiming] = useState(false);
 
   const handleClaimUSDC = async () => {
@@ -17,13 +18,12 @@ const ClaimUSDCButton: React.FC = () => {
       return;
     }
 
-    const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
-    if (!embeddedWallet) {
+    if (!address) {
       toast.error('Embedded wallet not found');
       return;
     }
 
-    const walletAddress = embeddedWallet.address;
+    const walletAddress = address;
     setIsClaiming(true);
     const loadingToast = toast.loading('Claiming USDC from faucet...');
 

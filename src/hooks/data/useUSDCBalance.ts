@@ -3,6 +3,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { createPublicClient, http, formatUnits } from 'viem';
 import { baseSepolia } from 'wagmi/chains';
 import { USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 /**
  * Custom hook to fetch USDC balance from the embedded wallet
@@ -10,6 +11,7 @@ import { USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
  */
 export const useUSDCBalance = () => {
   const { authenticated, user } = usePrivy();
+  const { address } = useEmbeddedWallet();
   const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
@@ -20,15 +22,7 @@ export const useUSDCBalance = () => {
         return;
       }
 
-      // Get embedded wallet address (same logic as WalletConnectButton)
-      const embeddedWallets = user.linkedAccounts?.filter(
-        (account: any) =>
-          account.type === 'wallet' && account.imported === false && account.id !== undefined,
-      ) as any[];
-
-      const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
-
-      if (!embeddedWalletAddress) {
+      if (!address) {
         setUsdcBalance('0.00');
         return;
       }
@@ -52,7 +46,7 @@ export const useUSDCBalance = () => {
             },
           ],
           functionName: 'balanceOf',
-          args: [embeddedWalletAddress as `0x${string}`],
+          args: [address as `0x${string}`],
         })) as bigint;
 
         // Format USDC balance using configured decimals
@@ -72,7 +66,7 @@ export const useUSDCBalance = () => {
       const interval = setInterval(fetchUsdcBalance, 5000);
       return () => clearInterval(interval);
     }
-  }, [authenticated, user]);
+  }, [authenticated, user, address]);
 
   return { usdcBalance, isLoadingBalance };
 };

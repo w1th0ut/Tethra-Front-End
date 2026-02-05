@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export interface GridConfig {
   asset: string;
@@ -26,7 +26,7 @@ export interface GridSession {
 }
 
 export function useGridTrading() {
-  const { user } = usePrivy();
+  const { address } = useEmbeddedWallet();
   const [isGridMode, setIsGridMode] = useState(false);
   const [gridConfig, setGridConfig] = useState<GridConfig | null>(null);
   const [gridSession, setGridSession] = useState<GridSession | null>(null);
@@ -41,7 +41,7 @@ export function useGridTrading() {
     config: GridConfig,
     currentPrice: number
   ): Promise<GridSession | null> => {
-    if (!user?.wallet?.address) {
+    if (!address) {
       setError('Wallet not connected');
       return null;
     }
@@ -61,7 +61,7 @@ export function useGridTrading() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          trader: user.wallet.address,
+          trader: address,
           symbol: config.asset,
           marginTotal: marginInBaseUnits,
           leverage: config.leverage,
@@ -99,7 +99,7 @@ export function useGridTrading() {
    * Cancels grid session
    */
   const disableTapToTrade = async (): Promise<boolean> => {
-    if (!gridSession || !user?.wallet?.address) {
+    if (!gridSession || !address) {
       return false;
     }
 
@@ -113,7 +113,7 @@ export function useGridTrading() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gridId: gridSession.id,
-          trader: user.wallet.address,
+          trader: address,
         }),
       });
 

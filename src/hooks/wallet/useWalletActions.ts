@@ -1,15 +1,13 @@
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export const useWalletActions = () => {
-  const { user, exportWallet, logout } = usePrivy();
+  const { exportWallet, logout } = usePrivy();
+  const { address } = useEmbeddedWallet();
 
   const getEmbeddedWalletAddress = () => {
-    const embeddedWallets = user?.linkedAccounts?.filter(
-      (account: any) =>
-        account.type === 'wallet' && account.imported === false && account.id !== undefined,
-    ) as any[];
-    return embeddedWallets?.[0]?.address || user?.wallet?.address;
+    return address;
   };
 
   const handleCopyAddress = () => {
@@ -29,23 +27,12 @@ export const useWalletActions = () => {
 
   const handleExportPrivateKey = async () => {
     try {
-      const embeddedWallets = user?.linkedAccounts?.filter(
-        (account: any) =>
-          account.type === 'wallet' && account.imported === false && account.id !== undefined,
-      ) as any[];
-
-      if (!embeddedWallets || embeddedWallets.length === 0) {
-        toast.error('Embedded wallet not found. Please reconnect your wallet.');
-        return;
-      }
-
-      const embeddedWalletAddress = embeddedWallets[0]?.address;
-      if (!embeddedWalletAddress) {
+      if (!address) {
         toast.error('Embedded wallet address not found');
         return;
       }
 
-      await exportWallet({ address: embeddedWalletAddress });
+      await exportWallet({ address });
       toast.success('Private key exported successfully!');
     } catch (error: any) {
       toast.error(error?.message || 'Failed to export private key');

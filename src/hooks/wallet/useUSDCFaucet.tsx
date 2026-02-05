@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import { BACKEND_API_URL } from '@/config/contracts';
 import React from 'react';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 type UseUSDCFaucetOptions = {
   onSuccess?: (txHash?: string) => void;
@@ -10,7 +11,7 @@ type UseUSDCFaucetOptions = {
 
 export const useUSDCFaucet = (options: UseUSDCFaucetOptions = {}) => {
   const { authenticated, user } = usePrivy();
-  const { wallets } = useWallets();
+  const { address } = useEmbeddedWallet();
   const [isClaiming, setIsClaiming] = useState(false);
 
   const handleClaimUSDC = async () => {
@@ -19,13 +20,12 @@ export const useUSDCFaucet = (options: UseUSDCFaucetOptions = {}) => {
       return;
     }
 
-    const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
-    if (!embeddedWallet) {
+    if (!address) {
       toast.error('Embedded wallet not found');
       return;
     }
 
-    const walletAddress = embeddedWallet.address;
+    const walletAddress = address;
     setIsClaiming(true);
     const loadingToast = toast.loading('Claiming USDC from faucet...');
 

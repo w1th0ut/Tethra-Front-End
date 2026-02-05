@@ -3,9 +3,11 @@ import { usePrivy } from '@privy-io/react-auth';
 import { createPublicClient, http, formatUnits } from 'viem';
 import { baseSepolia } from 'wagmi/chains';
 import { USDC_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
+import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 
 export const useWalletBalance = () => {
   const { authenticated, user } = usePrivy();
+  const { address } = useEmbeddedWallet();
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const refreshTimeoutsRef = useRef<number[]>([]);
@@ -13,14 +15,7 @@ export const useWalletBalance = () => {
   const fetchUsdcBalance = useCallback(async () => {
     if (!authenticated || !user) return;
 
-    const embeddedWallets = user.linkedAccounts?.filter(
-      (account: any) =>
-        account.type === 'wallet' && account.imported === false && account.id !== undefined,
-    ) as any[];
-
-    const embeddedWalletAddress = embeddedWallets?.[0]?.address || user?.wallet?.address;
-
-    if (!embeddedWalletAddress) return;
+    if (!address) return;
 
     setIsLoadingBalance(true);
     try {
@@ -41,7 +36,7 @@ export const useWalletBalance = () => {
           },
         ],
         functionName: 'balanceOf',
-        args: [embeddedWalletAddress as `0x${string}`],
+        args: [address as `0x${string}`],
       })) as bigint;
 
       const formattedBalance = formatUnits(balance, USDC_DECIMALS);
@@ -51,7 +46,7 @@ export const useWalletBalance = () => {
     } finally {
       setIsLoadingBalance(false);
     }
-  }, [authenticated, user]);
+  }, [authenticated, user, address]);
 
   useEffect(() => {
     if (authenticated && user) {
