@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { sdk } from '@farcaster/miniapp-sdk';
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -39,6 +40,10 @@ export default function LandingPage() {
       image: '/homepage/trade-take-profit-page.png',
     },
   ];
+  
+  useEffect(() => {
+    sdk.actions.ready();
+  }, []);
 
   useEffect(() => {
     setIsLoaded(true);
