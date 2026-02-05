@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, IBM_Plex_Mono } from 'next/font/google';
 import { Providers } from './providers';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { minikitConfig } from '@/minikit.config';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,51 +20,58 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Tethra DEX',
-  description: 'Decentralized Exchange with Advanced Trading Features',
-  openGraph: {
-    title: 'Tethra DEX',
-    description: 'Decentralized Exchange with Advanced Trading Features',
-    url: 'https://tethradex.vercel.app',
-    siteName: 'Tethra DEX',
-    images: [
-      {
-        url: '/homepage/trade-page.png',
-        width: 1200,
-        height: 630,
-        alt: 'Tethra DEX Banner',
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Tethra DEX',
-    description: 'Decentralized Exchange with Advanced Trading Features',
-    images: ['/homepage/trade-page.png'],
-    creator: '@tethradex',
-  },
-  other: {
-    'fc:frame': 'vNext',
-    'fc:frame:image': 'https://tethradex.vercel.app/api/frame/image?view=main',
-    'fc:frame:image:aspect_ratio': '1.91:1',
-    'fc:frame:post_url': 'https://tethradex.vercel.app/api/frame',
-    'fc:frame:button:1': '📊 Chart',
-    'fc:frame:button:1:action': 'post',
-    'fc:frame:button:1:target': 'https://tethradex.vercel.app/api/frame?action=chart',
-    'fc:frame:button:2': '🔗 Connect',
-    'fc:frame:button:2:action': 'post',
-    'fc:frame:button:2:target': 'https://tethradex.vercel.app/api/frame?action=connect',
-    'fc:frame:button:3': '💰 Claim USDC',
-    'fc:frame:button:3:action': 'post',
-    'fc:frame:button:3:target': 'https://tethradex.vercel.app/api/frame?action=claim',
-    'fc:frame:button:4': '🪙 Coins',
-    'fc:frame:button:4:action': 'post',
-    'fc:frame:button:4:target': 'https://tethradex.vercel.app/api/frame?action=coins',
-  },
-};
+const { miniapp } = minikitConfig;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: miniapp.ogTitle,
+    description: miniapp.ogDescription,
+    openGraph: {
+      title: miniapp.ogTitle,
+      description: miniapp.ogDescription,
+      url: miniapp.homeUrl,
+      siteName: miniapp.name,
+      images: [
+        {
+          url: miniapp.ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${miniapp.name} Banner`,
+        },
+      ],
+      locale: 'en_US',
+      type: 'website',
+    },
+    other: {
+      'base:app_id': '6971cfcf3a92926b661fcfea',
+      'fc:miniapp': JSON.stringify({
+        version: 'next',
+        imageUrl: miniapp.heroImageUrl,
+        button: {
+          title: `Launch ${miniapp.name}`,
+          action: {
+            type: 'launch_miniapp',
+            name: miniapp.name,
+            url: miniapp.homeUrl,
+            splashImageUrl: miniapp.splashImageUrl,
+            splashBackgroundColor: miniapp.splashBackgroundColor,
+          },
+        },
+      }),
+      'fc:frame': JSON.stringify({
+        version: miniapp.version,
+        imageUrl: miniapp.heroImageUrl,
+        button: {
+          title: `Launch ${miniapp.name}`,
+          action: {
+            name: `Launch ${miniapp.name}`,
+            type: "launch_frame",
+          },
+        },
+      })
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: 'device-width',
