@@ -21,7 +21,7 @@ import { useUSDCFaucet } from '@/hooks/wallet/useUSDCFaucet';
 export const WalletDialogContent: React.FC = () => {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExportConfirmed, setIsExportConfirmed] = useState(false);
-  const { usdcBalance, isLoadingBalance } = useWalletBalance();
+  const { usdcBalance, refetchBalance, bumpBalance } = useWalletBalance();
   const {
     shortAddress,
     handleCopyAddress,
@@ -29,7 +29,12 @@ export const WalletDialogContent: React.FC = () => {
     handleExportPrivateKey,
     handleDisconnect,
   } = useWalletActions();
-  const { isClaiming, handleClaimUSDC } = useUSDCFaucet();
+  const { isClaiming, handleClaimUSDC } = useUSDCFaucet({
+    onSuccess: () => {
+      bumpBalance(100);
+      refetchBalance();
+    },
+  });
 
   return (
     <>
@@ -142,11 +147,7 @@ export const WalletDialogContent: React.FC = () => {
         </div>
 
         <div className="text-4xl font-bold text-slate-100 mb-5">
-          {isLoadingBalance ? (
-            <span className="text-slate-400 text-2xl">Loading...</span>
-          ) : (
-            <span>${usdcBalance || '0.00'}</span>
-          )}
+          <span>{usdcBalance === null ? '-' : `$${usdcBalance}`}</span>
         </div>
 
         {/* Deposit, Withdraw & Claim USDC Buttons */}

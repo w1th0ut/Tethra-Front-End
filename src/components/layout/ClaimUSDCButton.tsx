@@ -4,38 +4,7 @@ import React, { useState } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { toast } from 'react-hot-toast';
 import { DollarSign } from 'lucide-react';
-import { USDC_ADDRESS } from '@/config/contracts';
-import { encodeFunctionData } from 'viem';
-
-// Mock USDC ABI with faucet function
-const MOCK_USDC_ABI = [
-  {
-    inputs: [],
-    name: 'faucet',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    name: 'hasClaimed',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
+import { BACKEND_API_URL } from '@/config/contracts';
 
 const ClaimUSDCButton: React.FC = () => {
   const { authenticated, user } = usePrivy();
@@ -48,7 +17,6 @@ const ClaimUSDCButton: React.FC = () => {
       return;
     }
 
-    // Get embedded wallet
     const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
     if (!embeddedWallet) {
       toast.error('Embedded wallet not found');
@@ -56,105 +24,63 @@ const ClaimUSDCButton: React.FC = () => {
     }
 
     const walletAddress = embeddedWallet.address;
-
     setIsClaiming(true);
-    const loadingToast = toast.loading('Checking claim status...');
+    const loadingToast = toast.loading('Claiming USDC from faucet...');
 
     try {
-      // Get wallet provider
-      const provider = await embeddedWallet.getEthereumProvider();
-      if (!provider) {
-        throw new Error('Could not get wallet provider');
+      const response = await fetch(`${BACKEND_API_URL}/api/faucet/claim`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address: walletAddress }),
+      });
+
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
       }
 
-      // Check if user has already claimed
-      const hasClaimedData = encodeFunctionData({
-        abi: MOCK_USDC_ABI,
-        functionName: 'hasClaimed',
-        args: [walletAddress as `0x${string}`],
-      });
-
-      const hasClaimedResult = await provider.request({
-        method: 'eth_call',
-        params: [
-          {
-            to: USDC_ADDRESS,
-            data: hasClaimedData,
-          },
-          'latest',
-        ],
-      });
-
-      // Parse the result (0x0000...0001 = true, 0x0000...0000 = false)
-      const alreadyClaimed =
-        hasClaimedResult !== '0x0000000000000000000000000000000000000000000000000000000000000000';
-
-      if (alreadyClaimed) {
-        toast.error(
-          'You have already claimed USDC from the faucet. Each wallet can only claim once.',
-          {
-            id: loadingToast,
-            duration: 5000,
-          },
-        );
-        return;
+      if (!response.ok || !payload?.success) {
+        const errorMessage = payload?.error || 'Failed to claim USDC from faucet';
+        throw new Error(errorMessage);
       }
 
-      // Update loading message
-      toast.loading('Claiming USDC from faucet...', { id: loadingToast });
+      const txHash = payload?.data?.transactionHash;
 
-      // Encode faucet() function call
-      const data = encodeFunctionData({
-        abi: MOCK_USDC_ABI,
-        functionName: 'faucet',
-        args: [],
-      });
-
-      // Send transaction to call faucet()
-      const txHash = await provider.request({
-        method: 'eth_sendTransaction',
-        params: [
-          {
-            from: walletAddress,
-            to: USDC_ADDRESS,
-            data: data,
-          },
-        ],
-      });
-
-      toast.success(`USDC claimed successfully! 🎉`, {
+      toast.success('USDC claimed successfully!', {
         id: loadingToast,
         duration: 4000,
       });
 
-      // Show transaction link
-      setTimeout(() => {
-        toast.success(
-          <div>
-            View on Explorer:{' '}
-            <a
-              href={`https://sepolia.basescan.org/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Click here
-            </a>
-          </div>,
-          { duration: 5000 },
-        );
-      }, 500);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('tethra:refreshBalance'));
+      }
 
-      // Reload the page to refresh balance
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      if (txHash) {
+        setTimeout(() => {
+          toast.success(
+            <div>
+              View on Explorer:{' '}
+              <a
+                href={`https://sepolia.basescan.org/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Click here
+              </a>
+            </div>,
+            { duration: 5000 },
+          );
+        }, 500);
+      }
+
     } catch (error: any) {
       let errorMessage = 'Failed to claim USDC from faucet';
-
-      if (error?.message?.includes('user rejected')) {
-        errorMessage = 'Transaction was rejected';
-      } else if (error?.message) {
+      if (error?.message) {
         errorMessage = error.message;
       }
 
