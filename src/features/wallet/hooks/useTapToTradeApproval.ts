@@ -78,7 +78,7 @@ export function useTapToTradeApproval() {
   /**
    * Approve USDC for TapToTradeExecutor
    */
-  const approve = useCallback(
+  const sendApproval = useCallback(
     async (amount: string) => {
       if (!authenticated || !walletsReady) {
         throw new Error('Wallet not ready');
@@ -137,6 +137,9 @@ export function useTapToTradeApproval() {
 
         // Refresh allowance
         await fetchAllowance();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('tethra:allowanceUpdated'));
+        }
 
         return txHash;
       } catch (error: any) {
@@ -147,6 +150,17 @@ export function useTapToTradeApproval() {
     },
     [authenticated, walletsReady, wallets, sendTransaction, fetchAllowance],
   );
+
+  const approve = useCallback(
+    async (amount: string) => {
+      return sendApproval(amount);
+    },
+    [sendApproval],
+  );
+
+  const revoke = useCallback(async () => {
+    return sendApproval('0');
+  }, [sendApproval]);
 
   /**
    * Check if user has sufficient allowance (> threshold)
@@ -165,9 +179,23 @@ export function useTapToTradeApproval() {
     }
   }, [authenticated, walletsReady, fetchAllowance]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleAllowanceUpdate = () => {
+      fetchAllowance();
+    };
+
+    window.addEventListener('tethra:allowanceUpdated', handleAllowanceUpdate);
+    return () => {
+      window.removeEventListener('tethra:allowanceUpdated', handleAllowanceUpdate);
+    };
+  }, [fetchAllowance]);
+
   return {
     allowance,
     approve,
+    revoke,
     hasAllowance,
     isPending,
     isLoading,

@@ -82,6 +82,19 @@ export const useOneTapProfitApproval = () => {
     checkAllowance();
   }, [checkAllowance]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleAllowanceUpdate = () => {
+      checkAllowance();
+    };
+
+    window.addEventListener('tethra:allowanceUpdated', handleAllowanceUpdate);
+    return () => {
+      window.removeEventListener('tethra:allowanceUpdated', handleAllowanceUpdate);
+    };
+  }, [checkAllowance]);
+
   // Approve USDC spending (StabilityFund spender)
   const approve = useCallback(
     async (amount: string) => {
@@ -117,6 +130,9 @@ export const useOneTapProfitApproval = () => {
 
         // Refresh allowance
         await checkAllowance();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('tethra:allowanceUpdated'));
+        }
 
         return txHash;
       } catch (error) {
