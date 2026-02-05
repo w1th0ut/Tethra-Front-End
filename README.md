@@ -14,9 +14,9 @@ Modern, high-performance frontend for Tethra DEX perpetual futures trading platf
 - 📈 **Real-time TradingView Charts** - Professional charting with Pyth Oracle price overlay
 - ⚡ **Instant Market Orders** - Execute trades immediately at oracle price
 - 🎯 **Advanced Orders** - Limit orders, stop-loss, take-profit, grid trading
-- 💎 **One Tap Profit** - Short-term price prediction betting (30s-5min)
+- 💎 **One Tap Profit and Quick Tap** - Short-term price prediction betting (30s-5min)
 - 📊 **Real-time PnL** - Live profit/loss calculation
-- 💰 **Multi-Asset Support** - Trade 12+ crypto assets with up to 100x leverage
+- 💰 **Multi-Asset Support** - Trade with crypto, forex, commodities, indices, stocks
 
 ### Wallet & Authentication
 
@@ -24,6 +24,7 @@ Modern, high-performance frontend for Tethra DEX perpetual futures trading platf
 - 🐛 **Wagmi & Viem** - Modern Web3 React hooks
 - 💵 **USDC Gas Payments** - Pay fees in USDC via Account Abstraction
 - 🔗 **Base Network** - Built on Base L2 for low fees and fast transactions
+- 🟦 **Base App** - Support login on Base App
 
 ### User Experience
 
