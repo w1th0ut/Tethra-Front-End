@@ -168,7 +168,7 @@ export const WalletDialogContent: React.FC = () => {
           <span>{usdcBalance === null ? '-' : `$${usdcBalance}`}</span>
         </div>
 
-        {/* Deposit, Withdraw & Claim USDC Buttons */}
+        {/* Deposit, Withdraw & Faucet Buttons */}
         <div className="grid grid-cols-4 gap-3">
           <button className="py-3 px-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl text-slate-100 font-medium transition-colors cursor-pointer">
             Deposit
@@ -180,10 +180,10 @@ export const WalletDialogContent: React.FC = () => {
             onClick={handleClaimUSDC}
             disabled={isClaiming}
             className="py-3 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded-xl text-white font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
-            title="Claim 100 Mock USDC"
+            title="Faucet 100 Mock USDC"
           >
             <DollarSign className="w-4 h-4" />
-            {isClaiming ? 'Claiming...' : 'Claim'}
+            {isClaiming ? 'Fauceting...' : 'Faucet'}
           </button>
           <button
             onClick={handleRevoke}
