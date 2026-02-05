@@ -425,18 +425,7 @@ export default function VaultsPage() {
         title: 'Vaults',
         subtitle: 'Vaults back their Stability Funds',
       }}
-      mobileHeaderContent={
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Vaults</h1>
-          <p className="text-gray-400 text-sm mb-4">
-            Vaults back their Stability Funds. Profits, including traders&apos; losses and trading
-            fees from traders, stream back to them.{' '}
-            <a href="#" className="text-blue-400 hover:text-blue-300 underline">
-              Read more
-            </a>
-          </p>
-        </div>
-      }
+      disableMobileHeaderContent
     >
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Vaults</h1>

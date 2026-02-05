@@ -13,6 +13,7 @@ interface GridSettingsProps {
   timeframe: string;
   currentPrice: string;
   setHasSelectedYGrid: (value: boolean) => void;
+  disabled?: boolean;
 }
 
 export const GridSettings: React.FC<GridSettingsProps> = ({
@@ -21,10 +22,13 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
   timeframe,
   currentPrice,
   setHasSelectedYGrid,
+  disabled = false,
 }) => {
   const tapToTrade = useTapToTrade();
 
   if (tradeMode !== 'open-position') return null;
+
+  const isDisabled = disabled || tapToTrade.isEnabled;
 
   return (
     <div className="space-y-4 border-t border-border-muted pt-4">
@@ -34,7 +38,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
       </div>
 
       {/* X Coordinate - Time Grid */}
-      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
+      <div className={isDisabled ? 'opacity-50 pointer-events-none' : ''}>
         <label className="text-xs text-text-secondary mb-3 flex items-center gap-1">
           X Coordinate (Time Grid Size)
           <Tooltip>
@@ -61,7 +65,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
             max={15}
             step={1}
             onValueChange={(val) => tapToTrade.setGridSizeX(val[0])}
-            disabled={tapToTrade.isEnabled}
+            disabled={isDisabled}
             className="flex-1"
           />
           <div className="flex items-center gap-2">
@@ -76,7 +80,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
       </div>
 
       {/* Y Coordinate - Price Grid */}
-      <div className={tapToTrade.isEnabled ? 'opacity-50 pointer-events-none' : ''}>
+      <div className={isDisabled ? 'opacity-50 pointer-events-none' : ''}>
         <label className="text-xs text-text-secondary mb-2 flex items-center gap-1">
           Y Coordinate (Price Grid Size)
           <Tooltip>
@@ -106,7 +110,7 @@ export const GridSettings: React.FC<GridSettingsProps> = ({
                 tapToTrade.setGridSizeY(parseFloat(e.target.value) || 0.001);
                 setHasSelectedYGrid(true);
               }}
-              disabled={tapToTrade.isEnabled}
+              disabled={isDisabled}
               className="bg-trading-surface border-border-default pr-8"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">

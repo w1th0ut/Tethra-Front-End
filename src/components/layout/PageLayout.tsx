@@ -32,6 +32,7 @@ interface PageLayoutProps {
   className?: string;
   contentClassName?: string;
   mobileHeaderContent?: ReactNode;
+  disableMobileHeaderContent?: boolean;
 }
 
 export default function PageLayout({
@@ -44,6 +45,7 @@ export default function PageLayout({
   className = '',
   contentClassName = '',
   mobileHeaderContent,
+  disableMobileHeaderContent = false,
 }: PageLayoutProps) {
   return (
     <main className={`min-h-screen bg-black text-white p-2 ${className}`}>
@@ -82,9 +84,9 @@ export default function PageLayout({
           {/* Content Area with scroll */}
           <div className={`flex-1 overflow-y-auto lg:p-6 p-4 ${contentClassName}`}>
             {/* Mobile Header Content (title/subtitle for mobile) */}
-            {mobileHeaderContent ? (
+            {!disableMobileHeaderContent && mobileHeaderContent ? (
               <div className="mb-6 lg:hidden">{mobileHeaderContent}</div>
-            ) : navbar?.title ? (
+            ) : !disableMobileHeaderContent && navbar?.title ? (
               <div className="mb-6 lg:hidden">
                 <h1 className="text-3xl font-bold mb-2">{navbar.title}</h1>
                 {navbar.subtitle && <p className="text-gray-400 text-sm">{navbar.subtitle}</p>}

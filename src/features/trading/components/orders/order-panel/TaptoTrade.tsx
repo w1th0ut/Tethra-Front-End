@@ -50,6 +50,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
 
   // Use trade mode from context
   const tradeMode = tapToTrade.tradeMode;
+  const isOpenPositionDeprecated = tradeMode === 'open-position';
 
   const leverageMarkers = [1, 2, 5, 10, 25, 50, 100, 1000]; // Updated to match MarketOrder + Quick Tap
 
@@ -177,6 +178,23 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         </div>
       )}
 
+      {/* Open Position Deprecated Banner */}
+      {isOpenPositionDeprecated && (
+        <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <Info size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-1">
+              <div className="text-xs font-semibold text-red-400">Open Position (Deprecated)</div>
+              <div className="text-xs text-red-300 space-y-0.5">
+                <div>- This mode is deprecated and no longer used</div>
+                <div>- All inputs are disabled (margin, leverage, timeframe, grid)</div>
+                <div>- Only the Market selector remains active</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Tap Info Banner */}
       {tradeMode === 'quick-tap' && (
         <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-3">
@@ -198,7 +216,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
       <MarketSelector
         value={activeMarket}
         onSelect={handleMarketSelect}
-        disabled={tapToTrade.isEnabled}
+        disabled={tapToTrade.isEnabled && !isOpenPositionDeprecated}
       />
 
       {/* Margin Input (USDC) */}
@@ -209,7 +227,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         isLoadingBalance={isLoadingBalance}
         onMaxClick={handleMaxClick}
         label={tradeMode === 'one-tap-profit' ? 'Bet Amount' : 'Margin'}
-        disabled={tapToTrade.isEnabled}
+        disabled={tapToTrade.isEnabled || isOpenPositionDeprecated}
       />
 
       {/* Leverage Input - Hidden for One Tap Profit */}
@@ -218,7 +236,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
           <LeverageSelector
             leverage={leverage}
             onLeverageChange={setLeverage}
-            disabled={tapToTrade.isEnabled || tradeMode === 'quick-tap'}
+            disabled={tapToTrade.isEnabled || tradeMode === 'quick-tap' || isOpenPositionDeprecated}
             markers={leverageMarkers}
           />
           {tradeMode === 'quick-tap' && (
@@ -232,7 +250,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         <TimeframeSelector
           timeframe={timeframe}
           setTimeframe={setTimeframe}
-          disabled={tapToTrade.isEnabled}
+          disabled={tapToTrade.isEnabled || isOpenPositionDeprecated}
         />
       )}
 
@@ -243,6 +261,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         timeframe={timeframe}
         currentPrice={currentPrice}
         setHasSelectedYGrid={setHasSelectedYGrid}
+        disabled={isOpenPositionDeprecated}
       />
 
       {/* Info Section */}
@@ -284,7 +303,9 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         isApprovalPending={isApprovalPending}
         isOneTapProfitApprovalPending={isOneTapProfitApprovalPending}
         disabled={
-          needsActivation
+          isOpenPositionDeprecated
+            ? true
+            : needsActivation
             ? false
             : hasInsufficientBalance
             ? true

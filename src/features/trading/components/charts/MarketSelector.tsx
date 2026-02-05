@@ -146,7 +146,6 @@ export default function MarketSelector(props: MarketSelectorProps) {
             className="w-full pl-9 pr-3 py-2 bg-input-bg border border-input-border rounded-md text-sm text-text-primary placeholder-input-placeholder focus:outline-none focus:ring-1 focus:ring-border-focus"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            autoFocus
           />
         </div>
         <button

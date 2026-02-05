@@ -1,12 +1,5 @@
 import { Market } from '@/features/trading/types';
 
-const letterLogo = (text: string, bg: string, fg: string = '#0B0F1A') =>
-  `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='64' rx='32' ry='32' fill='${encodeURIComponent(
-    bg,
-  )}'/><text x='50%' y='54%' font-family='Inter,Arial,sans-serif' font-size='28' font-weight='700' fill='${encodeURIComponent(
-    fg,
-  )}' text-anchor='middle' dominant-baseline='middle'>${encodeURIComponent(text)}</text></svg>`;
-
 export const ALL_MARKETS: Market[] = [
   {
     symbol: 'BTC',
@@ -81,15 +74,6 @@ export const ALL_MARKETS: Market[] = [
     maxLeverage: 100,
   },
   {
-    symbol: 'CRV',
-    tradingViewSymbol: 'BINANCE:CRVUSDT',
-    logoUrl:
-      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xD533a949740bb3306d119CC777fa900bA034cd52/logo.png',
-    binanceSymbol: 'CRVUSDT',
-    category: 'crypto',
-    maxLeverage: 100,
-  },
-  {
     symbol: 'DOGE',
     tradingViewSymbol: 'BINANCE:DOGEUSDT',
     logoUrl:
@@ -107,27 +91,18 @@ export const ALL_MARKETS: Market[] = [
     category: 'crypto',
     maxLeverage: 100,
   },
-  {
-    symbol: 'PEPE',
-    tradingViewSymbol: 'BINANCE:1000PEPEUSDT',
-    logoUrl:
-      'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6982508145454Ce325dDbE47a25d4ec3d2311933/logo.png',
-    binanceSymbol: '1000PEPEUSDT',
-    category: 'crypto',
-    maxLeverage: 100,
-  },
   // Forex
   {
     symbol: 'EURUSD',
     tradingViewSymbol: 'OANDA:EURUSD',
-    logoUrl: letterLogo('€', '#C7D2FE', '#111827'),
+    logoUrl: '/icons/EUR.png',
     category: 'forex',
     maxLeverage: 100,
   },
   {
     symbol: 'GBPUSD',
     tradingViewSymbol: 'OANDA:GBPUSD',
-    logoUrl: letterLogo('£', '#BFDBFE', '#0B0F1A'),
+    logoUrl: '/icons/GBP.png',
     category: 'forex',
     maxLeverage: 100,
   },
@@ -135,14 +110,14 @@ export const ALL_MARKETS: Market[] = [
   {
     symbol: 'XAUUSD',
     tradingViewSymbol: 'OANDA:XAUUSD',
-    logoUrl: letterLogo('Au', '#FDE68A', '#0B0F1A'),
+    logoUrl: '/icons/XAU.png',
     category: 'commodities',
     maxLeverage: 100,
   },
   {
     symbol: 'XAGUSD',
     tradingViewSymbol: 'OANDA:XAGUSD',
-    logoUrl: letterLogo('Ag', '#E5E7EB', '#0B0F1A'),
+    logoUrl: '/icons/XAG.png',
     category: 'commodities',
     maxLeverage: 100,
   },
@@ -150,14 +125,14 @@ export const ALL_MARKETS: Market[] = [
   {
     symbol: 'QQQUSD',
     tradingViewSymbol: 'NASDAQ:QQQ',
-    logoUrl: letterLogo('QQQ', '#C084FC', '#0B0F1A'),
+    logoUrl: '/icons/QQQ.png',
     category: 'indices',
     maxLeverage: 100,
   },
   {
     symbol: 'SPYUSD',
     tradingViewSymbol: 'AMEX:SPY',
-    logoUrl: letterLogo('SPY', '#A7F3D0', '#0B0F1A'),
+    logoUrl: '/icons/SPY.png',
     category: 'indices',
     maxLeverage: 100,
   },
@@ -165,14 +140,14 @@ export const ALL_MARKETS: Market[] = [
   {
     symbol: 'AAPLUSD',
     tradingViewSymbol: 'NASDAQ:AAPL',
-    logoUrl: letterLogo('AAPL', '#D8B4FE', '#0B0F1A'),
+    logoUrl: '/icons/AAPL.png',
     category: 'stocks',
     maxLeverage: 100,
   },
   {
     symbol: 'GOOGLUSD',
     tradingViewSymbol: 'NASDAQ:GOOGL',
-    logoUrl: letterLogo('GOOG', '#BFDBFE', '#0B0F1A'),
+    logoUrl: '/icons/GOOGL.png',
     category: 'stocks',
     maxLeverage: 100,
   },
