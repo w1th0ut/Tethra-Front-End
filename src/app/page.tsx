@@ -12,10 +12,6 @@ const Silk = dynamic(() => import('@/components/Silk'), { ssr: false });
 
 export default function LandingPage() {
 
-  // Supported chains animation state
-  const [isChainsVisible, setIsChainsVisible] = useState(false);
-  const chainsRef = useRef<HTMLDivElement>(null);
-
   // Platform preview scroll stack
   const platformRef = useRef<HTMLDivElement>(null);
   const [platformProgress, setPlatformProgress] = useState(0);
@@ -120,28 +116,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handlePlatformScroll);
   }, []);
 
-  // Chains animation on scroll
-  useEffect(() => {
-    const handleChainsScroll = () => {
-      if (!chainsRef.current) return;
-
-      const rect = chainsRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-
-      // Show chains when section is visible (60% threshold)
-      // Hide chains when scrolled past the section
-      if (rect.top <= windowHeight * 0.6 && rect.bottom >= windowHeight * 0.4) {
-        setIsChainsVisible(true);
-      } else {
-        setIsChainsVisible(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleChainsScroll);
-    handleChainsScroll(); // Check on mount
-
-    return () => window.removeEventListener('scroll', handleChainsScroll);
-  }, []);
 
   return (
     <div className="w-full bg-black text-white overflow-x-hidden">
@@ -298,417 +272,58 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Supported Chains Section */}
+      {/* Supported Coins Section - Marquee */}
       <section
-        ref={chainsRef}
-        id="supported-chains"
-        className="relative py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden"
+        id="supported-coins"
+        className="relative py-20 bg-black overflow-hidden"
       >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+        {/* Section Title */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl">
+            <span className="text-white">Supported </span>
+            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Coins</span>
+          </h2>
+        </div>
+
+        {/* Marquee Container */}
+        <div className="relative overflow-hidden group/marquee">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+
           <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(16, 185, 129, 0.1) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(6, 182, 212, 0.1) 1px, transparent 1px)
-              `,
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
-
-        {/* Gradient Orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"></div>
-
-        {/* Tech Stack Half Circles - At screen edges */}
-        {/* Left Half Circle - Frontend (facing right) */}
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none z-10 transition-all duration-700 ease-out hidden lg:block"
-          style={{
-            left: '-250px',
-            opacity: isChainsVisible ? 1 : 0,
-            transform: `translateY(-50%) translateX(${isChainsVisible ? '0' : '-100px'})`,
-          }}
-        >
-          <div className="relative w-[500px] h-[500px]">
-            {/* Half Circle Border - Right half visible */}
-            <div
-              className="absolute inset-0 rounded-full border-4 border-emerald-500/30"
-              style={{
-                clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
-              }}
-            ></div>
-
-            {/* Tethra Logo - Right half visible */}
-            <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-              style={{
-                clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)',
-              }}
-            >
-              <div className="relative bg-black rounded-full p-6 border-2 border-emerald-500/50">
-                <Image
-                  src="/tethra-logo.png"
-                  alt="Tethra Finance"
-                  width={100}
-                  height={100}
-                  className="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]"
-                />
-              </div>
-            </div>
-
-            {/* Frontend Tech Icons - Static positions */}
-            {/* Next.js - Top */}
-            <div className="absolute left-1/2 top-[10%] translate-x-[20%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-emerald-500/40 hover:border-emerald-500 hover:scale-110 transition-all cursor-pointer">
-                  <Image
-                    src="/icons/nextjs.png"
-                    alt="Next.js"
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 object-contain"
-                  />
-                </div>
-                <span className="text-xs font-semibold text-emerald-400 whitespace-nowrap">
-                  Next.js
-                </span>
-              </div>
-            </div>
-
-            {/* React - Right Middle */}
-            <div className="absolute right-[15%] top-1/2 -translate-y-1/2 pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-emerald-500/40 hover:border-emerald-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 24 24" className="w-10 h-10" fill="#61DAFB">
-                    <circle cx="12" cy="12" r="2"></circle>
-                    <path d="M12,10.11C13.03,10.11 13.87,10.95 13.87,12C13.87,13 13.03,13.85 12,13.85C10.97,13.85 10.13,13 10.13,12C10.13,10.95 10.97,10.11 12,10.11M7.37,20C8,20.38 9.38,19.8 10.97,18.3C10.45,17.71 9.94,17.07 9.46,16.4C8.64,16.32 7.83,16.2 7.06,16.04C6.55,18.18 6.74,19.65 7.37,20M8.08,14.26L7.79,13.75C7.68,14.04 7.57,14.33 7.5,14.61C7.77,14.67 8.07,14.72 8.38,14.77C8.28,14.6 8.18,14.43 8.08,14.26M14.62,13.5L15.43,12L14.62,10.5C14.32,9.97 14,9.5 13.71,9.03C13.17,9 12.6,9 12,9C11.4,9 10.83,9 10.29,9.03C10,9.5 9.68,9.97 9.38,10.5L8.57,12L9.38,13.5C9.68,14.03 10,14.5 10.29,14.97C10.83,15 11.4,15 12,15C12.6,15 13.17,15 13.71,14.97C14,14.5 14.32,14.03 14.62,13.5M12,6.78C11.81,7 11.61,7.23 11.41,7.5C11.61,7.5 11.8,7.5 12,7.5C12.2,7.5 12.39,7.5 12.59,7.5C12.39,7.23 12.19,7 12,6.78M12,17.22C12.19,17 12.39,16.77 12.59,16.5C12.39,16.5 12.2,16.5 12,16.5C11.8,16.5 11.61,16.5 11.41,16.5C11.61,16.77 11.81,17 12,17.22M16.62,4C16,3.62 14.62,4.2 13.03,5.7C13.55,6.29 14.06,6.93 14.54,7.6C15.36,7.68 16.17,7.8 16.94,7.96C17.45,5.82 17.26,4.35 16.62,4M15.92,9.74L16.21,10.25C16.32,9.96 16.43,9.67 16.5,9.39C16.23,9.33 15.93,9.28 15.62,9.23C15.72,9.4 15.82,9.57 15.92,9.74M17.37,2.69C18.84,3.53 19,5.74 18.38,8.32C20.92,9.07 22.75,10.31 22.75,12C22.75,13.69 20.92,14.93 18.38,15.68C19,18.26 18.84,20.47 17.37,21.31C15.91,22.15 13.92,21.19 12,19.36C10.08,21.19 8.09,22.15 6.62,21.31C5.16,20.47 5,18.26 5.62,15.68C3.08,14.93 1.25,13.69 1.25,12C1.25,10.31 3.08,9.07 5.62,8.32C5,5.74 5.16,3.53 6.62,2.69C8.09,1.85 10.08,2.81 12,4.64C13.92,2.81 15.91,1.85 17.37,2.69M17.08,12C17.42,12.75 17.72,13.5 17.97,14.26C20.07,13.63 21.25,12.73 21.25,12C21.25,11.27 20.07,10.37 17.97,9.74C17.72,10.5 17.42,11.25 17.08,12M6.92,12C6.58,11.25 6.28,10.5 6.03,9.74C3.93,10.37 2.75,11.27 2.75,12C2.75,12.73 3.93,13.63 6.03,14.26C6.28,13.5 6.58,12.75 6.92,12M15.92,14.26C15.82,14.43 15.72,14.6 15.62,14.77C15.93,14.72 16.23,14.67 16.5,14.61C16.43,14.33 16.32,14.04 16.21,13.75L15.92,14.26M13.03,18.3C14.62,19.8 16,20.38 16.62,20C17.26,19.65 17.45,18.18 16.94,16.04C16.17,16.2 15.36,16.32 14.54,16.4C14.06,17.07 13.55,17.71 13.03,18.3M8.08,9.74C8.18,9.57 8.28,9.4 8.38,9.23C8.07,9.28 7.77,9.33 7.5,9.39C7.57,9.67 7.68,9.96 7.79,10.25L8.08,9.74M10.97,5.7C9.38,4.2 8,3.62 7.37,4C6.74,4.35 6.55,5.82 7.06,7.96C7.83,7.8 8.64,7.68 9.46,7.6C9.94,6.93 10.45,6.29 10.97,5.7Z"></path>
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-emerald-400 whitespace-nowrap">
-                  React
-                </span>
-              </div>
-            </div>
-
-            {/* Tailwind - Bottom */}
-            <div className="absolute left-1/2 bottom-[10%] translate-x-[20%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-emerald-500/40 hover:border-emerald-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 24 24" className="w-10 h-10" fill="#06B6D4">
-                    <path d="M12.001,4.8c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 C13.666,10.618,15.027,12,18.001,12c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C16.337,6.182,14.976,4.8,12.001,4.8z M6.001,12c-3.2,0-5.2,1.6-6,4.8c1.2-1.6,2.6-2.2,4.2-1.8c0.913,0.228,1.565,0.89,2.288,1.624 c1.177,1.194,2.538,2.576,5.512,2.576c3.2,0,5.2-1.6,6-4.8c-1.2,1.6-2.6,2.2-4.2,1.8c-0.913-0.228-1.565-0.89-2.288-1.624 C10.337,13.382,8.976,12,6.001,12z"></path>
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-emerald-400 whitespace-nowrap">
-                  Tailwind
-                </span>
-              </div>
-            </div>
-
-            {/* Frontend Label */}
-            <div className="absolute left-1/2 -bottom-16 translate-x-[20%]">
-              <h3 className="text-2xl md:text-3xl font-bold text-emerald-400">Frontend</h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Half Circle - Blockchain (facing left) */}
-        <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none z-10 transition-all duration-700 ease-out hidden lg:block"
-          style={{
-            right: '-250px',
-            opacity: isChainsVisible ? 1 : 0,
-            transform: `translateY(-50%) translateX(${isChainsVisible ? '0' : '100px'})`,
-          }}
-        >
-          <div className="relative w-[500px] h-[500px]">
-            {/* Half Circle Border - Left half visible */}
-            <div
-              className="absolute inset-0 rounded-full border-4 border-cyan-500/30"
-              style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }}
-            ></div>
-
-            {/* Tethra Logo - Left half visible */}
-            <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-              style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }}
-            >
-              <div className="relative bg-black rounded-full p-6 border-2 border-cyan-500/50">
-                <Image
-                  src="/tethra-logo.png"
-                  alt="Tethra Finance"
-                  width={100}
-                  height={100}
-                  className="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_20px_rgba(6,182,212,0.5)]"
-                />
-              </div>
-            </div>
-
-            {/* Blockchain Tech Icons - Static positions */}
-            {/* Base - Top */}
-            <div className="absolute left-1/2 top-[10%] -translate-x-[120%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-cyan-500/40 hover:border-cyan-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 111 111" className="w-10 h-10" fill="none">
-                    <circle cx="55.5" cy="55.5" r="55.5" fill="#0052FF" />
-                    <path
-                      d="M54.9219 85.8281C71.9719 85.8281 85.8438 71.9563 85.8438 54.9063C85.8438 37.8563 71.9719 23.9844 54.9219 23.9844C39.0469 23.9844 25.9844 35.8688 24.2344 51.3688H65.1594V58.4438H24.2344C25.9844 73.9438 39.0469 85.8281 54.9219 85.8281Z"
-                      fill="white"
-                    />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-cyan-400 whitespace-nowrap">Base</span>
-              </div>
-            </div>
-
-            {/* Foundry - Left Top */}
-            <div className="absolute left-[15%] top-[25%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-cyan-500/40 hover:border-cyan-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 32 32" className="w-9 h-9" fill="white">
-                    <path d="M16 0l-4 7.2L16 10l4-2.8L16 0zm0 12l-8 5.6L16 22l8-4.4L16 12zm-8 9.6L16 26l8-4.4L16 32l-8-10.4z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-cyan-400 whitespace-nowrap">
-                  Foundry
-                </span>
-              </div>
-            </div>
-
-            {/* Ethers.js - Left Bottom */}
-            <div className="absolute left-[15%] bottom-[25%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-cyan-500/40 hover:border-cyan-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 293 163" className="w-10 h-10" fill="none">
-                    <path d="M146.5 0L73 81.5L146.5 122L220 81.5L146.5 0Z" fill="#627EEA" />
-                    <path
-                      d="M146.5 163L73 103L146.5 81.5L220 103L146.5 163Z"
-                      fill="#627EEA"
-                      opacity="0.6"
-                    />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-cyan-400 whitespace-nowrap">
-                  ethers.js
-                </span>
-              </div>
-            </div>
-
-            {/* Privy - Bottom */}
-            <div className="absolute left-1/2 bottom-[10%] -translate-x-[120%] pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-16 h-16 aspect-square rounded-full bg-gray-900/90 backdrop-blur-sm flex items-center justify-center border-2 border-cyan-500/40 hover:border-cyan-500 hover:scale-110 transition-all cursor-pointer">
-                  <svg viewBox="0 0 120 120" className="w-9 h-9">
-                    <circle cx="60" cy="60" r="60" fill="black" />
-                    <circle cx="60" cy="40" r="15" fill="white" />
-                    <circle cx="40" cy="70" r="15" fill="white" />
-                    <circle cx="80" cy="70" r="15" fill="white" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-cyan-400 whitespace-nowrap">Privy</span>
-              </div>
-            </div>
-
-            {/* Blockchain Label */}
-            <div className="absolute left-1/2 -bottom-16 -translate-x-[120%]">
-              <h3 className="text-2xl md:text-3xl font-bold text-cyan-400">Blockchain</h3>
-            </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto max-w-6xl relative z-10" id="chains">
-          {/* Section Title */}
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-              Supported Chains
-            </h2>
-            <p className="text-xl text-gray-400">
-              Trade seamlessly across multiple blockchain networks
-            </p>
-          </div>
-
-          {/* Chains Grid */}
-          <div className="relative">
-            {/* Center Logo */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-              <button
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="relative group cursor-pointer focus:outline-none"
-                aria-label="Back to top"
-              >
-                {/* Animated Ring */}
-                <div
-                  className="absolute inset-0 rounded-full border-2 border-cyan-500/30 scale-125"
-                  style={{
-                    animation: 'rotate 15s linear infinite',
-                  }}
-                />
-                <div
-                  className="absolute inset-0 rounded-full border-2 border-emerald-500/30 scale-150"
-                  style={{
-                    animation: 'rotate 20s linear infinite reverse',
-                  }}
-                />
-
-                {/* Glow Effect - Default */}
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 rounded-full blur-2xl scale-150 opacity-100 group-hover:opacity-0 transition-opacity duration-500"></div>
-
-                {/* Glow Effect - Hover (Gradient Circle) */}
-                <div className="absolute inset-0 rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            className="flex w-max group-hover/marquee:[animation-play-state:paused]"
+            style={{ animation: 'marqueeScroll 30s linear infinite' }}
+          >
+            {/* Coin cards - duplicated for seamless loop */}
+            {[...Array(2)].map((_, setIndex) => (
+              <div key={setIndex} className="flex shrink-0">
+                {[
+                  { name: 'AAVE', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9/logo.png' },
+                  { name: 'ARB', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png' },
+                  { name: 'AVAX', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png' },
+                  { name: 'BNB', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png' },
+                  { name: 'BTC', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png' },
+                  { name: 'DOGE', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png' },
+                  { name: 'ETH', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png' },
+                  { name: 'LINK', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png' },
+                  { name: 'SOL', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png' },
+                  { name: 'XRP', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png' },
+                ].map((coin) => (
                   <div
-                    className="absolute inset-0 rounded-full blur-2xl"
-                    style={{
-                      background:
-                        'conic-gradient(from 0deg, #06b6d4, #10b981, #06b6d4, #10b981, #06b6d4)',
-                      animation: 'rotate 3s linear infinite',
-                    }}
-                  ></div>
-                </div>
-
-                {/* Tethra Logo */}
-                <div className="relative bg-black rounded-full p-6 border-2 border-cyan-500/50 group-hover:border-cyan-500 group-hover:scale-110 transition-all duration-500 group-hover:shadow-[0_0_40px_rgba(6,182,212,0.6)]">
-                  <Image
-                    src="/tethra-logo.png"
-                    alt="Tethra Finance"
-                    width={120}
-                    height={120}
-                    className="w-32 h-32 md:w-44 md:h-44 drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] group-hover:drop-shadow-[0_0_50px_rgba(6,182,212,0.8)] transition-all duration-500"
-                  />
-                </div>
-              </button>
-            </div>
-
-            {/* Chain Logos in Circle - With Rotation Animation */}
-            <div
-              className="relative w-full max-w-2xl mx-auto aspect-square"
-              style={{
-                animation: isChainsVisible ? 'rotateChains 60s linear infinite' : 'none',
-              }}
-            >
-              {[
-                {
-                  name: 'Bitcoin',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png',
-                  position: 0,
-                },
-                {
-                  name: 'Ethereum',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
-                  position: 1,
-                },
-                {
-                  name: 'Solana',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png',
-                  position: 2,
-                },
-                {
-                  name: 'Avalanche',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchex/info/logo.png',
-                  position: 3,
-                },
-                {
-                  name: 'NEAR',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/near/info/logo.png',
-                  position: 4,
-                },
-                {
-                  name: 'BNB',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/binance/info/logo.png',
-                  position: 5,
-                },
-                {
-                  name: 'Ripple',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png',
-                  position: 6,
-                },
-                {
-                  name: 'Arbitrum',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png',
-                  position: 7,
-                },
-                {
-                  name: 'Polygon',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png',
-                  position: 8,
-                },
-                {
-                  name: 'Dogecoin',
-                  logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png',
-                  position: 9,
-                },
-              ].map((chain, index) => {
-                const totalChains = 10;
-                const angle = (chain.position * 360) / totalChains - 90; // -90 to start from top
-                const radius = 45; // percentage
-                const x = 50 + radius * Math.cos((angle * Math.PI) / 180);
-                const y = 50 + radius * Math.sin((angle * Math.PI) / 180);
-
-                return (
-                  <div
-                    key={chain.name}
-                    className={`absolute group/chain cursor-pointer transition-all duration-1000 ease-out ${
-                      isChainsVisible ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    style={{
-                      left: isChainsVisible ? `${x}%` : '50%',
-                      top: isChainsVisible ? `${y}%` : '50%',
-                      transform: 'translate(-50%, -50%)',
-                      transitionDelay: `${index * 100}ms`,
-                    }}
+                    key={coin.name}
+                    className="flex flex-col items-center gap-3 bg-transparent rounded-xl py-5 border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer w-[200px] mx-3 shrink-0"
                   >
-                    {/* Connection Line to Center */}
-                    <div
-                      className="absolute w-0.5 bg-gradient-to-r from-cyan-500/20 to-transparent opacity-0 group-hover/chain:opacity-100 transition-opacity duration-300"
-                      style={{
-                        height: `${radius * 2}%`,
-                        transformOrigin: 'top center',
-                        transform: `rotate(${angle + 90}deg)`,
-                        top: '50%',
-                        left: '50%',
-                      }}
+                    <img
+                      src={coin.logo}
+                      alt={coin.name}
+                      className="w-12 h-12 rounded-full"
                     />
-
-                    {/* Chain Logo Container */}
-                    <div
-                      className="relative"
-                      style={{
-                        animation: isChainsVisible
-                          ? 'rotateChains 60s linear infinite reverse'
-                          : 'none',
-                      }}
-                    >
-                      {/* Glow on Hover */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-emerald-500/0 group-hover/chain:from-cyan-500/30 group-hover/chain:to-emerald-500/30 rounded-full blur-xl scale-150 transition-all duration-300"></div>
-
-                      {/* Logo */}
-                      <div className="relative bg-gray-900 rounded-full p-3 md:p-4 border border-gray-700 group-hover/chain:border-cyan-500/50 group-hover/chain:scale-110 transition-all duration-300">
-                        <img
-                          src={chain.logo}
-                          alt={chain.name}
-                          className="max-w-8 max-h-8 md:max-w-12 md:max-h-12"
-                        />
-                      </div>
-
-                      {/* Chain Name */}
-                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover/chain:opacity-100 transition-opacity duration-300">
-                        <span className="text-xs md:text-sm text-cyan-400 font-medium">
-                          {chain.name}
-                        </span>
-                      </div>
-                    </div>
+                    <span className="text-white text-sm font-medium">{coin.name}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Additional Info */}
-          <div className="text-center mt-32">
-            <p className="text-gray-400 text-lg">More chains coming soon...</p>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1006,12 +621,12 @@ export default function LandingPage() {
           }
         }
 
-        @keyframes rotateChains {
-          from {
-            transform: rotate(0deg);
+        @keyframes marqueeScroll {
+          0% {
+            transform: translateX(0);
           }
-          to {
-            transform: rotate(360deg);
+          100% {
+            transform: translateX(-50%);
           }
         }
 
