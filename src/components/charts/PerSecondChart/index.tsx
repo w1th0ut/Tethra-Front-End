@@ -38,6 +38,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   const [verticalOffset, setVerticalOffset] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(true);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [displayBets, setDisplayBets] = useState<Bet[]>([]);
   const betCacheRef = useRef<Map<string, { bet: Bet; lastSeen: number }>>(new Map());
   const [hoveredCellInfo, setHoveredCellInfo] = useState<{
@@ -64,6 +65,19 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     }
   }, [currentPrice]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia('(pointer: coarse)');
+    const update = () => setIsCoarsePointer(media.matches);
+    update();
+    if (media.addEventListener) {
+      media.addEventListener('change', update);
+      return () => media.removeEventListener('change', update);
+    }
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
+
   // Derived constants
   // ensure we never have 0 grid step (avoids division by zero in drawing)
   const basePrice = initialPrice > 0 ? initialPrice : currentPrice > 0 ? currentPrice : 1000; // Fallback to 1000 if no price
@@ -83,6 +97,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   });
 
   const isInteractionLocked = tradeMode === 'one-tap-profit';
+  const suppressHoverPreview = isInteractionLocked && isCoarsePointer;
 
   // 5. Interaction (Mouse/Keyboard)
   const {
@@ -436,7 +451,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
         }
 
         const isSelected = selectedCells.has(cellId);
-        const isHovered = isGridInteractive && hoveredCell === cellId;
+        const isHovered = isGridInteractive && hoveredCell === cellId && !suppressHoverPreview;
 
         // Default colors
         let cellColor = '59, 130, 246'; // Blue
