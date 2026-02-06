@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { formatMarketPair } from '@/features/trading/lib/marketUtils';
+import { formatMarketPair, inferMarketCategory } from '@/features/trading/lib/marketUtils';
 import { usePosition } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useGaslessClose } from '@/features/trading/hooks/useGaslessClose';
@@ -92,6 +92,16 @@ const PositionRow = ({
     return market?.logoUrl || '';
   };
 
+  const marketCategory =
+    ALL_MARKETS.find((m) => m.symbol === position.symbol)?.category ??
+    inferMarketCategory(position.symbol);
+  const priceDecimals = marketCategory === 'forex' ? 5 : 2;
+  const formatPriceValue = (value: number) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: priceDecimals,
+      maximumFractionDigits: priceDecimals,
+    });
+
   // Handle TP/SL button click
   const handleTPSLClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -162,13 +172,7 @@ const PositionRow = ({
 
       {/* Entry Price */}
       <td className="px-4 py-3">
-        <span className="text-white">
-          $
-          {entryPrice.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
+        <span className="text-white">${formatPriceValue(entryPrice)}</span>
       </td>
     </tr>
   );

@@ -12,6 +12,21 @@ export const formatPrice = (price: number): string => {
   }).format(price);
 };
 
+export const formatPriceWithDecimals = (price: number, decimals: number): string => {
+  if (isNaN(price)) return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(0);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(price);
+};
+
 export const formatTokenAmount = (amount: number): string => {
   if (isNaN(amount) || amount === 0) return '0.0';
   return amount.toFixed(6);

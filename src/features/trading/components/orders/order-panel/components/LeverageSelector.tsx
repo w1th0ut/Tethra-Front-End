@@ -18,16 +18,26 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
   disabled = false,
   markers = [1, 2, 5, 10, 25, 50, 100],
 }) => {
-  const [leverageInput, setLeverageInput] = useState<string>(leverage.toFixed(1));
+  const formatLeverageValue = (value: number) =>
+    Number.isInteger(value) ? value.toString() : value.toFixed(1);
+  const [leverageInput, setLeverageInput] = useState<string>(formatLeverageValue(leverage));
 
   // Memoize leverage values to avoid recalculation
-  const leverageValues = React.useMemo(() => generateLeverageValues(), []);
+  const normalizedMarkers = React.useMemo(
+    () => Array.from(new Set(markers)).sort((a, b) => a - b),
+    [markers],
+  );
+  const leverageValues = React.useMemo(
+    () => generateLeverageValues(normalizedMarkers),
+    [normalizedMarkers],
+  );
   const maxSliderValue = leverageValues.length - 1;
   const currentIndex = getCurrentSliderIndex(leverage, leverageValues);
+  const maxAllowed = normalizedMarkers[normalizedMarkers.length - 1] ?? 100;
 
   useEffect(() => {
     if (!document.activeElement?.classList.contains('leverage-input')) {
-      setLeverageInput(leverage.toFixed(1));
+      setLeverageInput(formatLeverageValue(leverage));
     }
   }, [leverage]);
 
@@ -35,7 +45,7 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
     const index = value[0];
     const newValue = leverageValues[index];
     onLeverageChange(newValue);
-    setLeverageInput(newValue.toFixed(1));
+    setLeverageInput(formatLeverageValue(newValue));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,7 +54,7 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
       setLeverageInput(value);
       if (value !== '' && value !== '.') {
         const numValue = parseFloat(value);
-        if (!isNaN(numValue) && numValue >= 0.1 && numValue <= 100) {
+        if (!isNaN(numValue) && numValue >= 0.1 && numValue <= maxAllowed) {
           onLeverageChange(numValue);
         }
       }
@@ -53,10 +63,10 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
 
   const handleInputBlur = () => {
     if (leverageInput === '' || leverageInput === '.') {
-      setLeverageInput('1.0');
+      setLeverageInput(formatLeverageValue(1));
       onLeverageChange(1);
     } else {
-      setLeverageInput(leverage.toFixed(1));
+      setLeverageInput(formatLeverageValue(leverage));
     }
   };
 
@@ -78,6 +88,7 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
           <div className="absolute top-full -mt-4 left-0 right-0 h-4">
             {markers.map((marker, index) => {
               const markerIndex = leverageValues.findIndex((v) => Math.abs(v - marker) < 0.01);
+              if (markerIndex < 0) return null;
               const position = (markerIndex / maxSliderValue) * 100;
               return (
                 <span
@@ -102,7 +113,7 @@ export const LeverageSelector: React.FC<LeverageSelectorProps> = ({
             onChange={handleInputChange}
             onBlur={handleInputBlur}
             disabled={disabled}
-            className="leverage-input h-7 bg-transparent text-sm font-semibold text-text-primary border-none p-0 w-10 text-right focus-visible:ring-0"
+            className="leverage-input h-7 bg-transparent text-sm font-semibold text-text-primary border-none p-0 w-[6ch] text-right focus-visible:ring-0"
           />
           <span className="text-sm font-semibold text-text-primary">x</span>
         </div>

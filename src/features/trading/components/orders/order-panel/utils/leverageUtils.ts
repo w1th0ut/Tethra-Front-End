@@ -4,11 +4,12 @@
 
 export const LEVERAGE_MARKERS = [1, 2, 5, 10, 25, 50, 100];
 
-export const generateLeverageValues = (): number[] => {
+export const generateLeverageValues = (markers: number[] = LEVERAGE_MARKERS): number[] => {
+  const sortedMarkers = Array.from(new Set(markers)).sort((a, b) => a - b);
   const values: number[] = [];
-  for (let i = 0; i < LEVERAGE_MARKERS.length - 1; i++) {
-    const start = LEVERAGE_MARKERS[i];
-    const end = LEVERAGE_MARKERS[i + 1];
+  for (let i = 0; i < sortedMarkers.length - 1; i++) {
+    const start = sortedMarkers[i];
+    const end = sortedMarkers[i + 1];
     const step = (end - start) / 10;
 
     for (let j = 0; j < 10; j++) {
@@ -16,7 +17,7 @@ export const generateLeverageValues = (): number[] => {
       values.push(Number(value.toFixed(2)));
     }
   }
-  values.push(LEVERAGE_MARKERS[LEVERAGE_MARKERS.length - 1]);
+  values.push(sortedMarkers[sortedMarkers.length - 1]);
   return values;
 };
 

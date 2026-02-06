@@ -108,6 +108,7 @@ export const MarketSelector: React.FC<MarketSelectorProps> = ({ value, onSelect,
       <PopoverContent
         className="w-[300px] p-0 bg-trading-surface border-border-default"
         align="start"
+        onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <Command className="bg-trading-surface p-0">
           <CommandInput placeholder="Search market..." className="text-text-primary" />

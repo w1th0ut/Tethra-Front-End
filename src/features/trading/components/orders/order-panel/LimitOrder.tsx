@@ -189,7 +189,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
   };
 
   return (
-    <div className="flex flex-col gap-3 py-4">
+    <div className="flex flex-col gap-3 py-4 bg-trading-bg h-full px-3">
       {/* Pay Section */}
       <CollateralInput
         value={payAmount}
@@ -197,7 +197,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         balance={usdcBalance}
         isLoadingBalance={isLoadingBalance}
         onMaxClick={handleMaxClick}
-        label="Pay"
+        label="Collateral"
         tokenSymbol="USDC"
       />
 
@@ -255,6 +255,7 @@ const LimitOrder: React.FC<LimitOrderProps> = ({ activeTab = 'long' }) => {
         }
         payAmount={payAmount}
         leverage={leverage}
+        marketCategory={activeMarket?.category}
       />
 
       {/* Action Button */}

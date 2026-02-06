@@ -38,6 +38,8 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   const [verticalOffset, setVerticalOffset] = useState(0);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(true);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [displayBets, setDisplayBets] = useState<Bet[]>([]);
+  const betCacheRef = useRef<Map<string, { bet: Bet; lastSeen: number }>>(new Map());
   const [hoveredCellInfo, setHoveredCellInfo] = useState<{
     targetPrice: number;
     targetCenterPrice?: number;
@@ -80,6 +82,8 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     setVerticalOffset,
   });
 
+  const isInteractionLocked = tradeMode === 'one-tap-profit';
+
   // 5. Interaction (Mouse/Keyboard)
   const {
     handleMouseDown,
@@ -98,6 +102,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     setIsFocusMode,
     hoveredCell,
     isPlacingBet,
+    isInteractionLocked,
     onCellClick,
     priceHistory,
     currentPrice,
@@ -106,6 +111,40 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   });
 
   const isGridInteractive = tradeMode !== 'quick-tap' && Boolean(onCellClick);
+
+  useEffect(() => {
+    const cache = betCacheRef.current;
+    cache.clear();
+    setDisplayBets([]);
+  }, [symbol]);
+
+  useEffect(() => {
+    const nowSeconds = Date.now() / 1000;
+    const retentionSeconds = Math.max(60, gridIntervalSeconds * 30);
+    const cache = betCacheRef.current;
+
+    activeBets
+      .filter((bet) => bet.symbol === symbol)
+      .forEach((bet) => {
+        cache.set(bet.betId, { bet, lastSeen: nowSeconds });
+      });
+
+    cache.forEach((value, key) => {
+      if (nowSeconds - value.lastSeen > retentionSeconds) {
+        cache.delete(key);
+      }
+    });
+
+    setDisplayBets(Array.from(cache.values()).map((value) => value.bet));
+  }, [activeBets, gridIntervalSeconds, symbol]);
+
+  useEffect(() => {
+    if (isInteractionLocked) {
+      setScrollOffset(0);
+      setVerticalOffset(0);
+      setIsFocusMode(true);
+    }
+  }, [isInteractionLocked]);
 
   useEffect(() => {
     if (tradeMode === 'quick-tap') {
@@ -191,6 +230,20 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     let lowestPriceLevel: number;
     const priceDecimals =
       GRID_Y_DOLLARS < 0.0001 ? 6 : GRID_Y_DOLLARS < 0.01 ? 4 : GRID_Y_DOLLARS < 1 ? 2 : 1;
+
+    const activeBetMap = new Map<string, Bet>();
+    displayBets.forEach((bet) => {
+      const targetPrice = parseFloat(bet.targetPrice);
+      if (!Number.isFinite(targetPrice)) return;
+      const baseLevel = targetPrice - GRID_Y_DOLLARS / 2;
+      const snappedLevel =
+        gridAnchorPrice !== undefined
+          ? Math.round((baseLevel - gridAnchorPrice) / GRID_Y_DOLLARS) * GRID_Y_DOLLARS +
+            gridAnchorPrice
+          : Math.round(baseLevel / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
+      const cellKey = `${bet.entryTime}_${snappedLevel.toFixed(priceDecimals)}`;
+      activeBetMap.set(cellKey, bet);
+    });
 
     if (gridAnchorPrice !== undefined) {
       lowestPriceLevel = parseFloat(
@@ -345,16 +398,10 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
         // Check for active bet in this cell
         const gridEntryTime = Math.floor(timestamp / 1000);
-        const gridTargetPrice = priceLevel + GRID_Y_DOLLARS / 2;
+        const cellId = `${gridEntryTime}_${priceLevel.toFixed(priceDecimals)}`;
 
         // Find matching active bet
-        // Allow small tolerance for floating point price comparison
-        const activeBet = activeBets?.find((b: Bet) => {
-          return (
-            b.entryTime === gridEntryTime &&
-            Math.abs(parseFloat(b.targetPrice) - gridTargetPrice) < 0.000001
-          );
-        });
+        const activeBet = activeBetMap.get(cellId);
 
         // Skip past grids IF:
         // 1. No active bet on it
@@ -367,7 +414,6 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
         const boxWidth = xRight - xLeft;
         const boxHeight = Math.abs(yBottom - yTop);
-        const cellId = `${gridEntryTime}_${priceLevel.toFixed(priceDecimals)}`;
 
         // Check hover
         if (
@@ -705,7 +751,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     showYAxis,
     yAxisSide,
     symbol,
-    activeBets,
+    displayBets,
     isGridInteractive,
     positionMarkers,
   ]);

@@ -201,7 +201,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
 
       toast.success(
         <div>
-          <div>✅ Position opened! Gas paid in USDC: {usdcCharged}</div>
+          <div>✅ Position opened!</div>
           <a
             href={`https://sepolia.basescan.org/tx/${relayHash}`}
             target="_blank"
@@ -336,6 +336,7 @@ const MarketOrder: React.FC<MarketOrderProps> = ({ activeTab = 'long' }) => {
         }
         payAmount={payAmount}
         leverage={leverage}
+        marketCategory={activeMarket?.category}
       />
 
       {/* Action Button */}

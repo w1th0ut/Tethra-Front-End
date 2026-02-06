@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { useTPSL, TPSLConfig } from '@/features/trading/hooks/useTPSL';
+import { useTPSL } from '@/features/trading/hooks/useTPSL';
+import { formatMarketPair, inferMarketCategory } from '@/features/trading/lib/marketUtils';
+import { formatPriceWithDecimals } from '@/features/trading/components/orders/order-panel/utils/formatUtils';
 import { usePrice } from '@/hooks/data/usePrices';
 
 interface TPSLModalProps {
@@ -33,6 +35,13 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
   // Fetch real-time price from backend
   const { price: priceData } = usePrice(symbol);
   const currentPrice = priceData?.price || entryPrice; // Fallback to entry if no price
+  const marketCategory = inferMarketCategory(symbol);
+  const isForex = marketCategory === 'forex';
+  const priceDecimals = isForex ? 5 : 2;
+  const priceStep = isForex ? '0.00001' : '0.01';
+  const formatInputValue = (value: number) =>
+    Number.isFinite(value) ? value.toFixed(priceDecimals) : '';
+  const formatUsd = (value: number) => formatPriceWithDecimals(value, priceDecimals);
 
   // Load existing TP/SL on mount
   useEffect(() => {
@@ -47,11 +56,11 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
       // Convert from 8 decimals to readable price
       if (config.takeProfit) {
         const tpPrice = parseFloat(config.takeProfit) / 100000000;
-        setTakeProfitPrice(tpPrice.toString());
+        setTakeProfitPrice(formatInputValue(tpPrice));
       }
       if (config.stopLoss) {
         const slPrice = parseFloat(config.stopLoss) / 100000000;
-        setStopLossPrice(slPrice.toString());
+        setStopLossPrice(formatInputValue(slPrice));
       }
     }
   };
@@ -145,7 +154,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
           <div>
             <h3 className="text-lg font-semibold text-white">Set TP/SL</h3>
             <p className="text-sm text-gray-400">
-              {symbol}/USD • {isLong ? 'Long' : 'Short'} • Entry: ${entryPrice.toFixed(2)}
+              {formatMarketPair(symbol)} - {isLong ? 'Long' : 'Short'} - Entry: {formatUsd(entryPrice)}
             </p>
           </div>
           <button
@@ -162,7 +171,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
           <div className="bg-gray-800/50 rounded-lg p-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-400">Current Price</span>
-              <span className="text-white font-medium">${currentPrice.toFixed(2)}</span>
+              <span className="text-white font-medium">{formatUsd(currentPrice)}</span>
             </div>
           </div>
 
@@ -172,9 +181,11 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
             <div className="relative">
               <input
                 type="number"
-                step="0.01"
+                step={priceStep}
                 placeholder={`e.g., ${
-                  isLong ? (entryPrice * 1.1).toFixed(2) : (entryPrice * 0.9).toFixed(2)
+                  isLong
+                    ? formatInputValue(entryPrice * 1.1)
+                    : formatInputValue(entryPrice * 0.9)
                 }`}
                 value={takeProfitPrice}
                 onChange={(e) => {
@@ -208,9 +219,11 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
             <div className="relative">
               <input
                 type="number"
-                step="0.01"
+                step={priceStep}
                 placeholder={`e.g., ${
-                  isLong ? (entryPrice * 0.95).toFixed(2) : (entryPrice * 1.05).toFixed(2)
+                  isLong
+                    ? formatInputValue(entryPrice * 0.95)
+                    : formatInputValue(entryPrice * 1.05)
                 }`}
                 value={stopLossPrice}
                 onChange={(e) => {
@@ -238,15 +251,7 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
                 ? 'Must be below current price (can be above entry for SL+)'
                 : 'Must be above current price (can be below entry for SL+)'}
             </p>
-          </div>
-
-          {/* Info */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-            <p className="text-xs text-blue-400">
-              💡 TP/SL will be monitored by the backend and executed automatically when price
-              targets are hit. Settings are stored in memory and will be lost on backend restart.
-            </p>
-          </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -280,3 +285,5 @@ const TPSLModal: React.FC<TPSLModalProps> = ({
 };
 
 export default TPSLModal;
+
+

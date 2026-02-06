@@ -4,6 +4,7 @@ import { ConnectedWallet } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Market } from '../components/MarketSelector';
+import { inferMarketCategory } from '@/features/trading/lib/marketUtils';
 
 interface TradeActionButtonsProps {
   tradeMode: 'open-position' | 'one-tap-profit' | 'quick-tap';
@@ -49,7 +50,20 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
   onMobileClose,
 }) => {
   const resolvedHasAllowance = hasUnifiedAllowance ?? (hasLargeAllowance || hasLargeOneTapProfitAllowance);
+  const marketCategory = activeMarket
+    ? activeMarket.category ?? inferMarketCategory(activeMarket.symbol)
+    : 'crypto';
+  const isUnsupportedMarket =
+    (tradeMode === 'quick-tap' || tradeMode === 'one-tap-profit') && marketCategory !== 'crypto';
   const handleMainAction = async () => {
+    if (isUnsupportedMarket) {
+      toast.error(
+        tradeMode === 'quick-tap'
+          ? 'Quick Tap only supports crypto pairs for now'
+          : 'Binary Trade only supports crypto pairs for now',
+      );
+      return;
+    }
     if (!resolvedHasAllowance) {
       if (tradeMode === 'one-tap-profit') {
         await onPreApproveOneTapProfit();
@@ -196,12 +210,17 @@ export const TradeActionButtons: React.FC<TradeActionButtonsProps> = ({
     }
   }
 
+  if (isUnsupportedMarket) {
+    buttonText = tradeMode === 'quick-tap' ? 'Quick Tap (Crypto only)' : 'Binary Trade (Crypto only)';
+    isLoading = false;
+  }
+
   return (
     <Button
       size="lg"
       className="w-full mt-2 font-bold shadow-lg shadow-primary/30"
       onClick={handleMainAction}
-      disabled={disabled || isLoading}
+      disabled={disabled || isLoading || isUnsupportedMarket}
     >
       {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {buttonText}

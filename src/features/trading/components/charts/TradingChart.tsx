@@ -11,6 +11,7 @@ import PerSecondChart from '@/components/charts/PerSecondChart';
 import ChartHeader from './ChartHeader';
 import { mergeMarketsWithOracle } from '@/features/trading/lib/marketUtils';
 import { useOneTapProfit } from '@/features/trading/hooks/useOneTapProfitBetting';
+import { useQuickTapSessionPnL } from '@/features/trading/hooks/useQuickTapSessionPnL';
 import { formatDynamicUsd, formatMarketPair } from '@/features/trading/lib/marketUtils';
 import Image from 'next/image';
 import { useUSDCBalance } from '@/hooks/data/useUSDCBalance';
@@ -45,7 +46,11 @@ const TradingChart: React.FC = () => {
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const tapToTrade = useTapToTrade();
-  const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL } = useOneTapProfit();
+  const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL: oneTapSessionPnL } =
+    useOneTapProfit();
+  const { sessionPnL: quickTapSessionPnL } = useQuickTapSessionPnL({
+    enabled: tapToTrade.isEnabled && tapToTrade.tradeMode === 'quick-tap',
+  });
   const { usdcBalance } = useUSDCBalance();
   const isQuickTap = tapToTrade.tradeMode === 'quick-tap';
   const { positionIds } = useUserPositions();
@@ -170,6 +175,9 @@ const TradingChart: React.FC = () => {
         isLong: position.isLong,
       }));
   }, [isQuickTap, activeMarket, positions]);
+
+  const displaySessionPnL =
+    tapToTrade.tradeMode === 'quick-tap' ? quickTapSessionPnL : oneTapSessionPnL;
 
   return (
     <div
@@ -334,7 +342,9 @@ const TradingChart: React.FC = () => {
 
           {/* Bottom Session PnL */}
           <div
-            className={`absolute lg:bottom-1/10 bottom-20 pointer-events-auto px-4 py-2 rounded-full flex flex-col items-center gap-2 shadow-lg z-10 transition-all duration-300 ${
+            className={`absolute lg:bottom-1/10 bottom-20 px-4 py-2 rounded-full flex flex-col items-center gap-2 bg-transparent shadow-none z-10 transition-all duration-300 ${
+              tapToTrade.tradeMode === 'one-tap-profit' ? 'pointer-events-none' : 'pointer-events-auto'
+            } ${
               tapToTrade.tradeMode === 'one-tap-profit' || tapToTrade.tradeMode === 'quick-tap'
                 ? 'left-1/2 -translate-x-1/2' // Center for Tap Profit and Quick Tap
                 : 'left-4' // Left for Open Position
@@ -343,11 +353,11 @@ const TradingChart: React.FC = () => {
             <span className="text-lg font-medium text-text-secondary">Session PnL</span>
             <span
               className={`font-mono font-bold text-4xl ${
-                sessionPnL >= 0 ? 'text-success' : 'text-error'
+                displaySessionPnL >= 0 ? 'text-success' : 'text-error'
               }`}
             >
-              {sessionPnL >= 0 ? '+' : ''}
-              {formatDynamicUsd(sessionPnL)}
+              {displaySessionPnL >= 0 ? '+' : ''}
+              {formatDynamicUsd(displaySessionPnL)}
             </span>
             {isQuickTap && (
               <div className="flex gap-3 pt-2">

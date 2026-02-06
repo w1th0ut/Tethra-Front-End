@@ -5,7 +5,7 @@ import { usePosition, Position } from '@/hooks/data/usePositions';
 import { usePrice } from '@/hooks/data/usePrices';
 import { useTPSLContext } from '@/contexts/TPSLContext';
 import { ALL_MARKETS } from '@/features/trading/constants/markets';
-import { formatMarketPair } from '@/features/trading/lib/marketUtils';
+import { formatMarketPair, inferMarketCategory } from '@/features/trading/lib/marketUtils';
 import { formatUnits } from 'viem';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -137,6 +137,16 @@ const PositionRow = ({
     return market?.logoUrl || '';
   };
 
+  const marketCategory =
+    ALL_MARKETS.find((m) => m.symbol === position.symbol)?.category ??
+    inferMarketCategory(position.symbol);
+  const priceDecimals = marketCategory === 'forex' ? 5 : 2;
+  const formatPriceValue = (value: number) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: priceDecimals,
+      maximumFractionDigits: priceDecimals,
+    });
+
   const handleRowClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('button')) return;
@@ -212,11 +222,7 @@ const PositionRow = ({
 
       {/* Entry Price */}
       <TableCell className="text-right text-white font-mono">
-        $
-        {entryPrice.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        ${formatPriceValue(entryPrice)}
       </TableCell>
 
       {/* Mark Price */}
@@ -224,17 +230,13 @@ const PositionRow = ({
         {loadingPrice && lockedClosePrice === undefined ? (
           <span className="text-slate-600">...</span>
         ) : (
-          `$${markPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          `$${formatPriceValue(markPrice)}`
         )}
       </TableCell>
 
       {/* Liq. Price */}
       <TableCell className="text-right text-orange-400 font-mono">
-        $
-        {liquidationPrice.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        ${formatPriceValue(liquidationPrice)}
       </TableCell>
 
       {/* TP / SL (Values) */}

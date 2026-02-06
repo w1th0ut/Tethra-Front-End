@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatDynamicUsd } from '@/features/trading/lib/marketUtils';
-import { formatPrice } from '../utils/formatUtils';
+import { formatPrice, formatPriceWithDecimals } from '../utils/formatUtils';
+import { Market } from '@/features/trading/types';
 
 interface OrderSummaryProps {
   oraclePrice: number;
@@ -8,6 +9,7 @@ interface OrderSummaryProps {
   tradingFee: string;
   payAmount: string;
   leverage: number;
+  marketCategory?: Market['category'];
 }
 
 export const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -16,7 +18,14 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   tradingFee,
   payAmount,
   leverage,
+  marketCategory,
 }) => {
+  const formattedLiquidationPrice = liquidationPrice
+    ? marketCategory === 'forex'
+      ? formatPriceWithDecimals(liquidationPrice, 5)
+      : formatPrice(liquidationPrice)
+    : '-';
+
   return (
     <div className="space-y-2 text-sm border-t border-border-muted pt-3">
       <div className="flex justify-between items-center">
@@ -28,7 +37,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       <div className="flex justify-between items-center">
         <span className="text-text-secondary">Liquidation Price</span>
         <span className="text-text-primary font-medium">
-          {liquidationPrice ? formatPrice(liquidationPrice) : '-'}
+          {formattedLiquidationPrice}
         </span>
       </div>
       <div className="flex justify-between items-center">

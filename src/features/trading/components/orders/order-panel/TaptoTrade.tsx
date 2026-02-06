@@ -188,7 +188,6 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
               <div className="text-xs text-red-300 space-y-0.5">
                 <div>- This mode is deprecated and no longer used</div>
                 <div>- All inputs are disabled (margin, leverage, timeframe, grid)</div>
-                <div>- Only the Market selector remains active</div>
               </div>
             </div>
           </div>
@@ -216,7 +215,7 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
       <MarketSelector
         value={activeMarket}
         onSelect={handleMarketSelect}
-        disabled={tapToTrade.isEnabled && !isOpenPositionDeprecated}
+        disabled={tapToTrade.isEnabled || isOpenPositionDeprecated}
       />
 
       {/* Margin Input (USDC) */}

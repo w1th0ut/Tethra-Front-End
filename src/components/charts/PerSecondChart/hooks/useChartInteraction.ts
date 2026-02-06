@@ -12,6 +12,7 @@ interface UseChartInteractionProps {
   setIsFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
   hoveredCell: string | null;
   isPlacingBet: boolean;
+  isInteractionLocked?: boolean;
   onCellClick?: (
     targetPrice: number,
     targetTime: number,
@@ -33,6 +34,7 @@ export const useChartInteraction = ({
   setIsFocusMode,
   hoveredCell,
   isPlacingBet,
+  isInteractionLocked = false,
   onCellClick,
   priceHistory,
   currentPrice,
@@ -84,9 +86,11 @@ export const useChartInteraction = ({
 
         if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
           setHasMoved(true);
-          setIsFocusMode(false);
-          setScrollOffset(dragStartScrollOffset + deltaX);
-          setVerticalOffset(dragStartVerticalOffset - deltaY);
+          if (!isInteractionLocked) {
+            setIsFocusMode(false);
+            setScrollOffset(dragStartScrollOffset + deltaX);
+            setVerticalOffset(dragStartVerticalOffset - deltaY);
+          }
         }
       }
     },
@@ -97,6 +101,7 @@ export const useChartInteraction = ({
       dragStartScrollOffset,
       dragStartVerticalOffset,
       setIsFocusMode,
+      isInteractionLocked,
     ],
   );
 
@@ -163,6 +168,7 @@ export const useChartInteraction = ({
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isInteractionLocked) return;
       const scrollStep = 50;
 
       switch (e.key.toLowerCase()) {
@@ -197,7 +203,7 @@ export const useChartInteraction = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [setIsFocusMode, setScrollOffset, setVerticalOffset]);
+  }, [setIsFocusMode, setScrollOffset, setVerticalOffset, isInteractionLocked]);
 
   return {
     handleMouseDown,

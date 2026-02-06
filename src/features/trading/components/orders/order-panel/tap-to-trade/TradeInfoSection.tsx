@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatPrice } from '../utils/formatUtils';
+import { formatMarketPair } from '@/features/trading/lib/marketUtils';
 import { Market } from '../components/MarketSelector';
 
 interface TradeInfoSectionProps {
@@ -36,7 +37,9 @@ export const TradeInfoSection: React.FC<TradeInfoSectionProps> = ({
       </div>
       <div className="flex justify-between">
         <span>Market:</span>
-        <span className="text-text-primary">{activeMarket?.symbol || 'BTC'}/USD</span>
+        <span className="text-text-primary">
+          {formatMarketPair(activeMarket?.symbol || 'BTC')}
+        </span>
       </div>
       <div className="flex justify-between">
         <span>{tradeMode === 'one-tap-profit' ? 'Bet Amount:' : 'Margin:'}</span>
