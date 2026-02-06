@@ -77,6 +77,7 @@ const Squares = ({
       const startX = Math.floor(gridOffset.current.x / squareSize) * squareSize;
       const startY = Math.floor(gridOffset.current.y / squareSize) * squareSize;
 
+      // Draw hovered square fill
       for (let x = startX; x < canvas.width + squareSize; x += squareSize) {
         for (let y = startY; y < canvas.height + squareSize; y += squareSize) {
           const squareX = x - (gridOffset.current.x % squareSize);
@@ -85,7 +86,6 @@ const Squares = ({
           const gridX = Math.floor((x - startX) / squareSize);
           const gridY = Math.floor((y - startY) / squareSize);
 
-          // Draw hovered square
           if (
             hoveredSquareRef.current &&
             gridX === hoveredSquareRef.current.x &&
@@ -96,13 +96,32 @@ const Squares = ({
             ctx.fillRect(squareX, squareY, squareSize, squareSize);
             ctx.globalAlpha = 1;
           }
-
-          ctx.strokeStyle = borderColor;
-          ctx.setLineDash([4, 10]);
-          ctx.strokeRect(squareX, squareY, squareSize, squareSize);
-          ctx.setLineDash([]);
         }
       }
+
+      // Draw grid lines separately for consistent dashes
+      ctx.strokeStyle = borderColor;
+      ctx.setLineDash([4, 10]);
+
+      // Vertical lines
+      for (let x = startX; x < canvas.width + squareSize; x += squareSize) {
+        const lineX = x - (gridOffset.current.x % squareSize);
+        ctx.beginPath();
+        ctx.moveTo(lineX, 0);
+        ctx.lineTo(lineX, canvas.height);
+        ctx.stroke();
+      }
+
+      // Horizontal lines
+      for (let y = startY; y < canvas.height + squareSize; y += squareSize) {
+        const lineY = y - (gridOffset.current.y % squareSize);
+        ctx.beginPath();
+        ctx.moveTo(0, lineY);
+        ctx.lineTo(canvas.width, lineY);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([]);
 
       // Update and draw clicked squares
       const animSpeed = 0.06;
@@ -117,8 +136,14 @@ const Squares = ({
 
         const dx = totalMovementRef.current.x - clicked.movementX;
         const dy = totalMovementRef.current.y - clicked.movementY;
-        const currentX = clicked.screenX + dx;
-        const currentY = clicked.screenY + dy;
+        const rawX = clicked.screenX + dx;
+        const rawY = clicked.screenY + dy;
+
+        // Snap to grid to prevent floating point drift
+        const offX = gridOffset.current.x % squareSize;
+        const offY = gridOffset.current.y % squareSize;
+        const currentX = Math.round((rawX + offX) / squareSize) * squareSize - offX;
+        const currentY = Math.round((rawY + offY) / squareSize) * squareSize - offY;
 
         // Remove if off screen
         if (
@@ -128,49 +153,37 @@ const Squares = ({
           return false;
         }
 
-        const easedAnim = easeOutBack(clicked.anim);
-        const scale = easedAnim;
-        const alpha = clicked.anim; // linear alpha for smoothness
+        const alpha = clicked.anim;
+        const logoScale = Math.min(easeOutBack(clicked.anim), 1);
 
-        const centerX = currentX + squareSize / 2;
-        const centerY = currentY + squareSize / 2;
-        const scaledSize = squareSize * scale;
-
-        // Fill background
+        // Fill background - snapped to grid
         ctx.fillStyle = clickFillColor;
         ctx.globalAlpha = 0.6 * alpha;
-        ctx.fillRect(
-          centerX - scaledSize / 2,
-          centerY - scaledSize / 2,
-          scaledSize,
-          scaledSize
-        );
+        ctx.fillRect(currentX, currentY, squareSize, squareSize);
         ctx.globalAlpha = 1;
 
-        // Draw dashed border with matching color
+        // Draw dashed border - snapped to grid
         ctx.strokeStyle = '#06b6d4';
         ctx.globalAlpha = alpha;
         ctx.setLineDash([4, 10]);
         ctx.lineWidth = 2.5;
-        ctx.strokeRect(
-          centerX - scaledSize / 2,
-          centerY - scaledSize / 2,
-          scaledSize,
-          scaledSize
-        );
+        ctx.strokeRect(currentX, currentY, squareSize, squareSize);
         ctx.setLineDash([]);
         ctx.lineWidth = 1;
         ctx.globalAlpha = 1;
 
-        // Draw logo image inside the cell
+        // Draw logo image with scale animation
         if (logoImageRef.current) {
-          const padding = 4 * scale;
-          const imgSize = scaledSize - padding * 2;
+          const imgScaledSize = squareSize * logoScale;
+          const centerX = currentX + squareSize / 2;
+          const centerY = currentY + squareSize / 2;
+          const padding = 4 * logoScale;
+          const imgSize = imgScaledSize - padding * 2;
           ctx.globalAlpha = 0.8 * alpha;
           ctx.drawImage(
             logoImageRef.current,
-            centerX - scaledSize / 2 + padding,
-            centerY - scaledSize / 2 + padding,
+            centerX - imgSize / 2,
+            centerY - imgSize / 2,
             imgSize,
             imgSize
           );
@@ -276,9 +289,11 @@ const Squares = ({
         if (clicked.removing) return false;
         const dx = totalMovementRef.current.x - clicked.movementX;
         const dy = totalMovementRef.current.y - clicked.movementY;
-        const currentX = clicked.screenX + dx;
-        const currentY = clicked.screenY + dy;
-        return Math.abs(currentX - screenX) < 2 && Math.abs(currentY - screenY) < 2;
+        const rawX = clicked.screenX + dx;
+        const rawY = clicked.screenY + dy;
+        const snappedX = Math.round((rawX + offsetX) / squareSize) * squareSize - offsetX;
+        const snappedY = Math.round((rawY + offsetY) / squareSize) * squareSize - offsetY;
+        return Math.abs(snappedX - screenX) < 2 && Math.abs(snappedY - screenY) < 2;
       });
 
       if (existingIndex !== -1) {

@@ -7,7 +7,7 @@ import { sdk } from '@farcaster/miniapp-sdk';
 import Squares from '@/components/Squares';
 import dynamic from 'next/dynamic';
 
-const Dither = dynamic(() => import('@/components/Dither'), { ssr: false });
+const Plasma = dynamic(() => import('@/components/Plasma'), { ssr: false });
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -303,21 +303,19 @@ export default function LandingPage() {
       {/* Hero Section with Layered Text */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
         <div className="absolute inset-0">
-          <Dither
-            waveColor={[0.02, 0.7, 0.83]}
-            waveSpeed={0.05}
-            waveFrequency={3}
-            waveAmplitude={0.3}
-            colorNum={4}
-            pixelSize={2}
-            enableMouseInteraction={false}
+          <Plasma
+            color="#06b6d4"
+            speed={0.3}
+            scale={1}
+            opacity={0.8}
+            mouseInteractive={false}
           />
         </div>
         <div className="absolute inset-0">
           <Squares
             direction="left"
             speed={0.3}
-            squareSize={65}
+            squareSize={55}
             borderColor="#333"
             hoverFillColor="#0a1a3a"
             clickImage="/tethra-polos.png"
