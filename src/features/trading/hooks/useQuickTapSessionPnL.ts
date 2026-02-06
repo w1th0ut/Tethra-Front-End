@@ -7,8 +7,16 @@ import { MARKET_EXECUTOR_ADDRESS, POSITION_MANAGER_ADDRESS, USDC_DECIMALS } from
 import { useEmbeddedWallet } from '@/features/wallet/hooks/useEmbeddedWallet';
 import { parsePositionData } from '@/hooks/data/usePositions';
 
-const marketExecutorAbi = MarketExecutorAbi as Abi;
-const positionManagerAbi = PositionManagerAbi as Abi;
+const resolveAbi = (raw: unknown): Abi => {
+  if (Array.isArray(raw)) return raw as Abi;
+  if (raw && typeof raw === 'object' && 'abi' in raw) {
+    return (raw as { abi: Abi }).abi;
+  }
+  return [] as Abi;
+};
+
+const marketExecutorAbi = resolveAbi(MarketExecutorAbi);
+const positionManagerAbi = resolveAbi(PositionManagerAbi);
 
 interface QuickTapSessionPnLOptions {
   enabled: boolean;
