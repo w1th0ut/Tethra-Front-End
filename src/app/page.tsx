@@ -317,7 +317,7 @@ export default function LandingPage() {
           <Squares
             direction="left"
             speed={0.3}
-            squareSize={80}
+            squareSize={65}
             borderColor="#333"
             hoverFillColor="#0a1a3a"
             clickImage="/tethra-polos.png"

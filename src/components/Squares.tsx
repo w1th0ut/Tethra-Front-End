@@ -98,7 +98,9 @@ const Squares = ({
           }
 
           ctx.strokeStyle = borderColor;
+          ctx.setLineDash([4, 10]);
           ctx.strokeRect(squareX, squareY, squareSize, squareSize);
+          ctx.setLineDash([]);
         }
       }
 
@@ -143,6 +145,21 @@ const Squares = ({
           scaledSize,
           scaledSize
         );
+        ctx.globalAlpha = 1;
+
+        // Draw dashed border with matching color
+        ctx.strokeStyle = '#06b6d4';
+        ctx.globalAlpha = alpha;
+        ctx.setLineDash([4, 10]);
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(
+          centerX - scaledSize / 2,
+          centerY - scaledSize / 2,
+          scaledSize,
+          scaledSize
+        );
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1;
         ctx.globalAlpha = 1;
 
         // Draw logo image inside the cell
@@ -297,7 +314,7 @@ const Squares = ({
     };
   }, [direction, speed, borderColor, hoverFillColor, clickFillColor, squareSize, clickImage]);
 
-  return <canvas ref={canvasRef} className="w-full h-full border-none block"></canvas>;
+  return <canvas ref={canvasRef} className="w-full h-full border-none block cursor-pointer"></canvas>;
 };
 
 export default Squares;
