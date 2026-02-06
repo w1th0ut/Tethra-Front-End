@@ -92,7 +92,9 @@ const Squares = ({
             gridY === hoveredSquareRef.current.y
           ) {
             ctx.fillStyle = hoverFillColor;
+            ctx.globalAlpha = 0.4;
             ctx.fillRect(squareX, squareY, squareSize, squareSize);
+            ctx.globalAlpha = 1;
           }
 
           ctx.strokeStyle = borderColor;
