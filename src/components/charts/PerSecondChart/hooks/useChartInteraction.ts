@@ -13,6 +13,7 @@ interface UseChartInteractionProps {
   hoveredCell: string | null;
   isPlacingBet: boolean;
   isInteractionLocked?: boolean;
+  resolveCellFromPoint?: (point: { x: number; y: number }) => string | null;
   onCellClick?: (
     targetPrice: number,
     targetTime: number,
@@ -35,6 +36,7 @@ export const useChartInteraction = ({
   hoveredCell,
   isPlacingBet,
   isInteractionLocked = false,
+  resolveCellFromPoint,
   onCellClick,
   priceHistory,
   currentPrice,
@@ -52,9 +54,25 @@ export const useChartInteraction = ({
 
   const GRID_X_SECONDS = gridIntervalSeconds;
 
+  const getCanvasPoint = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!canvasRef.current) return null;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+      return { x: mouseX, y: mouseY };
+    },
+    [canvasRef],
+  );
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       e.preventDefault();
+      const point = getCanvasPoint(e);
+      if (point) setMousePos(point);
       setIsDragging(true);
       setHasMoved(false);
       setDragStartX(e.clientX);
@@ -62,21 +80,13 @@ export const useChartInteraction = ({
       setDragStartScrollOffset(scrollOffset);
       setDragStartVerticalOffset(verticalOffset);
     },
-    [scrollOffset, verticalOffset],
+    [getCanvasPoint, scrollOffset, verticalOffset],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!canvasRef.current) return;
-
-      const canvas = canvasRef.current;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const mouseX = (e.clientX - rect.left) * scaleX;
-      const mouseY = (e.clientY - rect.top) * scaleY;
-
-      setMousePos({ x: mouseX, y: mouseY });
+      const point = getCanvasPoint(e);
+      if (point) setMousePos(point);
 
       if (isDragging) {
         e.preventDefault();
@@ -102,12 +112,18 @@ export const useChartInteraction = ({
       dragStartVerticalOffset,
       setIsFocusMode,
       isInteractionLocked,
+      getCanvasPoint,
     ],
   );
 
   const handleMouseUp = useCallback(
     async (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDragging && !hasMoved && hoveredCell && onCellClick) {
+    const point = getCanvasPoint(e);
+    if (point) setMousePos(point);
+    const resolvedCell =
+      point && resolveCellFromPoint ? resolveCellFromPoint(point) : hoveredCell;
+
+    if (isDragging && !hasMoved && resolvedCell && onCellClick) {
       if (isPlacingBet) {
         toast.error('Please wait, placing bet...');
         setIsDragging(false);
@@ -115,7 +131,7 @@ export const useChartInteraction = ({
       }
 
         // Cell interaction logic
-        const [timestampStr, priceLevelStr] = hoveredCell.split('_');
+        const [timestampStr, priceLevelStr] = resolvedCell.split('_');
         const gridStartTime = parseInt(timestampStr);
         const gridBottomPrice = parseFloat(priceLevelStr);
 
@@ -135,10 +151,10 @@ export const useChartInteraction = ({
         // Toggle cell selection
         setSelectedCells((prev) => {
           const newSet = new Set(prev);
-          if (newSet.has(hoveredCell)) {
-            newSet.delete(hoveredCell);
+          if (newSet.has(resolvedCell)) {
+            newSet.delete(resolvedCell);
           } else {
-            newSet.add(hoveredCell);
+            newSet.add(resolvedCell);
           }
           return newSet;
         });
@@ -162,6 +178,8 @@ export const useChartInteraction = ({
       GRID_X_SECONDS,
       gridYDollars,
       setIsFocusMode,
+      getCanvasPoint,
+      resolveCellFromPoint,
     ],
   );
 

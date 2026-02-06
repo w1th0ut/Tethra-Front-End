@@ -32,6 +32,9 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   positionMarkers = [],
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const resolveCellFromPointRef = useRef<((point: { x: number; y: number }) => string | null) | null>(
+    null,
+  );
 
   // State lifted from hooks for shared access
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -118,6 +121,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     hoveredCell,
     isPlacingBet,
     isInteractionLocked,
+    resolveCellFromPoint: (point) => resolveCellFromPointRef.current?.(point) ?? null,
     onCellClick,
     priceHistory,
     currentPrice,
@@ -135,7 +139,8 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
 
   useEffect(() => {
     const nowSeconds = Date.now() / 1000;
-    const retentionSeconds = Math.max(60, gridIntervalSeconds * 30);
+    const retentionSeconds =
+      tradeMode === 'one-tap-profit' ? 3600 : Math.max(60, gridIntervalSeconds * 30);
     const cache = betCacheRef.current;
 
     activeBets
@@ -151,7 +156,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     });
 
     setDisplayBets(Array.from(cache.values()).map((value) => value.bet));
-  }, [activeBets, gridIntervalSeconds, symbol]);
+  }, [activeBets, gridIntervalSeconds, symbol, tradeMode]);
 
   useEffect(() => {
     if (isInteractionLocked) {
@@ -242,52 +247,31 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     ctx.setLineDash([5, 5]);
 
     const largeBufferGrids = 50;
-    let lowestPriceLevel: number;
     const priceDecimals =
       GRID_Y_DOLLARS < 0.0001 ? 6 : GRID_Y_DOLLARS < 0.01 ? 4 : GRID_Y_DOLLARS < 1 ? 2 : 1;
+    const anchorPrice = gridAnchorPrice ?? 0;
+    const lowestPriceIndex = Math.floor(
+      (displayMinPrice - largeBufferGrids * GRID_Y_DOLLARS - anchorPrice) / GRID_Y_DOLLARS,
+    );
+    const highestPriceIndex = Math.ceil(
+      (displayMaxPrice + largeBufferGrids * GRID_Y_DOLLARS - anchorPrice) / GRID_Y_DOLLARS,
+    );
 
     const activeBetMap = new Map<string, Bet>();
     displayBets.forEach((bet) => {
       const targetPrice = parseFloat(bet.targetPrice);
       if (!Number.isFinite(targetPrice)) return;
       const baseLevel = targetPrice - GRID_Y_DOLLARS / 2;
-      const snappedLevel =
-        gridAnchorPrice !== undefined
-          ? Math.round((baseLevel - gridAnchorPrice) / GRID_Y_DOLLARS) * GRID_Y_DOLLARS +
-            gridAnchorPrice
-          : Math.round(baseLevel / GRID_Y_DOLLARS) * GRID_Y_DOLLARS;
-      const cellKey = `${bet.entryTime}_${snappedLevel.toFixed(priceDecimals)}`;
+      const entryTime =
+        bet.entryTime > 1000000000000 ? Math.floor(bet.entryTime / 1000) : bet.entryTime;
+      const priceIndex = Math.round((baseLevel - anchorPrice) / GRID_Y_DOLLARS);
+      const priceKey = (anchorPrice + priceIndex * GRID_Y_DOLLARS).toFixed(priceDecimals);
+      const cellKey = `${entryTime}_${priceKey}`;
       activeBetMap.set(cellKey, bet);
     });
 
-    if (gridAnchorPrice !== undefined) {
-      lowestPriceLevel = parseFloat(
-        (
-          Math.floor(
-            (displayMinPrice - largeBufferGrids * GRID_Y_DOLLARS - gridAnchorPrice) /
-              GRID_Y_DOLLARS,
-          ) *
-            GRID_Y_DOLLARS +
-          gridAnchorPrice
-        ).toFixed(priceDecimals),
-      );
-    } else {
-      lowestPriceLevel = parseFloat(
-        (
-          Math.floor((displayMinPrice - largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
-          GRID_Y_DOLLARS
-        ).toFixed(priceDecimals),
-      );
-    }
-
-    const highestPriceLevel = parseFloat(
-      (
-        Math.ceil((displayMaxPrice + largeBufferGrids * GRID_Y_DOLLARS) / GRID_Y_DOLLARS) *
-        GRID_Y_DOLLARS
-      ).toFixed(priceDecimals),
-    );
-
-    for (let price = lowestPriceLevel; price <= highestPriceLevel; price += GRID_Y_DOLLARS) {
+    for (let priceIndex = lowestPriceIndex; priceIndex <= highestPriceIndex; priceIndex += 1) {
+      const price = parseFloat((anchorPrice + priceIndex * GRID_Y_DOLLARS).toFixed(priceDecimals));
       const y = priceToY(price);
       ctx.beginPath();
       ctx.moveTo(leftMargin, y);
@@ -333,6 +317,42 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
       lowestTimeRounded +
       Math.ceil((highestTimeLevel - lowestTimeRounded) / (gridIntervalSeconds * 1000)) *
         (gridIntervalSeconds * 1000);
+
+    resolveCellFromPointRef.current = (point) => {
+      if (
+        point.x < leftMargin ||
+        point.x > leftMargin + chartWidth ||
+        point.y < 0 ||
+        point.y > chartHeight
+      ) {
+        return null;
+      }
+
+      const nowMs = Date.now();
+      const secondsFromNow = (point.x + scrollOffset - leftMargin - nowX) / pixelsPerSecond;
+      const timeAtPointMs = nowMs + secondsFromNow * 1000;
+      const stepMs = gridIntervalSeconds * 1000;
+      const anchorMs = gridAnchorTime !== undefined ? gridAnchorTime * 1000 : undefined;
+      const gridStartTimeMs =
+        anchorMs !== undefined
+          ? Math.floor((timeAtPointMs - anchorMs) / stepMs) * stepMs + anchorMs
+          : Math.floor(timeAtPointMs / stepMs) * stepMs;
+      const gridEntryTime = Math.floor(gridStartTimeMs / 1000);
+
+      const priceAtPoint =
+        displayMinPrice +
+        ((chartHeight - point.y) / chartHeight) * (displayMaxPrice - displayMinPrice);
+      const priceIndex = Math.floor((priceAtPoint - anchorPrice) / GRID_Y_DOLLARS);
+      const priceLevel = parseFloat((anchorPrice + priceIndex * GRID_Y_DOLLARS).toFixed(priceDecimals));
+
+      const nowSeconds = Date.now() / 1000;
+      const currentGridStart =
+        Math.floor(nowSeconds / gridIntervalSeconds) * gridIntervalSeconds;
+      const minSelectableGridStart = currentGridStart + gridIntervalSeconds * 2;
+      if (gridEntryTime < minSelectableGridStart) return null;
+
+      return `${gridEntryTime}_${priceLevel.toFixed(priceDecimals)}`;
+    };
 
     for (
       let timestamp = lowestTimeRounded;
@@ -392,12 +412,10 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     let currentHoveredCellId: string | null = null;
     const nowSeconds = Date.now() / 1000;
 
-    for (
-      let priceLevelRaw = lowestPriceLevel;
-      priceLevelRaw <= highestPriceLevel;
-      priceLevelRaw += GRID_Y_DOLLARS
-    ) {
-      const priceLevel = parseFloat(priceLevelRaw.toFixed(priceDecimals));
+    for (let priceIndex = lowestPriceIndex; priceIndex <= highestPriceIndex; priceIndex += 1) {
+      const priceLevel = parseFloat(
+        (anchorPrice + priceIndex * GRID_Y_DOLLARS).toFixed(priceDecimals),
+      );
       const yTop = priceToY(priceLevel + GRID_Y_DOLLARS);
       const yBottom = priceToY(priceLevel);
 
