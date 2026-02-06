@@ -10,213 +10,14 @@ import dynamic from 'next/dynamic';
 const Silk = dynamic(() => import('@/components/Silk'), { ssr: false });
 
 export default function LandingPage() {
-  const [scrollY, setScrollY] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Carousel state
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [carouselProgress, setCarouselProgress] = useState(0);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
-
-  // Header visibility state
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Supported chains animation state
   const [isChainsVisible, setIsChainsVisible] = useState(false);
   const chainsRef = useRef<HTMLDivElement>(null);
 
-  const slides = [
-    {
-      title: 'Real-Time Charts',
-      description: 'Live market data with advanced technical indicators and trading tools',
-      image: '/homepage/trade-page-position.png',
-    },
-    {
-      title: 'Tap to Position',
-      description: 'Tap to trade to open position when the line crosses it',
-      image: '/homepage/trade-range-page.png',
-    },
-    {
-      title: 'One Tap to Profit',
-      description: 'Instantly profit with a single tap when the price line crosses your position',
-      image: '/homepage/trade-take-profit-page.png',
-    },
-  ];
-  
   useEffect(() => {
     sdk.actions.ready();
   }, []);
-
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Handle header visibility based on user activity
-  useEffect(() => {
-    const resetInactivityTimer = () => {
-      // Show header
-      setIsHeaderVisible(true);
-
-      // Clear existing timer
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-
-      // Only hide header if user has scrolled past hero section (more than 100px)
-      if (window.scrollY > 100) {
-        // Set new timer to hide header after 2 seconds of inactivity
-        inactivityTimerRef.current = setTimeout(() => {
-          setIsHeaderVisible(false);
-        }, 2000);
-      }
-    };
-
-    // Add event listeners for user activity
-    window.addEventListener('mousemove', resetInactivityTimer);
-    window.addEventListener('mousedown', resetInactivityTimer);
-    window.addEventListener('keydown', resetInactivityTimer);
-    window.addEventListener('scroll', resetInactivityTimer);
-    window.addEventListener('touchstart', resetInactivityTimer);
-
-    // Initialize timer
-    resetInactivityTimer();
-
-    return () => {
-      // Cleanup
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      window.removeEventListener('mousemove', resetInactivityTimer);
-      window.removeEventListener('mousedown', resetInactivityTimer);
-      window.removeEventListener('keydown', resetInactivityTimer);
-      window.removeEventListener('scroll', resetInactivityTimer);
-      window.removeEventListener('touchstart', resetInactivityTimer);
-    };
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles: Array<{
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      size: number;
-      color: string;
-      opacity: number;
-    }> = [];
-
-    // Create particles
-    for (let i = 0; i < 100; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2 + 1,
-        color: Math.random() > 0.5 ? '#06b6d4' : '#10b981',
-        opacity: Math.random() * 0.5 + 0.1,
-      });
-    }
-
-    let animationFrameId: number;
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw connections
-      particles.forEach((p1, i) => {
-        particles.slice(i + 1).forEach((p2) => {
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 150) {
-            ctx.beginPath();
-            ctx.strokeStyle = p1.color;
-            ctx.globalAlpha = (1 - distance / 150) * 0.1;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        });
-      });
-
-      // Update and draw particles
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-        ctx.beginPath();
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.opacity;
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      ctx.globalAlpha = 1;
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  // Carousel auto-transition with progress
-  useEffect(() => {
-    if (isCarouselPaused) return;
-
-    setCarouselProgress(0);
-
-    // Progress bar animation (100 steps in 3 seconds)
-    const progressInterval = setInterval(() => {
-      setCarouselProgress((prev) => {
-        if (prev >= 100) return 100;
-        return prev + 1;
-      });
-    }, 30);
-
-    // Change slide after 3 seconds
-    const slideInterval = setInterval(() => {
-      setCurrentSlide((prevIndex) => (prevIndex + 1) % slides.length);
-    }, 3000);
-
-    return () => {
-      clearInterval(progressInterval);
-      clearInterval(slideInterval);
-    };
-  }, [currentSlide, slides.length, isCarouselPaused]);
 
   // Chains animation on scroll
   useEffect(() => {
@@ -241,26 +42,11 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleChainsScroll);
   }, []);
 
-  const handleSlideChange = (index: number) => {
-    setCurrentSlide(index);
-    setCarouselProgress(0);
-  };
-
   return (
     <div className="w-full bg-black text-white overflow-hidden">
       {/* Header */}
-      <header
-        className={`fixed top-0 left-0 w-full z-30 flex justify-center transition-all duration-700 p-8 md:px-12 ${
-          isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-        }`}
-      >
-        <nav
-          className={`flex items-center justify-between transition-all duration-700 ${
-            scrollY > 50
-              ? 'bg-black/90 border border-cyan-500/30 shadow-lg shadow-cyan-500/10 backdrop-blur-sm rounded-2xl px-6 py-3 max-w-5xl w-full'
-              : 'bg-transparent border-transparent w-full px-0 py-0'
-          }`}
-        >
+      <header className="absolute top-0 left-0 w-full z-30 p-8 md:px-12">
+        <nav className="flex items-center justify-between w-full">
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/tethra-logo.png"
@@ -272,26 +58,12 @@ export default function LandingPage() {
             <span className="font-semibold text-xl">Tethra Finance</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-gray-300">
-            <Link href="#features" className="hover:text-white transition-colors duration-200">
-              Features
-            </Link>
-            <Link href="#chains" className="hover:text-white transition-colors duration-200">
-              Chains
-            </Link>
-            <Link
-              href="#smart-contracts"
-              className="hover:text-white transition-colors duration-200"
-            >
-              Smart Contract
-            </Link>
-          </div>
+          
 
           <Link
             href="/trade"
             className="font-semibold text-white py-2 px-6 rounded-lg
-                       bg-gradient-to-r from-cyan-500 to-emerald-500
-                       hover:from-cyan-600 hover:to-emerald-600
+                       bg-cyan-700 hover:bg-cyan-800
                        transition-all duration-300 ease-in-out
                        hover:shadow-lg hover:shadow-cyan-500/30"
           >
@@ -324,11 +96,10 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black z-10 pointer-events-none"></div>
       </section>
 
-      {/* Platform Preview Section with Carousel */}
-      <section id="features" className="relative z-20 bg-black pb-20 mt-30 px-4">
+      {/* Platform Preview Section */}
+      <section id="features" className="relative z-20 bg-black py-20 px-4">
         <div className="container mx-auto max-w-7xl">
-          {/* Section Title */}
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-4">
               Professional Trading Interface
             </h2>
@@ -337,143 +108,15 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Carousel Container */}
-          <div
-            className="relative md:top-20 top-10 space-y-5"
-            onMouseEnter={() => setIsCarouselPaused(true)}
-            onMouseLeave={() => setIsCarouselPaused(false)}
-          >
-            {/* Text Content Below Image */}
-            <div className="text-center max-h-xl md:-translate-y-5">
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 transition-all duration-500">
-                {slides[currentSlide].title}
-              </h3>
-              <p className="text-base md:text-lg text-gray-400 transition-all duration-500">
-                {slides[currentSlide].description}
-              </p>
-            </div>
-
-            {/* Slides */}
-            <div className="relative h-[60vw] overflow-hidden">
-              {slides.map((slide, index) => (
-                <div
-                  key={index}
-                  className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-                    index === currentSlide
-                      ? 'opacity-100 translate-x-0 scale-100'
-                      : 'opacity-0 translate-x-20 scale-95 pointer-events-none'
-                  }`}
-                >
-                  <div className="relative group">
-                    {/* Animated glow effect */}
-                    <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 via-emerald-500/20 to-cyan-500/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    {/* Screenshot */}
-                    <div className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20 group-hover:border-cyan-500/60 group-hover:shadow-cyan-500/40 transition-all duration-500 group-hover:scale-[1.02]">
-                      <Image
-                        src={slide.image}
-                        alt={slide.title}
-                        width={1920}
-                        height={1080}
-                        className="w-full h-auto"
-                        priority={index === 0}
-                      />
-
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
-
-                      {/* Interactive corner highlights */}
-                      <div className="absolute top-0 left-0 w-20 h-20 border-t-2 border-l-2 border-cyan-500/0 group-hover:border-cyan-500/50 transition-all duration-500"></div>
-                      <div className="absolute bottom-0 right-0 w-20 h-20 border-b-2 border-r-2 border-emerald-500/0 group-hover:border-emerald-500/50 transition-all duration-500"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {/* Carousel Indicators - Dots */}
-              <div className="absolute bottom-1/15 xl:bottom-[22vh] 2xl:bottom-[45vh] flex place-self-center gap-2">
-                {slides.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSlideChange(index)}
-                    className={`relative overflow-hidden transition-all duration-500 ease-in-out rounded-full ${
-                      index === currentSlide
-                        ? 'w-12 h-3'
-                        : 'w-3 h-3 bg-gray-600 hover:bg-gray-400 hover:scale-110'
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  >
-                    {index === currentSlide ? (
-                      <>
-                        {/* Background */}
-                        <div className="absolute inset-0 bg-gray-700 rounded-full"></div>
-                        {/* Progress bar */}
-                        <div
-                          className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-100 shadow-lg shadow-cyan-500/50"
-                          style={{ width: `${carouselProgress}%` }}
-                        ></div>
-                      </>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Feature highlights below screenshot */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-60 md:mt-40 xl:-mt-15">
-            <div className="group/card p-6 rounded-lg bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/50 hover:from-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-cyan-500/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"></div>
-              <div className="text-cyan-400 mb-2 transform group-hover/card:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2 relative">Real-Time Charts</h3>
-              <p className="text-gray-400 relative">
-                Live market data with advanced technical indicators and trading tools
-              </p>
-            </div>
-
-            <div className="group/card p-6 rounded-lg bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 hover:border-emerald-500/50 hover:from-emerald-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"></div>
-              <div className="text-emerald-400 mb-2 transform group-hover/card:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2 relative">One-Click Trading</h3>
-              <p className="text-gray-400 relative">
-                Execute trades instantly with our streamlined tap-to-trade interface
-              </p>
-            </div>
-
-            <div className="group/card p-6 rounded-lg bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/50 hover:from-cyan-500/20 transition-all duration-300 cursor-pointer relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-cyan-500/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"></div>
-              <div className="text-cyan-400 mb-2 transform group-hover/card:scale-110 transition-transform duration-300">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2 relative">Grid Management</h3>
-              <p className="text-gray-400 relative">
-                Manage multiple positions simultaneously with visual grid trading
-              </p>
-            </div>
+          <div className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
+            <Image
+              src="/taptotrade.png"
+              alt="Tap to Trade"
+              width={1920}
+              height={1080}
+              className="w-full h-auto"
+              priority
+            />
           </div>
         </div>
       </section>
