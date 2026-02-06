@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Squares from '@/components/Squares';
 import dynamic from 'next/dynamic';
+import Lenis from 'lenis';
 
 const Silk = dynamic(() => import('@/components/Silk'), { ssr: false });
 
@@ -15,8 +16,108 @@ export default function LandingPage() {
   const [isChainsVisible, setIsChainsVisible] = useState(false);
   const chainsRef = useRef<HTMLDivElement>(null);
 
+  // Platform preview scroll stack
+  const platformRef = useRef<HTMLDivElement>(null);
+  const [platformProgress, setPlatformProgress] = useState(0);
+  const [platformPosition, setPlatformPosition] = useState<'before' | 'fixed' | 'after'>('before');
+
+  // Text scramble effect for scroll stack text
+  const platformTexts = [
+    { title: 'Professional Trading Interface', subtitle: 'Experience institutional-grade trading tools in a decentralized environment' },
+    { title: 'Choose Your Market', subtitle: 'Pick any coin you want to trade from a wide selection of markets' },
+    { title: 'Tap to Trade', subtitle: 'Tap for position, tap for profit — fast and simple trading at your fingertips' },
+  ];
+  const scramblePhaseRef = useRef(-1);
+  const [displayTitle, setDisplayTitle] = useState('');
+  const scrambleRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     sdk.actions.ready();
+  }, []);
+
+  // Smooth scroll with Lenis
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
+  // Text scramble - run on every platformProgress change, but only act on phase change
+  const scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+  const startScramble = (phase: number) => {
+    if (scrambleRef.current) clearInterval(scrambleRef.current);
+
+    const targetTitle = platformTexts[phase].title;
+    let tick = 0;
+    const totalTicks = 15;
+
+    scrambleRef.current = setInterval(() => {
+      tick++;
+      const progress = tick / totalTicks;
+
+      const resolvedTitle = Math.floor(progress * targetTitle.length);
+      setDisplayTitle(
+        targetTitle.split('').map((ch, i) => {
+          if (i < resolvedTitle) return ch;
+          if (ch === ' ') return ' ';
+          return scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
+        }).join('')
+      );
+
+      if (tick >= totalTicks) {
+        setDisplayTitle(targetTitle);
+        if (scrambleRef.current) clearInterval(scrambleRef.current);
+        scrambleRef.current = null;
+      }
+    }, 30);
+  };
+
+  // Check phase on every progress change (no cleanup that kills the interval)
+  const currentPhase = platformProgress < 0.3 ? 0 : platformProgress < 0.65 ? 1 : 2;
+  if (currentPhase !== scramblePhaseRef.current) {
+    scramblePhaseRef.current = currentPhase;
+    startScramble(currentPhase);
+  }
+
+  // Platform preview scroll progress (JS-based fixed positioning)
+  useEffect(() => {
+    const handlePlatformScroll = () => {
+      if (!platformRef.current) return;
+      const rect = platformRef.current.getBoundingClientRect();
+      const scrollSpace = platformRef.current.offsetHeight - window.innerHeight;
+      if (scrollSpace <= 0) return;
+
+      if (rect.top > 0) {
+        // Haven't reached section yet
+        setPlatformPosition('before');
+        setPlatformProgress(0);
+      } else if (rect.bottom <= window.innerHeight) {
+        // Scrolled past section
+        setPlatformPosition('after');
+        setPlatformProgress(1);
+      } else {
+        // Inside the section - fix content
+        setPlatformPosition('fixed');
+        const progress = Math.max(0, Math.min(1, -rect.top / scrollSpace));
+        setPlatformProgress(progress);
+      }
+    };
+
+    window.addEventListener('scroll', handlePlatformScroll, { passive: true });
+    handlePlatformScroll();
+    return () => window.removeEventListener('scroll', handlePlatformScroll);
   }, []);
 
   // Chains animation on scroll
@@ -43,7 +144,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="w-full bg-black text-white overflow-hidden">
+    <div className="w-full bg-black text-white overflow-x-hidden">
       {/* Header */}
       <header className="absolute top-0 left-0 w-full z-30 p-8 md:px-12">
         <nav className="flex items-center justify-between w-full">
@@ -96,27 +197,103 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black z-10 pointer-events-none"></div>
       </section>
 
-      {/* Platform Preview Section */}
-      <section id="features" className="relative z-20 bg-black py-20 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-4">
-              Professional Trading Interface
-            </h2>
-            <p className="text-xl text-gray-400">
-              Experience institutional-grade trading tools in a decentralized environment
-            </p>
-          </div>
+      {/* Platform Preview Section - Scroll Stack */}
+      <section id="features" ref={platformRef} className="relative z-20 bg-black" style={{ height: '300vh' }}>
+        <div
+          className="w-full min-h-screen flex flex-col justify-center px-4 py-20"
+          style={
+            platformPosition === 'fixed'
+              ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 20 }
+              : platformPosition === 'after'
+                ? { position: 'absolute', bottom: 0, left: 0, right: 0 }
+                : { position: 'relative' }
+          }
+        >
+          <div className="container mx-auto max-w-7xl">
+            {/* Text - scramble title + fade subtitle */}
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent mb-4 font-mono">
+                {displayTitle}
+              </h2>
+              <div className="relative h-8">
+                {platformTexts.map((text, i) => (
+                  <p
+                    key={i}
+                    className="text-xl text-gray-400 absolute inset-0 transition-opacity duration-500"
+                    style={{ opacity: currentPhase === i ? 1 : 0 }}
+                  >
+                    {text.subtitle}
+                  </p>
+                ))}
+              </div>
+            </div>
 
-          <div className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
-            <Image
-              src="/taptotrade.png"
-              alt="Tap to Trade"
-              width={1920}
-              height={1080}
-              className="w-full h-auto"
-              priority
-            />
+            {/* Images stack */}
+            <div className="relative">
+              {/* Base image - taptotrade */}
+              <div
+                className="relative rounded-xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-500/20"
+                style={{
+                  filter: platformProgress >= 0.3 && platformProgress < 0.65 ? 'blur(3px) brightness(0.7)' : 'blur(0px) brightness(1)',
+                  transition: 'filter 0.6s ease-out',
+                }}
+              >
+                <Image
+                  src="/taptotrade.png"
+                  alt="Tap to Trade"
+                  width={1920}
+                  height={1080}
+                  className="w-full h-auto"
+                  priority
+                />
+              </div>
+
+              {/* Overlay image 2 - menucoin, slides in from top-left */}
+              <div
+                className="absolute top-[7%] left-[11%] w-[45%]"
+                style={{
+                  opacity: platformProgress >= 0.3 && platformProgress < 0.65 ? 1 : 0,
+                  transform: platformProgress >= 0.3 && platformProgress < 0.65
+                    ? 'translate(0, 0) scale(1)'
+                    : platformProgress < 0.3
+                      ? 'translate(-60px, 40px) scale(0.3)'
+                      : 'translate(-60px, 40px) scale(0.3)',
+                  transition: 'opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}
+              >
+                <div className="rounded-xl overflow-hidden shadow-2xl shadow-cyan-500/30">
+                  <Image
+                    src="/menucoin.png"
+                    alt="Choose Your Market"
+                    width={800}
+                    height={600}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+
+              {/* Overlay image 3 - taptotrademenu, slides in from top-left (smaller) */}
+              <div
+                className="absolute top-[7%] left-[0%] w-[12%]"
+                style={{
+                  opacity: platformProgress >= 0.65 ? 1 : 0,
+                  transform: platformProgress >= 0.65
+                    ? 'translate(0, 0) scale(1)'
+                    : 'translate(-60px, 40px) scale(0.3)',
+                  transition: 'opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}
+              >
+                <div className="rounded-full overflow-hidden shadow-2xl shadow-cyan-500/30 aspect-square">
+                  <Image
+                    src="/taptotrademenu.png"
+                    alt="Tap to Trade Menu"
+                    width={800}
+                    height={600}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
