@@ -15,6 +15,8 @@ interface ClickedSquare {
   screenY: number;
   movementX: number;
   movementY: number;
+  anim: number;       // 0 to 1 for animation progress
+  removing: boolean;   // true when fading out
 }
 
 const Squares = ({
@@ -60,6 +62,13 @@ const Squares = ({
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
+    // Easing function for smooth animation
+    const easeOutBack = (t: number) => {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+
     const drawGrid = () => {
       if (!ctx) return;
 
@@ -91,8 +100,17 @@ const Squares = ({
         }
       }
 
-      // Draw clicked squares that move with the grid
+      // Update and draw clicked squares
+      const animSpeed = 0.06;
       clickedSquaresRef.current = clickedSquaresRef.current.filter(clicked => {
+        // Update animation progress
+        if (clicked.removing) {
+          clicked.anim -= animSpeed;
+          if (clicked.anim <= 0) return false;
+        } else {
+          if (clicked.anim < 1) clicked.anim = Math.min(clicked.anim + animSpeed, 1);
+        }
+
         const dx = totalMovementRef.current.x - clicked.movementX;
         const dy = totalMovementRef.current.y - clicked.movementY;
         const currentX = clicked.screenX + dx;
@@ -106,37 +124,43 @@ const Squares = ({
           return false;
         }
 
+        const easedAnim = easeOutBack(clicked.anim);
+        const scale = easedAnim;
+        const alpha = clicked.anim; // linear alpha for smoothness
+
+        const centerX = currentX + squareSize / 2;
+        const centerY = currentY + squareSize / 2;
+        const scaledSize = squareSize * scale;
+
         // Fill background
         ctx.fillStyle = clickFillColor;
-        ctx.globalAlpha = 0.6;
-        ctx.fillRect(currentX, currentY, squareSize, squareSize);
+        ctx.globalAlpha = 0.6 * alpha;
+        ctx.fillRect(
+          centerX - scaledSize / 2,
+          centerY - scaledSize / 2,
+          scaledSize,
+          scaledSize
+        );
         ctx.globalAlpha = 1;
 
         // Draw logo image inside the cell
         if (logoImageRef.current) {
-          const padding = 4;
-          const imgSize = squareSize - padding * 2;
-          ctx.globalAlpha = 0.8;
-          ctx.drawImage(logoImageRef.current, currentX + padding, currentY + padding, imgSize, imgSize);
+          const padding = 4 * scale;
+          const imgSize = scaledSize - padding * 2;
+          ctx.globalAlpha = 0.8 * alpha;
+          ctx.drawImage(
+            logoImageRef.current,
+            centerX - scaledSize / 2 + padding,
+            centerY - scaledSize / 2 + padding,
+            imgSize,
+            imgSize
+          );
           ctx.globalAlpha = 1;
         }
 
         return true;
       });
 
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        Math.sqrt(canvas.width ** 2 + canvas.height ** 2) / 2
-      );
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      gradient.addColorStop(1, '#060010');
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
     const updateAnimation = () => {
@@ -228,12 +252,29 @@ const Squares = ({
       const screenX = cellX * squareSize - offsetX;
       const screenY = cellY * squareSize - offsetY;
 
-      clickedSquaresRef.current.push({
-        screenX,
-        screenY,
-        movementX: totalMovementRef.current.x,
-        movementY: totalMovementRef.current.y,
+      // Check if clicking on an already-clicked square (toggle off with animation)
+      const existingIndex = clickedSquaresRef.current.findIndex(clicked => {
+        if (clicked.removing) return false;
+        const dx = totalMovementRef.current.x - clicked.movementX;
+        const dy = totalMovementRef.current.y - clicked.movementY;
+        const currentX = clicked.screenX + dx;
+        const currentY = clicked.screenY + dy;
+        return Math.abs(currentX - screenX) < 2 && Math.abs(currentY - screenY) < 2;
       });
+
+      if (existingIndex !== -1) {
+        // Mark for animated removal
+        clickedSquaresRef.current[existingIndex].removing = true;
+      } else {
+        clickedSquaresRef.current.push({
+          screenX,
+          screenY,
+          movementX: totalMovementRef.current.x,
+          movementY: totalMovementRef.current.y,
+          anim: 0,
+          removing: false,
+        });
+      }
     };
 
     const handleMouseLeave = () => {

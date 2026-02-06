@@ -303,7 +303,7 @@ export default function LandingPage() {
           <Squares
             direction="left"
             speed={0.3}
-            squareSize={40}
+            squareSize={60}
             borderColor="#333"
             hoverFillColor="#1a1a1a"
             clickImage="/tethra-logo.png"
