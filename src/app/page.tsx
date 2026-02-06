@@ -7,7 +7,7 @@ import { sdk } from '@farcaster/miniapp-sdk';
 import Squares from '@/components/Squares';
 import dynamic from 'next/dynamic';
 
-const Plasma = dynamic(() => import('@/components/Plasma'), { ssr: false });
+const Silk = dynamic(() => import('@/components/Silk'), { ssr: false });
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -303,12 +303,12 @@ export default function LandingPage() {
       {/* Hero Section with Layered Text */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
         <div className="absolute inset-0">
-          <Plasma
+          <Silk
             color="#06b6d4"
-            speed={0.3}
+            speed={5}
             scale={1}
-            opacity={0.8}
-            mouseInteractive={false}
+            noiseIntensity={1.5}
+            rotation={0}
           />
         </div>
         <div className="absolute inset-0">
@@ -321,6 +321,7 @@ export default function LandingPage() {
             clickImage="/tethra-polos.png"
           />
         </div>
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black z-10 pointer-events-none"></div>
       </section>
 
       {/* Platform Preview Section with Carousel */}
