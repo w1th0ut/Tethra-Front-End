@@ -642,12 +642,12 @@ export default function LandingPage() {
               </p>
               <div className="flex-1 relative">
                 <Image
-                  src="/homepage/ethra.png"
+                  src="/homepage/ethra copy.png"
                   alt="Relayer Wallet"
                   width={800}
                   height={800}
-                  className="absolute w-[120%] max-w-none object-contain"
-                  style={{ bottom: '20px', left: '-10%' }}
+                  className="absolute w-[60%] max-w-none object-contain"
+                  style={{ bottom: '-40px', left: '-10%' }}
                 />
               </div>
             </div>
