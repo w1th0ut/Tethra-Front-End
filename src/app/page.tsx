@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { sdk } from '@farcaster/miniapp-sdk';
 import Squares from '@/components/Squares';
+import StaggeredMenu from '@/components/StaggeredMenu';
 import dynamic from 'next/dynamic';
 import Lenis from 'lenis';
 
@@ -20,9 +21,9 @@ export default function LandingPage() {
   // Hero phone parallax
   const [heroScroll, setHeroScroll] = useState(0);
 
-  // Navbar hide on scroll down, show on scroll up
-  const [navVisible, setNavVisible] = useState(true);
-  const lastScrollY = useRef(0);
+  // Supported Coins section animation
+  const coinsRef = useRef<HTMLDivElement>(null);
+  const [coinsVisible, setCoinsVisible] = useState(false);
 
   // Tap to Trade scroll stack
   const tapTradeRef = useRef<HTMLDivElement>(null);
@@ -154,52 +155,50 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleTapTradeScroll);
   }, []);
 
-  // Hero phone parallax + navbar visibility
+  // Hero phone parallax
   useEffect(() => {
     const handleHeroScroll = () => {
-      const currentY = window.scrollY;
-      setHeroScroll(currentY);
-      if (currentY > lastScrollY.current && currentY > 100) {
-        setNavVisible(false);
-      } else {
-        setNavVisible(true);
-      }
-      lastScrollY.current = currentY;
+      setHeroScroll(window.scrollY);
     };
     window.addEventListener('scroll', handleHeroScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleHeroScroll);
   }, []);
 
+  // Supported Coins intersection observer
+  useEffect(() => {
+    const el = coinsRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCoinsVisible(entry.isIntersecting),
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
 
   return (
     <div className="w-full bg-black text-white overflow-x-hidden">
-      {/* Header */}
-      <header className={`fixed top-0 left-0 w-full z-50 py-3 px-8 md:px-12 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'} ${platformPosition !== 'before' ? 'backdrop-blur-md bg-black/30' : 'bg-transparent'}`}>
-        <nav className="flex items-center justify-between w-full">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/tethra-logo.png"
-              alt="Tethra Finance Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-            />
-            <span className="font-semibold text-xl">Tethra</span>
-          </Link>
-
-          
-
-          <Link
-            href="/trade"
-            className="font-semibold text-white py-2 px-6 rounded-lg
-                       bg-cyan-700 hover:bg-cyan-800
-                       transition-all duration-300 ease-in-out
-                       hover:shadow-lg hover:shadow-cyan-500/30"
-          >
-            Launch App
-          </Link>
-        </nav>
-      </header>
+      {/* Header Menu */}
+      <StaggeredMenu
+        isFixed={true}
+        position="right"
+        colors={["#0a1a2e", "#0f2847"]}
+        accentColor="#06b6d4"
+        menuButtonColor="#fff"
+        openMenuButtonColor="#fff"
+        displayItemNumbering={true}
+        displaySocials={true}
+        closeOnClickAway={true}
+        items={[
+          { label: "Launch App", ariaLabel: "Launch trading app", link: "/trade" },
+          { label: "Docs", ariaLabel: "Documentation", link: "#" },
+        ]}
+        socialItems={[
+          { label: "Twitter", link: "https://twitter.com" },
+          { label: "GitHub", link: "https://github.com/Tethra-Dex" },
+        ]}
+      />
 
       {/* Hero Section with Layered Text */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
@@ -253,7 +252,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/trade"
-            className="pointer-events-auto mt-4 font-semibold text-white py-2 px-6 rounded-lg
+            className="pointer-events-auto mt-4 font-semibold text-white py-2 px-6 rounded-none
                        bg-cyan-700 hover:bg-cyan-800
                        transition-all duration-300 ease-in-out
                        hover:shadow-lg hover:shadow-cyan-500/30"
@@ -385,13 +384,23 @@ export default function LandingPage() {
       {/* Supported Coins Section - Marquee */}
       <section
         id="supported-coins"
+        ref={coinsRef}
         className="relative py-20 bg-black overflow-hidden"
       >
         {/* Section Title */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl">
-            <span className="text-white">Supported </span>
-            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Coins</span>
+          <h2 className="text-4xl md:text-5xl text-white inline-flex items-center justify-center gap-3 w-full">
+            Supported
+            <span className="relative inline-block px-4 py-1">
+              <span
+                className="absolute inset-0 bg-cyan-700 transition-transform duration-700 ease-out"
+                style={{
+                  transform: coinsVisible ? 'scaleX(1)' : 'scaleX(0)',
+                  transformOrigin: 'left center',
+                }}
+              />
+              <span className="relative">Coins</span>
+            </span>
           </h2>
         </div>
 
@@ -422,14 +431,14 @@ export default function LandingPage() {
                 ].map((coin) => (
                   <div
                     key={coin.name}
-                    className="flex flex-col items-center gap-3 bg-transparent rounded-xl py-5 border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer w-[200px] mx-3 shrink-0"
+                    className="flex flex-col items-center gap-2 md:gap-3 bg-transparent rounded-xl py-3 md:py-5 border border-white/10 hover:border-white/30 transition-all duration-300 cursor-pointer w-[100px] md:w-[200px] mx-1.5 md:mx-3 shrink-0"
                   >
                     <img
                       src={coin.logo}
                       alt={coin.name}
-                      className="w-12 h-12 rounded-full"
+                      className="w-8 h-8 md:w-12 md:h-12 rounded-full"
                     />
-                    <span className="text-white text-sm font-medium">{coin.name}</span>
+                    <span className="text-white text-xs md:text-sm font-medium">{coin.name}</span>
                   </div>
                 ))}
               </div>
@@ -756,22 +765,13 @@ export default function LandingPage() {
           scroll-behavior: smooth;
         }
 
-        /* Hide scrollbar for Chrome, Safari and Opera */
+        /* Hide scrollbar */
         body::-webkit-scrollbar {
-          width: 8px;
+          display: none;
         }
-
-        body::-webkit-scrollbar-track {
-          background: #000;
-        }
-
-        body::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #06b6d4, #10b981);
-          border-radius: 4px;
-        }
-
-        body::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #0891b2, #059669);
+        body {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
 
         @keyframes gradientShift {
