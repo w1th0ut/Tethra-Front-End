@@ -17,6 +17,11 @@ export default function LandingPage() {
   const [platformProgress, setPlatformProgress] = useState(0);
   const [platformPosition, setPlatformPosition] = useState<'before' | 'fixed' | 'after'>('before');
 
+  // Tap to Trade scroll stack
+  const tapTradeRef = useRef<HTMLDivElement>(null);
+  const [tapTradeProgress, setTapTradeProgress] = useState(0);
+  const [tapTradePosition, setTapTradePosition] = useState<'before' | 'fixed' | 'after'>('before');
+
   // Text scramble effect for scroll stack text
   const platformTexts = [
     { title: 'Professional Trading Interface', subtitle: 'Experience institutional-grade trading tools in a decentralized environment' },
@@ -114,6 +119,32 @@ export default function LandingPage() {
     window.addEventListener('scroll', handlePlatformScroll, { passive: true });
     handlePlatformScroll();
     return () => window.removeEventListener('scroll', handlePlatformScroll);
+  }, []);
+
+  // Tap to Trade scroll progress
+  useEffect(() => {
+    const handleTapTradeScroll = () => {
+      if (!tapTradeRef.current) return;
+      const rect = tapTradeRef.current.getBoundingClientRect();
+      const scrollSpace = tapTradeRef.current.offsetHeight - window.innerHeight;
+      if (scrollSpace <= 0) return;
+
+      if (rect.top > 0) {
+        setTapTradePosition('before');
+        setTapTradeProgress(0);
+      } else if (rect.bottom <= window.innerHeight) {
+        setTapTradePosition('after');
+        setTapTradeProgress(1);
+      } else {
+        setTapTradePosition('fixed');
+        const progress = Math.max(0, Math.min(1, -rect.top / scrollSpace));
+        setTapTradeProgress(progress);
+      }
+    };
+
+    window.addEventListener('scroll', handleTapTradeScroll, { passive: true });
+    handleTapTradeScroll();
+    return () => window.removeEventListener('scroll', handleTapTradeScroll);
   }, []);
 
 
@@ -328,179 +359,190 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Smart Contract Code Section */}
-      <section
-        id="smart-contracts"
-        className="relative py-20 px-6 sm:px-15 bg-black overflow-hidden"
-      >
-        <div className="container mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left Side - VS Code Style Editor */}
-            <div className="relative">
-              {/* VS Code Window */}
-              <div className="bg-[#1e1e1e] rounded-lg overflow-hidden border border-gray-700 shadow-2xl">
-                {/* Title Bar */}
-                <div className="bg-[#323233] px-4 py-2 flex items-center justify-between border-b border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
-                      <div className="w-3 h-3 rounded-full bg-[#febc2e]"></div>
-                      <div className="w-3 h-3 rounded-full bg-[#28c840]"></div>
-                    </div>
-                    <span className="text-gray-400 text-sm ml-4">OneTapProfit.sol</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 text-gray-500">
-                      <svg fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tab Bar */}
-                <div className="bg-[#252526] px-2 py-1 flex items-center gap-2 border-b border-gray-800">
-                  <div className="bg-[#1e1e1e] px-3 py-1 rounded-t text-gray-300 text-xs flex items-center gap-2 border-t-2 border-cyan-500">
-                    <span>OneTapProfit.sol</span>
-                    <span className="text-gray-500">×</span>
-                  </div>
-                </div>
-
-                {/* Code Editor */}
-                <div className="bg-[#1e1e1e] p-4 font-mono text-xs md:text-sm overflow-x-auto">
-                  <pre className="text-gray-300">
-                    <code>
-                      {`1  // SPDX-License-Identifier: MIT
-2  pragma solidity ^0.8.20;
-3
-4  import "@openzeppelin/contracts/access/AccessControl.sol";
-5  import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-6  import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-7
-8  /**
-9   * @title OneTapProfit
-10  * @notice Binary option-style trading
-11  * @dev Users tap grid, pay USDC, win if price hits
-12  */
-13 contract OneTapProfit is AccessControl {
-14
-15    IERC20 public immutable usdc;
-16    ITreasuryManager public treasuryManager;
-17
-18    uint256 public constant GRID_DURATION = 10;
-19    uint256 public constant BASE_MULTIPLIER = 110;
-20    uint256 public constant TRADING_FEE_BPS = 5;
-21
-22    mapping(uint256 => Bet) public bets;
-23
-24    function `}
-                      <span className="text-cyan-400">placeBet</span>
-                      {`(
-25       uint256 targetPrice,
-26       uint256 amount
-27    ) external {
-28       // Tap to profit logic
-29    }
-30 }`}
-                    </code>
-                  </pre>
-                </div>
-
-                {/* Status Bar */}
-                <div className="bg-[#007acc] px-4 py-1 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-4 text-white">
-                    <span>Solidity</span>
-                    <span>UTF-8</span>
-                    <span>LF</span>
-                  </div>
-                  <div className="text-white">
-                    <span>Ln 24, Col 14</span>
-                  </div>
-                </div>
+      {/* Tap to Trade Mode - Scroll Stack */}
+      <section ref={tapTradeRef} className="relative z-20 bg-black" style={{ height: '300vh' }}>
+        <div
+          className="w-full min-h-screen flex items-center px-6 sm:px-12"
+          style={
+            tapTradePosition === 'fixed'
+              ? { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 20 }
+              : tapTradePosition === 'after'
+                ? { position: 'absolute', bottom: 0, left: 0, right: 0 }
+                : { position: 'relative' }
+          }
+        >
+          <div className="container mx-auto max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+              {/* Left - Title */}
+              <div>
+                <h2 className="text-4xl md:text-5xl lg:text-6xl leading-tight">
+                  <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">Tap to Trade</span>
+                  <br />
+                  <span className="text-white">Mode</span>
+                </h2>
+                <p className="text-gray-400 text-lg mt-6 max-w-md">
+                  Simple, fast, and intuitive — just tap and let the market work for you.
+                </p>
               </div>
 
-              {/* Glow Effect */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 blur-2xl -z-10"></div>
-            </div>
-
-            {/* Right Side - Description */}
-            <div className="space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Smart Contracts
-              </h2>
-
-              <p className="text-xl text-gray-300 leading-relaxed">
-                Built with security and efficiency in mind. Our smart contracts power the entire
-                trading ecosystem.
-              </p>
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 group">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+              {/* Right - Stacking Cards */}
+              <div className="relative h-[450px]">
+                {/* Card 1 - Tap to Profit (recedes back) */}
+                <div
+                  className="absolute inset-0 rounded-2xl overflow-hidden border border-white/10 bg-[#0a1a2e]"
+                  style={{
+                    opacity: 1 - tapTradeProgress * 0.7,
+                    transform: `scale(${1 - tapTradeProgress * 0.12}) translateY(${-tapTradeProgress * 40}px)`,
+                    zIndex: 1,
+                    transition: 'none',
+                  }}
+                >
+                  <div className="h-[65%] bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 flex items-center justify-center overflow-hidden">
+                    <Image
+                      src="/homepage/profit.png"
+                      alt="Tap to Profit"
+                      width={800}
+                      height={500}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Audited & Secure</h3>
-                    <p className="text-gray-400">Thoroughly tested and audited smart contracts</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 group">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Gas Optimized</h3>
-                    <p className="text-gray-400">
-                      Minimal transaction costs for maximum efficiency
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-white mb-2">Tap to Profit</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed">
+                      Pick a price, tap to enter. If the price touches your target — you win. If it doesn&apos;t — you lose. Simple as that.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 group">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 transition-colors">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Non-Custodial</h3>
-                    <p className="text-gray-400">You always maintain full control of your assets</p>
-                  </div>
-                </div>
-              </div>
+                {/* Card 2 - Tap Position (slides up, then recedes) */}
+                {(() => {
+                  const card2Slide = Math.min(tapTradeProgress / 0.5, 1);
+                  const card2Recede = tapTradeProgress > 0.5 ? (tapTradeProgress - 0.5) / 0.5 : 0;
+                  return (
+                    <div
+                      className="absolute inset-0 rounded-2xl overflow-hidden border border-white/10 bg-[#0a1a2e]"
+                      style={{
+                        opacity: 1 - card2Recede * 0.7,
+                        transform: `translateY(${(1 - card2Slide) * 150}%) scale(${1 - card2Recede * 0.08}) translateY(${-card2Recede * 30}px)`,
+                        zIndex: 2,
+                        transition: 'none',
+                      }}
+                    >
+                      <div className="h-[65%] bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center overflow-hidden">
+                        <Image
+                          src="/homepage/TapPosition.png"
+                          alt="Tap Position"
+                          width={800}
+                          height={500}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-white mb-2">Tap Position</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                          Same tap mechanic, bigger potential. When the price hits your target, it automatically opens a leveraged position for you.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
-              <div className="pt-4">
-                <a
-                  href="https://github.com/Tethra-Dex"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-600 hover:to-emerald-600 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/30"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
-                  </svg>
-                  View on GitHub
-                </a>
+                {/* Card 3 - Quick Tap (slides up from bottom) */}
+                {(() => {
+                  const card3Slide = tapTradeProgress > 0.5 ? Math.min((tapTradeProgress - 0.5) / 0.5, 1) : 0;
+                  return (
+                    <div
+                      className="absolute inset-0 rounded-2xl overflow-hidden border border-white/10 bg-[#0a1a2e]"
+                      style={{
+                        transform: `translateY(${(1 - card3Slide) * 150}%)`,
+                        zIndex: 3,
+                        transition: 'none',
+                      }}
+                    >
+                      <div className="h-[65%] bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 flex items-center justify-center overflow-hidden">
+                        <Image
+                          src="/homepage/quicktap.png"
+                          alt="Quick Tap"
+                          width={800}
+                          height={500}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-white mb-2">Quick Tap</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed">
+                          One tap to go long, one tap to go short. No complex setup — just pick your direction and you&apos;re in.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Bento Grid Section */}
+      <section className="relative py-20 px-6 sm:px-12 bg-black">
+        <div className="container mx-auto max-w-7xl">
+          <div className="grid grid-cols-12 auto-rows-[200px] gap-4">
+            {/* Box 1: row 1, cols 1-4 */}
+            <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#1a1a1a] p-6">
+            </div>
+            {/* Box 2: rows 1-2, cols 5-8 (tall middle) */}
+            <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#1a1a1a] p-6 border-r-0">
+            </div>
+            {/* Box 3: row 1, cols 9-12 - Pyth Oracle */}
+            <div className="col-span-4 col-start-9 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#1a1a1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative border-l-0">
+              <h3 className="text-xl font-bold text-white">Pyth Oracle</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+                Integrated with Pyth Network for real-time, high-fidelity price feeds.
+              </p>
+              <Image
+                src="/homepage/pythivon.png"
+                alt="Pyth Oracle"
+                width={200}
+                height={200}
+                className="absolute w-[27%] object-contain"
+                style={{ bottom: '-30px', right: '40px' }}
+              />
+            </div>
+            {/* Box 4: rows 2-3, cols 1-4 (tall left) - Stake Tethra Coin */}
+            <div className="col-span-4 row-span-2 col-start-1 row-start-2 rounded-2xl border border-white/10 bg-[#0f2847] p-6 flex flex-col overflow-hidden">
+              <h3 className="text-2xl font-bold text-white mb-2">Stake Tethra Coin</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Earn rewards by staking your Tethra coins. Hold, stake, and grow your portfolio effortlessly.
+              </p>
+              <div className="flex-1 mt-4 relative">
+                <Image
+                  src="/homepage/kointethra.png"
+                  alt="Tethra Coin"
+                  width={400}
+                  height={400}
+                  className="absolute bottom-[-40%] right-[-20%] w-[90%] object-contain"
+                />
+              </div>
+            </div>
+            {/* Box 5: row 2, cols 9-12 */}
+            <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#1a1a1a] p-6">
+            </div>
+            {/* Box 6: row 3, cols 5-12 (wide bottom) - Seamless Trading */}
+            <div className="col-span-8 col-start-5 row-start-3 rounded-2xl border border-white/10 bg-[#1a1a1a] p-8 flex items-center justify-between overflow-hidden">
+              <div className="flex-1 min-w-0 pr-16 max-w-[77%]">
+                <h3 className="text-2xl font-bold text-white mb-2">Seamless Trading</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  Enjoy a frictionless trading experience and sidestep blockchain congestion with One-Click Trading. Execute swaps, open positions, and manage your portfolio — all without waiting for confirmations or dealing with failed transactions.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <Image
+                  src="/homepage/seamlesstrading.png"
+                  alt="Seamless Trading"
+                  width={300}
+                  height={200}
+                  className="h-[160px] w-auto object-contain"
+                />
               </div>
             </div>
           </div>
