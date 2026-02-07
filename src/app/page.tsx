@@ -200,6 +200,31 @@ export default function LandingPage() {
           />
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black z-10 pointer-events-none"></div>
+        <div className="absolute left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none" style={{ bottom: '70%' }}>
+          <h2 className="text-4xl md:text-6xl font-bold text-white text-center mb-4 flex items-center gap-3">
+            Welcome to
+            <Image
+              src="/tethra-polos.png"
+              alt="Tethra Logo"
+              width={56}
+              height={56}
+              className="w-12 md:w-14 h-12 md:h-14 inline-block"
+            />
+            Tethra App
+          </h2>
+          <p className="text-white text-base text-center max-w-lg">
+            The simplest decentralized exchange — tap to trade, open positions, and earn rewards in just one click.
+          </p>
+        </div>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20">
+          <Image
+            src="/homepage/mockhp.png"
+            alt="Tethra Mobile App"
+            width={500}
+            height={1000}
+            className="w-auto h-[60vh] object-contain"
+          />
+        </div>
       </section>
 
       {/* Platform Preview Section - Scroll Stack */}
@@ -488,13 +513,13 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-7xl">
           <div className="grid grid-cols-12 auto-rows-[200px] gap-4">
             {/* Box 1: row 1, cols 1-4 */}
-            <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#1a1a1a] p-6">
+            <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6">
             </div>
             {/* Box 2: rows 1-2, cols 5-8 (tall middle) */}
-            <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#1a1a1a] p-6 border-r-0">
+            <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 border-r-0">
             </div>
             {/* Box 3: row 1, cols 9-12 - Pyth Oracle */}
-            <div className="col-span-4 col-start-9 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#1a1a1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative border-l-0">
+            <div className="col-span-4 col-start-9 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative border-l-0">
               <h3 className="text-xl font-bold text-white">Pyth Oracle</h3>
               <p className="text-gray-400 text-sm leading-relaxed pr-16">
                 Integrated with Pyth Network for real-time, high-fidelity price feeds.
@@ -525,10 +550,10 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Box 5: row 2, cols 9-12 */}
-            <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#1a1a1a] p-6">
+            <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6">
             </div>
             {/* Box 6: row 3, cols 5-12 (wide bottom) - Seamless Trading */}
-            <div className="col-span-8 col-start-5 row-start-3 rounded-2xl border border-white/10 bg-[#1a1a1a] p-8 flex items-center justify-between overflow-hidden">
+            <div className="col-span-8 col-start-5 row-start-3 rounded-2xl border border-white/10 bg-[#0a0e1a] p-8 flex items-center justify-between overflow-hidden">
               <div className="flex-1 min-w-0 pr-16 max-w-[77%]">
                 <h3 className="text-2xl font-bold text-white mb-2">Seamless Trading</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
