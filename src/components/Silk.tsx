@@ -85,7 +85,7 @@ const SilkPlane = forwardRef<Mesh, SilkPlaneProps>(function SilkPlane({ uniforms
 
   useFrame((_, delta) => {
     if (meshRef.current) {
-      (meshRef.current.material as { uniforms: Record<string, { value: number }> }).uniforms.uTime.value += 0.1 * delta;
+      (meshRef.current.material as unknown as { uniforms: Record<string, { value: number }> }).uniforms.uTime.value += 0.1 * delta;
     }
   });
 
