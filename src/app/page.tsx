@@ -17,6 +17,9 @@ export default function LandingPage() {
   const [platformProgress, setPlatformProgress] = useState(0);
   const [platformPosition, setPlatformPosition] = useState<'before' | 'fixed' | 'after'>('before');
 
+  // Hero phone parallax
+  const [heroScroll, setHeroScroll] = useState(0);
+
   // Tap to Trade scroll stack
   const tapTradeRef = useRef<HTMLDivElement>(null);
   const [tapTradeProgress, setTapTradeProgress] = useState(0);
@@ -147,6 +150,15 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleTapTradeScroll);
   }, []);
 
+  // Hero phone parallax scroll
+  useEffect(() => {
+    const handleHeroScroll = () => {
+      setHeroScroll(window.scrollY);
+    };
+    window.addEventListener('scroll', handleHeroScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleHeroScroll);
+  }, []);
+
 
   return (
     <div className="w-full bg-black text-white overflow-x-hidden">
@@ -161,7 +173,7 @@ export default function LandingPage() {
               height={32}
               className="w-8 h-8"
             />
-            <span className="font-semibold text-xl">Tethra Finance</span>
+            <span className="font-semibold text-xl">Tethra</span>
           </Link>
 
           
@@ -210,13 +222,13 @@ export default function LandingPage() {
               height={56}
               className="w-12 md:w-14 h-12 md:h-14 inline-block"
             />
-            Tethra App
+            Tethra
           </h2>
           <p className="text-white text-base text-center max-w-lg">
             The simplest decentralized exchange — tap to trade, open positions, and earn rewards in just one click.
           </p>
         </div>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute bottom-0 left-1/2 z-20" style={{ transform: `translateX(-50%) translateY(${heroScroll * 0.5}px)` }}>
           <Image
             src="/homepage/mockhp.png"
             alt="Tethra Mobile App"
@@ -586,7 +598,7 @@ export default function LandingPage() {
                 height={24}
                 className="w-6 h-6"
               />
-              <span className="text-gray-400">© 2025 Tethra Finance. All rights reserved.</span>
+              <span className="text-gray-400">© 2025 Tethra. All rights reserved.</span>
             </div>
             <div className="flex gap-6 text-gray-400">
               <span className="hover:text-white transition-colors">Twitter</span>
