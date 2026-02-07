@@ -20,6 +20,7 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+
 const { miniapp } = minikitConfig;
 
 export async function generateMetadata(): Promise<Metadata> {

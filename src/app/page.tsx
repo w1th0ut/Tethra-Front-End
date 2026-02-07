@@ -178,7 +178,7 @@ export default function LandingPage() {
 
 
   return (
-    <div className="w-full bg-black text-white overflow-x-hidden">
+    <div className="w-full bg-black text-white overflow-x-hidden" style={{ fontFamily: "'Satoshi', sans-serif" }}>
       {/* Header Menu */}
       <StaggeredMenu
         isFixed={true}
@@ -428,6 +428,13 @@ export default function LandingPage() {
                   { name: 'LINK', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x514910771AF9Ca656af840dff83E8264EcF986CA/logo.png' },
                   { name: 'SOL', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png' },
                   { name: 'XRP', logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ripple/info/logo.png' },
+                  { name: 'XAG', logo: '/icons/XAG.png' },
+                  { name: 'XAU', logo: '/icons/XAU.png' },
+                  { name: 'AAPL', logo: '/icons/AAPL.png' },
+                  { name: 'GBP', logo: '/icons/GBP.png' },
+                  { name: 'GOOGL', logo: '/icons/GOOGL.png' },
+                  { name: 'QQQ', logo: '/icons/QQQ.png' },
+                  { name: 'SPY', logo: '/icons/SPY.png' },
                 ].map((coin) => (
                   <div
                     key={coin.name}
@@ -463,12 +470,21 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
               {/* Left - Title */}
               <div>
-                <h2 className="text-4xl md:text-5xl lg:text-6xl leading-tight">
-                  <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">Tap to Trade</span>
+                <h2 className="text-4xl md:text-5xl lg:text-6xl leading-tight font-bold text-white">
+                  <span className="relative inline-block px-4 py-1">
+                    <span
+                      className="absolute inset-0 bg-cyan-700 transition-transform duration-700 ease-out"
+                      style={{
+                        transform: tapTradePosition !== 'before' ? 'scaleX(1)' : 'scaleX(0)',
+                        transformOrigin: 'left center',
+                      }}
+                    />
+                    <span className="relative">Tap to Trade</span>
+                  </span>
                   <br />
-                  <span className="text-white">Mode</span>
+                  Mode
                 </h2>
-                <p className="text-gray-400 text-lg mt-6 max-w-md">
+                <p className="text-gray-400 text-lg mt-6 max-w-md font-medium">
                   Simple, fast, and intuitive — just tap and let the market work for you.
                 </p>
               </div>
@@ -496,7 +512,7 @@ export default function LandingPage() {
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-bold text-white mb-2">Tap to Profit</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">
+                    <p className="text-gray-400 text-sm leading-relaxed font-medium">
                       Pick a price, tap to enter. If the price touches your target — you win. If it doesn&apos;t — you lose. Simple as that.
                     </p>
                   </div>
@@ -527,7 +543,7 @@ export default function LandingPage() {
                       </div>
                       <div className="p-6">
                         <h3 className="text-xl font-bold text-white mb-2">Tap Position</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
+                        <p className="text-gray-400 text-sm leading-relaxed font-medium">
                           Same tap mechanic, bigger potential. When the price hits your target, it automatically opens a leveraged position for you.
                         </p>
                       </div>
@@ -558,7 +574,7 @@ export default function LandingPage() {
                       </div>
                       <div className="p-6">
                         <h3 className="text-xl font-bold text-white mb-2">Quick Tap</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
+                        <p className="text-gray-400 text-sm leading-relaxed font-medium">
                           One tap to go long, one tap to go short. No complex setup — just pick your direction and you&apos;re in.
                         </p>
                       </div>
@@ -578,14 +594,14 @@ export default function LandingPage() {
           <div className="flex flex-col gap-4 md:hidden">
             <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
               <h3 className="text-xl font-bold text-white">Account Abstraction</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-20">
                 Trade seamlessly with Privy-powered smart wallets — no seed phrases, no hassle.
               </p>
               <Image src="/homepage/privy.png" alt="Privy" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '15px' }} />
             </div>
             <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 flex flex-col overflow-hidden min-h-[300px]">
               <h3 className="text-2xl font-bold text-white mb-2">Relayer Wallet</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium">
                 Zero gas fees for every trade. Our relayer wallet covers all transaction costs so you can focus on trading, not fees.
               </p>
               <div className="flex-1 flex items-center justify-center mt-4">
@@ -594,14 +610,14 @@ export default function LandingPage() {
             </div>
             <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
               <h3 className="text-xl font-bold text-white">Pyth Oracle</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-20">
                 Integrated with Pyth Network for real-time, high-fidelity price feeds.
               </p>
               <Image src="/homepage/pythivon.png" alt="Pyth Oracle" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '20px' }} />
             </div>
             <div className="rounded-2xl border border-white/10 bg-[#0f2847] p-6 flex flex-col overflow-hidden min-h-[300px]">
               <h3 className="text-2xl font-bold text-white mb-2">Stake Tethra Coin</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium">
                 Earn rewards by staking your Tethra coins. Hold, stake, and grow your portfolio effortlessly.
               </p>
               <div className="flex-1 flex items-center justify-center mt-4">
@@ -610,14 +626,14 @@ export default function LandingPage() {
             </div>
             <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
               <h3 className="text-xl font-bold text-white">Build on Base</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-20">
                 Powered by Base chain for fast, low-cost, and secure transactions.
               </p>
               <Image src="/homepage/base.png" alt="Base Chain" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '20px' }} />
             </div>
             <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden min-h-[280px]">
               <h3 className="text-2xl font-bold text-white mb-2">Seamless Trading</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium">
                 Enjoy a frictionless trading experience and sidestep blockchain congestion with One-Click Trading. Execute swaps, open positions, and manage your portfolio — all without waiting for confirmations or dealing with failed transactions.
               </p>
               <div className="flex-1 flex items-center justify-center mt-4">
@@ -631,7 +647,7 @@ export default function LandingPage() {
             {/* Box 1: row 1, cols 1-4 - Account Abstraction */}
             <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative">
               <h3 className="text-xl font-bold text-white">Account Abstraction</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-16">
                 Trade seamlessly with Privy-powered smart wallets — no seed phrases, no hassle.
               </p>
               <Image
@@ -646,7 +662,7 @@ export default function LandingPage() {
             {/* Box 2: rows 1-2, cols 5-8 (tall middle) - Relayer Wallet */}
             <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 border-r-0 flex flex-col overflow-hidden">
               <h3 className="text-2xl font-bold text-white mb-2">Relayer Wallet</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium">
                 Zero gas fees for every trade. Our relayer wallet covers all transaction costs so you can focus on trading, not fees.
               </p>
               <div className="flex-1 relative">
@@ -663,7 +679,7 @@ export default function LandingPage() {
             {/* Box 3: row 1, cols 9-12 - Pyth Oracle */}
             <div className="col-span-4 col-start-9 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative border-l-0">
               <h3 className="text-xl font-bold text-white">Pyth Oracle</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-16">
                 Integrated with Pyth Network for real-time, high-fidelity price feeds.
               </p>
               <Image
@@ -678,7 +694,7 @@ export default function LandingPage() {
             {/* Box 4: rows 2-3, cols 1-4 (tall left) - Stake Tethra Coin */}
             <div className="col-span-4 row-span-2 col-start-1 row-start-2 rounded-2xl border border-white/10 bg-[#0f2847] p-6 flex flex-col overflow-hidden">
               <h3 className="text-2xl font-bold text-white mb-2">Stake Tethra Coin</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium">
                 Earn rewards by staking your Tethra coins. Hold, stake, and grow your portfolio effortlessly.
               </p>
               <div className="flex-1 mt-4 relative">
@@ -694,7 +710,7 @@ export default function LandingPage() {
             {/* Box 5: row 2, cols 9-12 - Build on Base */}
             <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative border-l-0">
               <h3 className="text-xl font-bold text-white">Build on Base</h3>
-              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+              <p className="text-gray-400 text-sm leading-relaxed font-medium pr-16">
                 Powered by Base chain for fast, low-cost, and secure transactions.
               </p>
               <Image
@@ -710,7 +726,7 @@ export default function LandingPage() {
             <div className="col-span-8 col-start-5 row-start-3 rounded-2xl border border-white/10 bg-[#0a0e1a] p-8 flex items-center justify-between overflow-hidden">
               <div className="flex-1 min-w-0 pr-16 max-w-[77%]">
                 <h3 className="text-2xl font-bold text-white mb-2">Seamless Trading</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">
+                <p className="text-gray-400 text-sm leading-relaxed font-medium">
                   Enjoy a frictionless trading experience and sidestep blockchain congestion with One-Click Trading. Execute swaps, open positions, and manage your portfolio — all without waiting for confirmations or dealing with failed transactions.
                 </p>
               </div>
