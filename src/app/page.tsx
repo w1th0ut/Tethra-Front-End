@@ -20,6 +20,10 @@ export default function LandingPage() {
   // Hero phone parallax
   const [heroScroll, setHeroScroll] = useState(0);
 
+  // Navbar hide on scroll down, show on scroll up
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
   // Tap to Trade scroll stack
   const tapTradeRef = useRef<HTMLDivElement>(null);
   const [tapTradeProgress, setTapTradeProgress] = useState(0);
@@ -150,10 +154,17 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleTapTradeScroll);
   }, []);
 
-  // Hero phone parallax scroll
+  // Hero phone parallax + navbar visibility
   useEffect(() => {
     const handleHeroScroll = () => {
-      setHeroScroll(window.scrollY);
+      const currentY = window.scrollY;
+      setHeroScroll(currentY);
+      if (currentY > lastScrollY.current && currentY > 100) {
+        setNavVisible(false);
+      } else {
+        setNavVisible(true);
+      }
+      lastScrollY.current = currentY;
     };
     window.addEventListener('scroll', handleHeroScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleHeroScroll);
@@ -163,7 +174,7 @@ export default function LandingPage() {
   return (
     <div className="w-full bg-black text-white overflow-x-hidden">
       {/* Header */}
-      <header className="absolute top-0 left-0 w-full z-30 p-8 md:px-12">
+      <header className={`fixed top-0 left-0 w-full z-50 py-3 px-8 md:px-12 transition-all duration-300 ${navVisible ? 'translate-y-0' : '-translate-y-full'} ${platformPosition !== 'before' ? 'backdrop-blur-md bg-black/30' : 'bg-transparent'}`}>
         <nav className="flex items-center justify-between w-full">
           <Link href="/" className="flex items-center gap-3">
             <Image
@@ -212,29 +223,60 @@ export default function LandingPage() {
           />
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent to-black z-10 pointer-events-none"></div>
-        <div className="absolute left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none" style={{ bottom: '70%' }}>
-          <h2 className="text-4xl md:text-6xl font-bold text-white text-center mb-4 flex items-center gap-3">
-            Welcome to
-            <Image
-              src="/tethra-polos.png"
-              alt="Tethra Logo"
-              width={56}
-              height={56}
-              className="w-12 md:w-14 h-12 md:h-14 inline-block"
-            />
-            Tethra
+        <div className="absolute left-1/2 -translate-x-1/2 z-20 flex flex-col items-center pointer-events-none w-[95%] md:w-auto" style={{ bottom: '70%' }}>
+          <h2 className="text-4xl md:text-6xl font-bold text-white text-center mb-4">
+            <span className="flex md:hidden items-center justify-center gap-2 flex-wrap">
+              Welcome to
+              <Image
+                src="/tethra-polos.png"
+                alt="Tethra Logo"
+                width={56}
+                height={56}
+                className="w-10 h-10 inline-block"
+              />
+              Tethra
+            </span>
+            <span className="hidden md:flex items-center justify-center gap-3">
+              Welcome to
+              <Image
+                src="/tethra-polos.png"
+                alt="Tethra Logo"
+                width={56}
+                height={56}
+                className="w-14 h-14 inline-block"
+              />
+              Tethra
+            </span>
           </h2>
-          <p className="text-white text-base text-center max-w-lg">
+          <p className="text-white text-base text-center max-w-none md:max-w-lg px-2 md:px-0">
             The simplest decentralized exchange — tap to trade, open positions, and earn rewards in just one click.
           </p>
+          <Link
+            href="/trade"
+            className="pointer-events-auto mt-4 font-semibold text-white py-2 px-6 rounded-lg
+                       bg-cyan-700 hover:bg-cyan-800
+                       transition-all duration-300 ease-in-out
+                       hover:shadow-lg hover:shadow-cyan-500/30"
+          >
+            Launch App
+          </Link>
         </div>
-        <div className="absolute bottom-0 left-1/2 z-20" style={{ transform: `translateX(-50%) translateY(${heroScroll * 0.5}px)` }}>
+        <div className="absolute bottom-0 left-1/2 z-20 hidden md:block" style={{ transform: `translateX(-50%) translateY(${heroScroll * 0.5}px)` }}>
           <Image
             src="/homepage/mockhp.png"
             alt="Tethra Mobile App"
             width={500}
             height={1000}
             className="w-auto h-[60vh] object-contain"
+          />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 z-20 md:hidden" style={{ transform: `translateY(${heroScroll * 0.3}px)` }}>
+          <Image
+            src="/homepage/mockhp.png"
+            alt="Tethra Mobile App"
+            width={1000}
+            height={600}
+            className="w-full object-cover object-top"
           />
         </div>
       </section>
@@ -523,12 +565,91 @@ export default function LandingPage() {
       {/* Bento Grid Section */}
       <section className="relative py-20 px-6 sm:px-12 bg-black">
         <div className="container mx-auto max-w-7xl">
-          <div className="grid grid-cols-12 auto-rows-[200px] gap-4">
-            {/* Box 1: row 1, cols 1-4 */}
-            <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6">
+          {/* Mobile: single column cards */}
+          <div className="flex flex-col gap-4 md:hidden">
+            <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
+              <h3 className="text-xl font-bold text-white">Account Abstraction</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+                Trade seamlessly with Privy-powered smart wallets — no seed phrases, no hassle.
+              </p>
+              <Image src="/homepage/privy.png" alt="Privy" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '15px' }} />
             </div>
-            {/* Box 2: rows 1-2, cols 5-8 (tall middle) */}
-            <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 border-r-0">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 flex flex-col overflow-hidden min-h-[300px]">
+              <h3 className="text-2xl font-bold text-white mb-2">Relayer Wallet</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Zero gas fees for every trade. Our relayer wallet covers all transaction costs so you can focus on trading, not fees.
+              </p>
+              <div className="flex-1 flex items-center justify-center mt-4">
+                <Image src="/homepage/ethra.png" alt="Relayer Wallet" width={400} height={400} className="w-[80%] object-contain" />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
+              <h3 className="text-xl font-bold text-white">Pyth Oracle</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+                Integrated with Pyth Network for real-time, high-fidelity price feeds.
+              </p>
+              <Image src="/homepage/pythivon.png" alt="Pyth Oracle" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '20px' }} />
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-[#0f2847] p-6 flex flex-col overflow-hidden min-h-[300px]">
+              <h3 className="text-2xl font-bold text-white mb-2">Stake Tethra Coin</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Earn rewards by staking your Tethra coins. Hold, stake, and grow your portfolio effortlessly.
+              </p>
+              <div className="flex-1 flex items-center justify-center mt-4">
+                <Image src="/homepage/kointethra.png" alt="Tethra Coin" width={400} height={400} className="w-[60%] object-contain" />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
+              <h3 className="text-xl font-bold text-white">Build on Base</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-20">
+                Powered by Base chain for fast, low-cost, and secure transactions.
+              </p>
+              <Image src="/homepage/base.png" alt="Base Chain" width={200} height={200} className="absolute w-[25%] object-contain" style={{ bottom: '10px', right: '20px' }} />
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden min-h-[280px]">
+              <h3 className="text-2xl font-bold text-white mb-2">Seamless Trading</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Enjoy a frictionless trading experience and sidestep blockchain congestion with One-Click Trading. Execute swaps, open positions, and manage your portfolio — all without waiting for confirmations or dealing with failed transactions.
+              </p>
+              <div className="flex-1 flex items-center justify-center mt-4">
+                <Image src="/homepage/seamlesstrade.png" alt="Seamless Trading" width={300} height={200} className="w-[50%] object-contain" />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: bento grid */}
+          <div className="hidden md:grid grid-cols-12 auto-rows-[200px] gap-4">
+            {/* Box 1: row 1, cols 1-4 - Account Abstraction */}
+            <div className="col-span-4 row-start-1 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative">
+              <h3 className="text-xl font-bold text-white">Account Abstraction</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+                Trade seamlessly with Privy-powered smart wallets — no seed phrases, no hassle.
+              </p>
+              <Image
+                src="/homepage/privy.png"
+                alt="Privy"
+                width={200}
+                height={200}
+                className="absolute w-[27%] object-contain"
+                style={{ bottom: '0px', right: '10px' }}
+              />
+            </div>
+            {/* Box 2: rows 1-2, cols 5-8 (tall middle) - Relayer Wallet */}
+            <div className="col-span-4 row-span-2 col-start-5 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0f2847] to-[#0a0e1a] p-6 border-r-0 flex flex-col overflow-hidden">
+              <h3 className="text-2xl font-bold text-white mb-2">Relayer Wallet</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Zero gas fees for every trade. Our relayer wallet covers all transaction costs so you can focus on trading, not fees.
+              </p>
+              <div className="flex-1 relative">
+                <Image
+                  src="/homepage/ethra.png"
+                  alt="Relayer Wallet"
+                  width={800}
+                  height={800}
+                  className="absolute w-[120%] max-w-none object-contain"
+                  style={{ bottom: '20px', left: '-10%' }}
+                />
+              </div>
             </div>
             {/* Box 3: row 1, cols 9-12 - Pyth Oracle */}
             <div className="col-span-4 col-start-9 row-start-1 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative border-l-0">
@@ -561,8 +682,20 @@ export default function LandingPage() {
                 />
               </div>
             </div>
-            {/* Box 5: row 2, cols 9-12 */}
-            <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6">
+            {/* Box 5: row 2, cols 9-12 - Build on Base */}
+            <div className="col-span-4 col-start-9 row-start-2 rounded-2xl border border-white/10 bg-[#0a0e1a] p-6 flex flex-col overflow-hidden relative border-l-0">
+              <h3 className="text-xl font-bold text-white">Build on Base</h3>
+              <p className="text-gray-400 text-sm leading-relaxed pr-16">
+                Powered by Base chain for fast, low-cost, and secure transactions.
+              </p>
+              <Image
+                src="/homepage/base.png"
+                alt="Base Chain"
+                width={200}
+                height={200}
+                className="absolute w-[27%] object-contain"
+                style={{ bottom: '10px', right: '20px' }}
+              />
             </div>
             {/* Box 6: row 3, cols 5-12 (wide bottom) - Seamless Trading */}
             <div className="col-span-8 col-start-5 row-start-3 rounded-2xl border border-white/10 bg-[#0a0e1a] p-8 flex items-center justify-between overflow-hidden">
@@ -572,9 +705,9 @@ export default function LandingPage() {
                   Enjoy a frictionless trading experience and sidestep blockchain congestion with One-Click Trading. Execute swaps, open positions, and manage your portfolio — all without waiting for confirmations or dealing with failed transactions.
                 </p>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mr-8">
                 <Image
-                  src="/homepage/seamlesstrading.png"
+                  src="/homepage/seamlesstrade.png"
                   alt="Seamless Trading"
                   width={300}
                   height={200}
