@@ -381,7 +381,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Supported Coins Section - Marquee */}
+      {/* Supported Markets Section - Marquee */}
       <section
         id="supported-coins"
         ref={coinsRef}
@@ -399,7 +399,7 @@ export default function LandingPage() {
                   transformOrigin: 'left center',
                 }}
               />
-              <span className="relative">Coins</span>
+              <span className="relative">Markets</span>
             </span>
           </h2>
         </div>
@@ -451,6 +451,10 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="mt-6 text-center text-sm md:text-base text-gray-400 tracking-wide">
+          Crypto &middot; Forex &middot; Indices &middot; Commodities &middot; Stocks
         </div>
       </section>
 

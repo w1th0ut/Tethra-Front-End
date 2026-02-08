@@ -178,15 +178,15 @@ const TapToTrade: React.FC<TapToTradeProps> = ({ onMobileClose }) => {
         </div>
       )}
 
-      {/* Open Position Deprecated Banner */}
+      {/* Open Position Under Maintenance Banner */}
       {isOpenPositionDeprecated && (
         <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-3">
           <div className="flex items-start gap-2">
             <Info size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
-              <div className="text-xs font-semibold text-red-400">Open Position (Deprecated)</div>
+              <div className="text-xs font-semibold text-red-400">Open Position (Under Maintenance)</div>
               <div className="text-xs text-red-300 space-y-0.5">
-                <div>- This mode is deprecated and no longer used</div>
+                <div>- This mode is under maintenance</div>
                 <div>- All inputs are disabled (margin, leverage, timeframe, grid)</div>
               </div>
             </div>
