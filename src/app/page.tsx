@@ -609,7 +609,13 @@ export default function LandingPage() {
                 Zero gas fees for every trade. Our relayer wallet covers all transaction costs so you can focus on trading, not fees.
               </p>
               <div className="flex-1 flex items-center justify-center mt-4">
-                <Image src="/homepage/ethra.png" alt="Relayer Wallet" width={400} height={400} className="w-[80%] object-contain" />
+                <Image
+                  src="/homepage/ethra copy.png"
+                  alt="Relayer Wallet"
+                  width={400}
+                  height={400}
+                  className="w-[60%] object-contain"
+                />
               </div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0a0e1a] to-[#0f2847] p-6 flex flex-col overflow-hidden relative min-h-[180px]">
