@@ -195,7 +195,7 @@ export default function LandingPage() {
           { label: "Docs", ariaLabel: "Documentation", link: "#" },
         ]}
         socialItems={[
-          { label: "Twitter", link: "https://twitter.com" },
+          { label: "X", link: "https://x.com/TethraTrade" },
           { label: "GitHub", link: "https://github.com/Tethra-Dex" },
         ]}
       />
@@ -759,7 +759,13 @@ export default function LandingPage() {
               <span className="text-gray-400">© 2025 Tethra. All rights reserved.</span>
             </div>
             <div className="flex gap-6 text-gray-400">
-              <span className="hover:text-white transition-colors">Twitter</span>
+              <Link
+                href="https://x.com/TethraTrade"
+                target="_blank"
+                className="hover:text-white transition-colors"
+              >
+                X
+              </Link>
               <span className="hover:text-white transition-colors">Discord</span>
               <Link
                 href="https://github.com/Tethra-Dex"

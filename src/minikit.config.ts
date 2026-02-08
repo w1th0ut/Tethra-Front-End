@@ -21,19 +21,19 @@ export const minikitConfig = {
     screenshotUrls: [
       `${ROOT_URL}/homepage/TapPosition.png`,
       `${ROOT_URL}/homepage/TapProfit.png`,
-      `${ROOT_URL}/homepage/DEX.png`
+      `${ROOT_URL}/homepage/og-banner.png`
     ],
     iconUrl: `${ROOT_URL}/tethra-polos.png`,
-    splashImageUrl: `${ROOT_URL}/homepage/DEX.png`,
+    splashImageUrl: `${ROOT_URL}/homepage/og-banner.png`,
     splashBackgroundColor: "#000000",
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
     primaryCategory: "finance",
     tags: ["trade", "tap-to-trade", "gasless", "defi"],
-    heroImageUrl: `${ROOT_URL}/homepage/DEX.png`,
+    heroImageUrl: `${ROOT_URL}/homepage/og-banner.png`,
     tagline: "Think it. Tap it. Trade it.",
     ogTitle: "Tethra Trade",
     ogDescription: "One tap. Zero pop-ups. Instant fills.",
-    ogImageUrl: `${ROOT_URL}/homepage/DEX.png`,
+    ogImageUrl: `${ROOT_URL}/homepage/og-banner.png`,
   },
 } as const;
