@@ -1,5 +1,7 @@
 # Tethra DEX - Frontend
 
+![Tethra Banner](./public/taptotrade.png)
+
 ![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![React](https://img.shields.io/badge/React-19-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
@@ -449,3 +451,4 @@ MIT License - see LICENSE file for details
 **Built with ❤️ by Tethra DEX Team**
 
 For questions or support, please open an issue on GitHub.
+
