@@ -766,7 +766,7 @@ export default function LandingPage() {
                 height={24}
                 className="w-6 h-6"
               />
-              <span className="text-gray-400">© 2025 Tethra. All rights reserved.</span>
+              <span className="text-gray-400">© 2026 Tethra. All rights reserved.</span>
             </div>
             <div className="flex gap-6 text-gray-400">
               <Link
