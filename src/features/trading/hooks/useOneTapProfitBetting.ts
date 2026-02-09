@@ -111,32 +111,13 @@ export const useOneTapProfit = () => {
     );
 
     if (missingBets.length > 0) {
-      const normalizePrice = (value?: string) => {
-        if (!value) return null;
-        const parsed = parseFloat(value);
-        if (!Number.isFinite(parsed)) return null;
-        return parsed > 1e7 ? parsed / 1e8 : parsed;
-      };
-
-      const didHitTarget = (entry: number, target: number, settle: number) =>
-        target >= entry ? settle >= target : settle <= target;
-
       // Check status of missing bets to see if they won
       missingBets.forEach(async (bet: Bet) => {
         try {
           const response = await axios.get(`${BACKEND_URL}/api/one-tap/bet/${bet.betId}`);
           const status = response.data.data.status;
-          const settlePrice = normalizePrice(response.data.data.settlePrice);
-          const entryPriceVal = normalizePrice(bet.entryPrice);
-          const targetPriceVal = normalizePrice(bet.targetPrice);
-          const forceLoss =
-            status === 'WON' &&
-            settlePrice !== null &&
-            entryPriceVal !== null &&
-            targetPriceVal !== null &&
-            !didHitTarget(entryPriceVal, targetPriceVal, settlePrice);
 
-          if (status === 'WON' && !forceLoss) {
+          if (status === 'WON') {
             // Play win sound
             try {
               const audio = new Audio('/sounds/win.mp3');
@@ -160,7 +141,7 @@ export const useOneTapProfit = () => {
               position: 'top-center',
               duration: 3000,
             });
-          } else if (status === 'LOST' || forceLoss) {
+          } else if (status === 'LOST') {
             // Update Session PnL (Loss = Bet Amount)
             const betAmountVal = parseFloat(bet.betAmount);
             setSessionPnL((prev) => prev - betAmountVal);
