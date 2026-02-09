@@ -2,6 +2,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import { Providers } from './providers';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { minikitConfig } from '@/minikit.config';
@@ -100,6 +101,7 @@ export default function RootLayout({
         <Providers>
           <SidebarProvider>{children}</SidebarProvider>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
