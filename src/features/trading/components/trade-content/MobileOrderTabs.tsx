@@ -45,7 +45,7 @@ export default function MobileOrderTabs({
           onClick={() => onTradeModeClick && onTradeModeClick('quick-tap')}
           className={`flex-1 py-3.5 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
             activeTradeMode === 'quick-tap'
-              ? 'bg-primary/20 text-primary border-t-2 border-primary'
+              ? 'bg-warning/20 text-warning border-t-2 border-warning'
               : 'bg-trading-surface text-text-secondary hover:bg-button-hover border-t-2 border-transparent'
           }`}
         >

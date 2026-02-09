@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePublicClient, useWatchContractEvent } from 'wagmi';
 import type { Abi } from 'viem';
+import { parseAbiItem } from 'viem';
 import MarketExecutorAbi from '@/contracts/abis/MarketExecutor.json';
 import PositionManagerAbi from '@/contracts/abis/PositionManager.json';
 import { MARKET_EXECUTOR_ADDRESS, POSITION_MANAGER_ADDRESS, USDC_DECIMALS } from '@/config/contracts';
@@ -27,11 +28,13 @@ export const useQuickTapSessionPnL = ({ enabled }: QuickTapSessionPnLOptions) =>
   const publicClient = usePublicClient();
   const [sessionPnL, setSessionPnL] = useState(0);
   const seenLogsRef = useRef<Set<string>>(new Set());
+  const lastCheckedBlockRef = useRef<bigint | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
     setSessionPnL(0);
     seenLogsRef.current.clear();
+    lastCheckedBlockRef.current = null;
   }, [enabled, address]);
 
   const applyPnL = useCallback((pnl: bigint) => {
@@ -134,6 +137,64 @@ export const useQuickTapSessionPnL = ({ enabled }: QuickTapSessionPnLOptions) =>
     onLogs: handlePositionClosedLogs,
     enabled: enabled && Boolean(address),
   });
+
+  useEffect(() => {
+    if (!enabled || !address || !publicClient) return;
+
+    let isActive = true;
+    const poll = async () => {
+      if (!isActive) return;
+      try {
+        const latestBlock = await publicClient.getBlockNumber();
+        if (lastCheckedBlockRef.current === null) {
+          lastCheckedBlockRef.current = latestBlock;
+          return;
+        }
+
+        if (latestBlock <= lastCheckedBlockRef.current) return;
+        const fromBlock = lastCheckedBlockRef.current + 1n;
+        const toBlock = latestBlock;
+
+        const marketLogs = await publicClient.getLogs({
+          address: MARKET_EXECUTOR_ADDRESS,
+          event: parseAbiItem(
+            'event PositionClosedMarket(uint256 indexed positionId,address indexed trader,uint256 exitPrice,int256 pnl,uint256 fee)',
+          ),
+          fromBlock,
+          toBlock,
+        });
+
+        if (marketLogs.length > 0) {
+          handleMarketLogs(marketLogs as any[]);
+        }
+
+        const positionLogs = await publicClient.getLogs({
+          address: POSITION_MANAGER_ADDRESS,
+          event: parseAbiItem(
+            'event PositionClosed(uint256 indexed positionId,uint256 exitPrice,int256 pnl)',
+          ),
+          fromBlock,
+          toBlock,
+        });
+
+        if (positionLogs.length > 0) {
+          handlePositionClosedLogs(positionLogs as any[]);
+        }
+
+        lastCheckedBlockRef.current = latestBlock;
+      } catch {
+        // ignore polling errors
+      }
+    };
+
+    const interval = setInterval(poll, 4000);
+    poll();
+
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
+  }, [address, enabled, handleMarketLogs, handlePositionClosedLogs, publicClient]);
 
   return { sessionPnL };
 };

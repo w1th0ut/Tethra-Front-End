@@ -30,6 +30,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
   showXAxis = true,
   showYAxis = true,
   positionMarkers = [],
+  pendingMarkers = [],
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const resolveCellFromPointRef = useRef<((point: { x: number; y: number }) => string | null) | null>(
@@ -698,14 +699,27 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     }
 
     // --- Draw Quick Tap Entry Lines ---
-    if (tradeMode === 'quick-tap' && positionMarkers.length > 0) {
+    if (tradeMode === 'quick-tap' && (positionMarkers.length > 0 || pendingMarkers.length > 0)) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(leftMargin, 0, chartWidth, chartHeight);
       ctx.clip();
 
-      ctx.setLineDash([6, 6]);
+      ctx.setLineDash([4, 4]);
       ctx.lineWidth = 2;
+
+      pendingMarkers.forEach((marker) => {
+        const y = priceToY(marker.entryPrice);
+        if (y < 0 || y > chartHeight) return;
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(leftMargin + chartWidth, y);
+        ctx.stroke();
+      });
+
+      ctx.setLineDash([6, 6]);
 
       positionMarkers.forEach((marker) => {
         const y = priceToY(marker.entryPrice);
@@ -787,6 +801,7 @@ const PerSecondChart: React.FC<PerSecondChartProps> = ({
     displayBets,
     isGridInteractive,
     positionMarkers,
+    pendingMarkers,
   ]);
 
   return (
