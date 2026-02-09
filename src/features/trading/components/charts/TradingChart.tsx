@@ -44,6 +44,8 @@ const TradingChart: React.FC = () => {
   );
   const [isMarketSelectorOpen, setIsMarketSelectorOpen] = useState(false);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingQuickTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevQuickTapCountRef = useRef<number>(0);
 
   const tapToTrade = useTapToTrade();
   const { placeBetWithSession, isPlacingBet, activeBets, sessionPnL: oneTapSessionPnL } =
@@ -152,9 +154,24 @@ const TradingChart: React.FC = () => {
 
   const handleQuickTap = async (isLong: boolean) => {
     try {
+      const pendingPrice = headerDisplayPrice || 0;
+      if (pendingPrice > 0) {
+        tapToTrade.setQuickTapPendingMarker({
+          price: pendingPrice,
+          isLong,
+          createdAt: Date.now(),
+        });
+        if (pendingQuickTapTimeoutRef.current) {
+          clearTimeout(pendingQuickTapTimeoutRef.current);
+        }
+        pendingQuickTapTimeoutRef.current = setTimeout(() => {
+          tapToTrade.setQuickTapPendingMarker(null);
+        }, 10000);
+      }
       await tapToTrade.executeQuickTap(isLong);
       toast.success(isLong ? 'Quick tap long sent' : 'Quick tap short sent');
     } catch (error: any) {
+      tapToTrade.setQuickTapPendingMarker(null);
       toast.error(error?.message || 'Quick tap failed');
     }
   };
@@ -175,6 +192,36 @@ const TradingChart: React.FC = () => {
         isLong: position.isLong,
       }));
   }, [isQuickTap, activeMarket, positions]);
+
+  const quickTapPendingMarkers = useMemo(() => {
+    if (!isQuickTap || !tapToTrade.quickTapPendingMarker) return [];
+    return [
+      {
+        id: `pending-${tapToTrade.quickTapPendingMarker.createdAt}`,
+        entryPrice: tapToTrade.quickTapPendingMarker.price,
+        isLong: tapToTrade.quickTapPendingMarker.isLong,
+      },
+    ];
+  }, [isQuickTap, tapToTrade.quickTapPendingMarker]);
+
+  useEffect(() => {
+    if (!tapToTrade.quickTapPendingMarker) {
+      prevQuickTapCountRef.current = quickTapPositionMarkers.length;
+      return;
+    }
+    if (quickTapPositionMarkers.length > prevQuickTapCountRef.current) {
+      tapToTrade.setQuickTapPendingMarker(null);
+    }
+    prevQuickTapCountRef.current = quickTapPositionMarkers.length;
+  }, [quickTapPositionMarkers.length, tapToTrade, tapToTrade.quickTapPendingMarker]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingQuickTapTimeoutRef.current) {
+        clearTimeout(pendingQuickTapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const displaySessionPnL =
     tapToTrade.tradeMode === 'quick-tap' ? quickTapSessionPnL : oneTapSessionPnL;
@@ -411,6 +458,7 @@ const TradingChart: React.FC = () => {
                 showXAxis={axisConfig.showX}
                 showYAxis={axisConfig.showY}
                 positionMarkers={quickTapPositionMarkers}
+                pendingMarkers={quickTapPendingMarkers}
                 {...(tapToTrade.tradeMode === 'open-position' && tapToTrade.gridSession
                   ? {
                       gridIntervalSeconds:

@@ -33,4 +33,9 @@ export interface PerSecondChartProps {
     entryPrice: number;
     isLong: boolean;
   }[];
+  pendingMarkers?: {
+    id: string;
+    entryPrice: number;
+    isLong: boolean;
+  }[];
 }

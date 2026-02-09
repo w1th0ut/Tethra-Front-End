@@ -33,6 +33,12 @@ interface CellOrderInfo {
 
 type TradeMode = 'open-position' | 'one-tap-profit' | 'quick-tap';
 
+interface QuickTapPendingMarker {
+  price: number;
+  isLong: boolean;
+  createdAt: number;
+}
+
 interface TapToTradeContextType {
   // Mode state
   isEnabled: boolean;
@@ -77,6 +83,8 @@ interface TapToTradeContextType {
   // Quick tap execution
   executeQuickTap: (isLong: boolean) => Promise<any>;
   isQuickTapExecuting: boolean;
+  quickTapPendingMarker: QuickTapPendingMarker | null;
+  setQuickTapPendingMarker: (marker: QuickTapPendingMarker | null) => void;
 
   // Backend integration
   gridSession: GridSession | null;
@@ -106,11 +114,19 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
     leverage: number;
   } | null>(null);
   const [isQuickTapExecuting, setIsQuickTapExecuting] = useState(false);
+  const [quickTapPendingMarker, setQuickTapPendingMarker] =
+    useState<QuickTapPendingMarker | null>(null);
 
   // Backend integration state
   const [gridSession, setGridSession] = useState<GridSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isEnabled || tradeMode !== 'quick-tap') {
+      setQuickTapPendingMarker(null);
+    }
+  }, [isEnabled, tradeMode]);
 
   // Track nonce locally to avoid race conditions with multiple orders
   const [localNonce, setLocalNonce] = useState<bigint>(BigInt(0));
@@ -951,6 +967,8 @@ export const TapToTradeProvider: React.FC<{ children: ReactNode }> = ({ children
         createSession, // Export createSession
         executeQuickTap,
         isQuickTapExecuting,
+        quickTapPendingMarker,
+        setQuickTapPendingMarker,
       }}
     >
       {children}
